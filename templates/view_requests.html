@@ -1,0 +1,525 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center mb-4">
+    <a href="/farmer_dashboard" class="btn btn-outline mr-4">
+        <i class="fas fa-arrow-left"></i>
+        Back to Dashboard
+    </a>
+    <h1>Stock Requests</h1>
+</div>
+
+<div class="flex gap-4">
+    <!-- Left side: Your requests -->
+    <div class="card" style="flex: 2;">
+        <div class="card-header">
+            <h2>Your Stock Requests</h2>
+        </div>
+        <div class="card-body">
+            <div class="search-container mb-4">
+                <div class="input-group">
+                    <input type="text" id="requestSearchInput" class="form-control" placeholder="Search requests...">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="table" id="requestsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Warehouse</th>
+                            <th>Stock Type</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in requests %}
+                        <tr>
+                            <td>{{ request.id }}</td>
+                            <td>
+                                {% if request.warehouse %}
+                                    {{ request.warehouse.name }}
+                                {% elif request.warehouse_id is defined %}
+                                    {% set warehouse = request.warehouse %}
+                                    {% if warehouse %}
+                                        {{ warehouse.name }}
+                                    {% else %}
+                                        Unknown
+                                    {% endif %}
+                                {% else %}
+                                    {% set warehouse = request.from_id|int %}
+                                    Unknown
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if request.stock_type is defined %}
+                                    {{ request.stock_type }}
+                                {% elif request.crop_type is defined %}
+                                    {{ request.crop_type }}
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </td>
+                            <td>{{ request.quantity }}</td>
+                            <td>
+                                {% if request.status == 'pending' %}
+                                <span class="badge badge-warning">Pending</span>
+                                {% elif request.status == 'approved' %}
+                                <span class="badge badge-success">Approved</span>
+                                {% elif request.status == 'rejected' %}
+                                <span class="badge badge-danger">Rejected</span>
+                                {% elif request.status == 'canceled' %}
+                                <span class="badge badge-secondary">Canceled</span>
+                                {% else %}
+                                <span class="badge badge-secondary">{{ request.status|capitalize }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if request.date_requested is defined %}
+                                    {{ request.date_requested.strftime('%Y-%m-%d') }}
+                                {% elif request.request_date is defined %}
+                                    {{ request.request_date.strftime('%Y-%m-%d') }}
+                                {% else %}
+                                    Unknown
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="viewRequestDetails({{ request.id }})">
+                                    <i class="fas fa-eye"></i>
+                                    View
+                                </button>
+                                {% if request.status == 'pending' %}
+                                <button class="btn btn-sm btn-danger" onclick="cancelRequest({{ request.id }})">
+                                    <i class="fas fa-times"></i>
+                                    Cancel
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not requests %}
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="empty-state-container py-5">
+                                    <i class="fas fa-box fa-3x mb-3"></i>
+                                    <p class="mb-3">You haven't made any stock requests yet</p>
+                                    <a href="/create_request" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i>
+                                        Create New Request
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right side: Open warehouse requests -->
+    <div class="card" style="flex: 1;">
+        <div class="card-header">
+            <h2>Open Warehouse Requests</h2>
+            <span class="text-muted">Warehouses looking for stock</span>
+        </div>
+        <div class="card-body">
+            <div class="table-container">
+                <table class="table" id="warehouseRequestsTable">
+                    <thead>
+                        <tr>
+                            <th>Warehouse</th>
+                            <th>Stock Type</th>
+                            <th>Quantity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in warehouse_requests %}
+                        <tr>
+                            <td>{{ req.warehouse.name }}</td>
+                            <td>{{ req.stock_type }}</td>
+                            <td>{{ req.quantity }} tons</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" onclick="viewWarehouseRequestDetails({{ req.id }})">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-success" onclick="respondToWarehouseRequest({{ req.id }})">
+                                    <i class="fas fa-reply"></i>
+                                    Respond
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not warehouse_requests %}
+                        <tr>
+                            <td colspan="4" class="text-center">
+                                <div class="empty-state-container py-5">
+                                    <i class="fas fa-warehouse fa-3x mb-3"></i>
+                                    <p class="mb-3">No open warehouse requests at this time</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Request Details Modal -->
+<div class="modal fade" id="requestDetailsModal" tabindex="-1" role="dialog" aria-labelledby="requestDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="requestDetailsModalLabel">Request Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="requestDetailsModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-danger" id="cancelRequestBtn" style="display: none;">Cancel Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Warehouse Request Details Modal -->
+<div class="modal fade" id="warehouseRequestDetailsModal" tabindex="-1" role="dialog" aria-labelledby="warehouseRequestDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="warehouseRequestDetailsModalLabel">Warehouse Request Details</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="warehouseRequestDetailsModalBody">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="respondToRequestBtn">Respond to Request</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentRequestId = null;
+let currentWarehouseRequestId = null;
+
+// Search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('requestSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const table = document.getElementById('requestsTable');
+            const rows = table.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                let found = false;
+                const cells = row.querySelectorAll('td');
+                cells.forEach(cell => {
+                    if (cell.textContent.toLowerCase().includes(searchTerm)) {
+                        found = true;
+                    }
+                });
+                
+                if (found) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+
+// View request details
+function viewRequestDetails(requestId) {
+    currentRequestId = requestId;
+    
+    // Show loading state
+    const modalBody = document.getElementById('requestDetailsModalBody');
+    modalBody.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    // Show/hide cancel button based on request status
+    document.getElementById('cancelRequestBtn').style.display = 'none';
+    
+    // Show modal
+    $('#requestDetailsModal').modal('show');
+    
+    // Fetch request details
+    fetch(`/request_details/${requestId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const request = data.request;
+                
+                // Format the details
+                let statusBadge = '';
+                if (request.status === 'pending') {
+                    statusBadge = '<span class="badge badge-warning">Pending</span>';
+                    document.getElementById('cancelRequestBtn').style.display = 'block';
+                } else if (request.status === 'approved') {
+                    statusBadge = '<span class="badge badge-success">Approved</span>';
+                } else if (request.status === 'rejected') {
+                    statusBadge = '<span class="badge badge-danger">Rejected</span>';
+                } else if (request.status === 'canceled') {
+                    statusBadge = '<span class="badge badge-secondary">Canceled</span>';
+                } else {
+                    statusBadge = `<span class="badge badge-secondary">${request.status}</span>`;
+                }
+                
+                // Update modal content
+                modalBody.innerHTML = `
+                    <div class="request-details">
+                        <div class="detail-item">
+                            <strong>Request ID:</strong> ${request.id}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Warehouse:</strong> ${request.warehouse_name}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Stock Type:</strong> ${request.stock_type}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Quantity:</strong> ${request.quantity} tons
+                        </div>
+                        <div class="detail-item">
+                            <strong>Status:</strong> ${statusBadge}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Date Requested:</strong> ${request.date_requested}
+                        </div>
+                        ${request.date_processed ? `
+                        <div class="detail-item">
+                            <strong>Date Processed:</strong> ${request.date_processed}
+                        </div>
+                        ` : ''}
+                        <div class="detail-item">
+                            <strong>Notes:</strong> 
+                            <p>${request.notes ? request.notes : 'No notes provided'}</p>
+                        </div>
+                        ${request.admin_notes ? `
+                        <div class="detail-item">
+                            <strong>Admin Notes:</strong>
+                            <p>${request.admin_notes}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                // Set up cancel button
+                document.getElementById('cancelRequestBtn').onclick = function() {
+                    cancelRequest(currentRequestId);
+                };
+            } else {
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        ${data.message || 'Failed to load request details'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching request details:', error);
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    An error occurred while fetching request details
+                </div>
+            `;
+        });
+}
+
+// Cancel request
+function cancelRequest(requestId) {
+    if (!confirm('Are you sure you want to cancel this request?')) {
+        return;
+    }
+    
+    fetch(`/cancel_request/${requestId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Close modal if open
+            $('#requestDetailsModal').modal('hide');
+            
+            // Show success message
+            alert('Request canceled successfully');
+            
+            // Reload page to reflect changes
+            window.location.reload();
+        } else {
+            alert(data.message || 'Failed to cancel request');
+        }
+    })
+    .catch(error => {
+        console.error('Error canceling request:', error);
+        alert('An error occurred while canceling the request');
+    });
+}
+
+// View warehouse request details
+function viewWarehouseRequestDetails(requestId) {
+    currentWarehouseRequestId = requestId;
+    
+    // Show loading state
+    const modalBody = document.getElementById('warehouseRequestDetailsModalBody');
+    modalBody.innerHTML = `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Loading...</span>
+            </div>
+        </div>
+    `;
+    
+    // Show modal
+    $('#warehouseRequestDetailsModal').modal('show');
+    
+    // Fetch warehouse request details
+    fetch(`/warehouse_request_details/${requestId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const request = data.request;
+                
+                // Update modal content
+                modalBody.innerHTML = `
+                    <div class="request-details">
+                        <div class="detail-item">
+                            <strong>Warehouse:</strong> ${request.warehouse_name}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Stock Type:</strong> ${request.stock_type}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Quantity Needed:</strong> ${request.quantity} tons
+                        </div>
+                        <div class="detail-item">
+                            <strong>Price Offered:</strong> ₹${request.price_per_ton}/ton
+                        </div>
+                        <div class="detail-item">
+                            <strong>Date Posted:</strong> ${request.date_posted}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Expiry Date:</strong> ${request.expiry_date}
+                        </div>
+                        <div class="detail-item">
+                            <strong>Description:</strong> 
+                            <p>${request.description ? request.description : 'No description provided'}</p>
+                        </div>
+                    </div>
+                `;
+                
+                // Set up respond button
+                document.getElementById('respondToRequestBtn').onclick = function() {
+                    respondToWarehouseRequest(currentWarehouseRequestId);
+                };
+            } else {
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        ${data.message || 'Failed to load warehouse request details'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching warehouse request details:', error);
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    An error occurred while fetching warehouse request details
+                </div>
+            `;
+        });
+}
+
+// Respond to warehouse request
+function respondToWarehouseRequest(requestId) {
+    // Close details modal if open
+    $('#warehouseRequestDetailsModal').modal('hide');
+    
+    // Redirect to create request page with pre-filled info
+    window.location.href = `/create_request?warehouse_request_id=${requestId}`;
+}
+</script>
+
+<style>
+.detail-item {
+    margin-bottom: 15px;
+}
+
+.detail-item strong {
+    display: inline-block;
+    min-width: 120px;
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25em 0.4em;
+    font-size: 75%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.badge-warning {
+    color: #212529;
+    background-color: #ffc107;
+}
+
+.badge-success {
+    color: #fff;
+    background-color: #28a745;
+}
+
+.badge-danger {
+    color: #fff;
+    background-color: #dc3545;
+}
+
+.badge-secondary {
+    color: #fff;
+    background-color: #6c757d;
+}
+</style>
+{% endblock %}

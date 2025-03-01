@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+    <h1>Warehouse Dashboard</h1>
+    <button class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Add New Stock
+    </button>
+</div>
+
+<div class="dashboard-stats">
+    <div class="stat-card">
+        <i class="fas fa-box-open fa-2x mb-3"></i>
+        <h3>{{ warehouse.available_space }}</h3>
+        <p>Available Space (tons)</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-warehouse fa-2x mb-3"></i>
+        <h3>{{ warehouse.capacity }}</h3>
+        <p>Total Capacity (tons)</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-cubes fa-2x mb-3"></i>
+        <h3>{{ stocks|length }}</h3>
+        <p>Total Stock Items</p>
+    </div>
+</div>
+
+<div class="flex gap-3">
+    <div class="card" style="flex: 1;">
+        <h2>Storage Capacity</h2>
+        <div class="mt-4" style="height: 20px; background-color: var(--border-color); border-radius: 10px; overflow: hidden;">
+            {% set used_percentage = ((warehouse.capacity - warehouse.available_space) / warehouse.capacity * 100)|round %}
+            <div style="height: 100%; width: {{ used_percentage }}%; background: linear-gradient(to right, var(--primary-color), var(--primary-dark)); border-radius: 10px;"></div>
+        </div>
+        <div class="flex justify-between mt-2">
+            <span>{{ used_percentage }}% Used</span>
+            <span>{{ (warehouse.capacity - warehouse.available_space) }} / {{ warehouse.capacity }} tons</span>
+        </div>
+    </div>
+    
+    <div class="card" style="flex: 1;">
+        <h2>Update Storage Details</h2>
+        <form id="storage-form" class="mt-3">
+            <div class="form-group">
+                <label for="capacity">Total Capacity (tons)</label>
+                <input type="number" class="form-control" id="capacity" name="capacity" value="{{ warehouse.capacity }}" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <label for="available_space">Available Space (tons)</label>
+                <input type="number" class="form-control" id="available_space" name="available_space" value="{{ warehouse.available_space }}" step="0.01" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i>
+                Update Storage
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="flex justify-between items-center mb-3">
+        <h2>Current Stocks</h2>
+        <div class="flex gap-2">
+            <button class="btn btn-outline">
+                <i class="fas fa-filter"></i>
+                Filter
+            </button>
+            <button class="btn btn-outline">
+                <i class="fas fa-download"></i>
+                Export
+            </button>
+        </div>
+    </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Stock Type</th>
+                    <th>Quantity (tons)</th>
+                    <th>Source Farmer</th>
+                    <th>Date Added</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for stock in stocks %}
+                <tr>
+                    <td>{{ stock.type }}</td>
+                    <td>
+                        <div class="flex items-center gap-2">
+                            <input type="number" class="form-control" value="{{ stock.quantity }}" 
+                                id="quantity-{{ stock.id }}" step="0.01" style="width: 100px;">
+                            <span>tons</span>
+                        </div>
+                    </td>
+                    <td>{{ stock.farmer.name }}</td>
+                    <td>{{ stock.date_added.strftime('%Y-%m-%d') }}</td>
+                    <td>
+                        {% if stock.status == 'available' %}
+                        <span class="badge badge-success">Available</span>
+                        {% elif stock.status == 'reserved' %}
+                        <span class="badge badge-warning">Reserved</span>
+                        {% elif stock.status == 'depleted' %}
+                        <span class="badge badge-error">Depleted</span>
+                        {% else %}
+                        <span class="badge badge-info">{{ stock.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="flex gap-2">
+                            <button class="btn btn-primary" onclick="updateStock({{ stock.id }})">
+                                <i class="fas fa-save"></i>
+                            </button>
+                            <button class="btn btn-outline" onclick="viewStockDetails({{ stock.id }})">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not stocks %}
+                <tr>
+                    <td colspan="6" class="text-center">No stocks found</td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateStock(stockId) {
+    const quantity = $(`#quantity-${stockId}`).val();
+    $.post('/update_stock', {
+        stock_id: stockId,
+        quantity: quantity
+    })
+    .done(function(response) {
+        showAlert('Stock updated successfully', 'success');
+    })
+    .fail(function(error) {
+        showAlert('Failed to update stock', 'error');
+    });
+}
+
+function viewStockDetails(stockId) {
+    // This would open a modal with stock details
+    showAlert('Viewing stock details is not implemented yet', 'info');
+}
+
+$('#storage-form').submit(function(e) {
+    e.preventDefault();
+    $.post('/update_storage', {
+        capacity: $('#capacity').val(),
+        available_space: $('#available_space').val()
+    })
+    .done(function(response) {
+        showAlert('Storage details updated successfully', 'success');
+        setTimeout(() => location.reload(), 1000);
+    })
+    .fail(function(error) {
+        showAlert('Failed to update storage details', 'error');
+    });
+});
+</script>
+{% endblock %}

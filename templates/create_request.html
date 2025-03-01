@@ -1,0 +1,424 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex items-center mb-4">
+    <a href="{{ url_for('farmer_dashboard.farmer_home') }}" class="btn btn-outline mr-4">
+        <i class="fas fa-arrow-left"></i>
+        Back to Dashboard
+    </a>
+    <h1>Create New Stock Request</h1>
+</div>
+
+<div class="flex gap-4">
+    <!-- Left side: Form -->
+    <div class="card" style="flex: 1;">
+        <div class="card-header">
+            <h2>New Stock Request Form</h2>
+        </div>
+        <div class="card-body">
+            <form id="newRequestForm" action="{{ url_for('farmer_dashboard.submit_request') }}" method="POST">
+                <div class="form-group">
+                    <label for="warehouseSelect">Selected Warehouse</label>
+                    <div class="selected-warehouse-container p-3 border rounded mb-3" id="selectedWarehouseContainer" style="display: none;">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <h3 id="selectedWarehouseName" class="text-lg font-bold"></h3>
+                                <p id="selectedWarehouseAddress" class="text-sm"></p>
+                                <p class="text-sm">Available Space: <span id="selectedWarehouseSpace"></span> tons</p>
+                            </div>
+                            <button type="button" class="btn btn-outline btn-sm" onclick="clearSelectedWarehouse()">
+                                <i class="fas fa-times"></i> Change
+                            </button>
+                        </div>
+                    </div>
+                    <input type="hidden" id="warehouseId" name="warehouse_id" required>
+                    <div id="warehouseSelectPrompt">
+                        <p class="mb-3">Please select a warehouse from the map or list below</p>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="stockType">Stock Type</label>
+                    <select id="stockType" name="stock_type" class="form-control" required>
+                        <option value="">-- Select Stock Type --</option>
+                        <option value="Rice">Rice</option>
+                        <option value="Wheat">Wheat</option>
+                        <option value="Corn">Corn</option>
+                        <option value="Sugarcane">Sugarcane</option>
+                        <option value="Vegetables">Vegetables</option>
+                        <option value="Fruits">Fruits</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group" id="otherStockTypeGroup" style="display: none;">
+                    <label for="otherStockType">Specify Stock Type</label>
+                    <input type="text" id="otherStockType" name="other_stock_type" class="form-control" placeholder="Enter stock type">
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Quantity (tons)</label>
+                    <input type="number" id="quantity" name="quantity" class="form-control" min="0.01" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Additional Notes</label>
+                    <textarea id="notes" name="notes" class="form-control" rows="3"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <a href="{{ url_for('farmer_dashboard.farmer_home') }}" class="btn btn-outline">Cancel</a>
+                    <button type="submit" class="btn btn-primary" id="submitButton" disabled>
+                        <i class="fas fa-paper-plane"></i>
+                        Submit Request
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Right side: Map -->
+    <div class="card" style="flex: 1;">
+        <div class="card-header">
+            <h2>Nearby Warehouses</h2>
+        </div>
+        <div class="card-body">
+            <div id="map" style="height: 400px; width: 100%; margin-bottom: 20px;"></div>
+            <div class="warehouse-list-container">
+                <h3 class="mb-3">Available Warehouses</h3>
+                <div class="table-container">
+                    <table class="table" id="warehousesTable">
+                        <thead>
+                            <tr>
+                                <th>Warehouse Name</th>
+                                <th>Location</th>
+                                <th>Type</th>
+                                <th>Available Space</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for warehouse in warehouses %}
+                            <tr data-id="{{ warehouse.id }}" data-name="{{ warehouse.name }}" data-location="{{ warehouse.location }}" data-lat="{{ warehouse.latitude }}" data-lng="{{ warehouse.longitude }}" data-type="{{ warehouse.warehouse_type }}" data-space="{{ warehouse.available_space }}">
+                                <td>{{ warehouse.name }}</td>
+                                <td>{{ warehouse.location }}</td>
+                                <td>{{ warehouse.warehouse_type|capitalize }}</td>
+                                <td>{{ warehouse.available_space }} tons</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm select-warehouse" data-id="{{ warehouse.id }}">
+                                        <i class="fas fa-check"></i>
+                                        Select
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% if not warehouses %}
+                            <tr>
+                                <td colspan="5" class="text-center">
+                                    <div class="empty-state-container py-5">
+                                        <i class="fas fa-warehouse fa-3x mb-3"></i>
+                                        <p class="mb-3">No nearby warehouses found</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&callback=initMap" async defer></script>
+<script>
+let map;
+let markers = [];
+let infoWindow;
+let warehouses = [];
+
+function initMap() {
+    // Default center (India)
+    const defaultCenter = { lat: 20.5937, lng: 78.9629 };
+    
+    map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 5,
+        center: defaultCenter,
+    });
+    
+    // Try to get user's current location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                // Add marker for user location
+                new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: "#4285F4",
+                        fillOpacity: 1,
+                        strokeColor: "#FFFFFF",
+                        strokeWeight: 2,
+                    },
+                    title: "Your Location"
+                });
+                
+                // Center map on user location and zoom in
+                map.setCenter(userLocation);
+                map.setZoom(10);
+                
+                // Load warehouses after getting user location
+                loadWarehouses();
+            },
+            () => {
+                // If geolocation fails, just load warehouses with default center
+                loadWarehouses();
+            }
+        );
+    } else {
+        // Browser doesn't support geolocation
+        loadWarehouses();
+    }
+}
+
+// Load warehouse data and add markers
+function loadWarehouses() {
+    warehouses = [];
+    
+    // Get warehouse data from the table
+    document.querySelectorAll('#warehousesTable tbody tr:not([colspan])').forEach(row => {
+        if (!row.hasAttribute('data-id')) return;
+        
+        const warehouse = {
+            id: row.getAttribute('data-id'),
+            name: row.getAttribute('data-name'),
+            location: row.getAttribute('data-location'),
+            lat: parseFloat(row.getAttribute('data-lat')),
+            lng: parseFloat(row.getAttribute('data-lng')),
+            type: row.getAttribute('data-type'),
+            availableSpace: row.getAttribute('data-space')
+        };
+        
+        warehouses.push(warehouse);
+        addWarehouseMarker(warehouse);
+    });
+    
+    // If we have warehouses and user location, fit bounds to include all
+    if (warehouses.length > 0) {
+        const bounds = new google.maps.LatLngBounds();
+        
+        // Add user location to bounds if available
+        if (userLocation) {
+            bounds.extend(userLocation);
+        }
+        
+        // Add all warehouse locations to bounds
+        markers.forEach(marker => {
+            bounds.extend(marker.getPosition());
+        });
+        
+        map.fitBounds(bounds);
+        
+        // Don't zoom in too far
+        const listener = google.maps.event.addListener(map, "idle", () => {
+            if (map.getZoom() > 12) {
+                map.setZoom(12);
+            }
+            google.maps.event.removeListener(listener);
+        });
+    }
+}
+
+// Add a marker for a warehouse
+function addWarehouseMarker(warehouse) {
+    const marker = new google.maps.Marker({
+        position: { lat: warehouse.lat, lng: warehouse.lng },
+        map: map,
+        title: warehouse.name,
+        icon: {
+            url: warehouse.type === 'government' ? 
+                'https://maps.google.com/mapfiles/ms/icons/blue-dot.png' : 
+                'https://maps.google.com/mapfiles/ms/icons/red-dot.png'
+        }
+    });
+    
+    // Create info window content
+    const contentString = `
+        <div class="info-window">
+            <h3>${warehouse.name}</h3>
+            <p>${warehouse.location}</p>
+            <p>Type: ${warehouse.type.charAt(0).toUpperCase() + warehouse.type.slice(1)}</p>
+            <p>Available Space: ${warehouse.availableSpace} tons</p>
+            <button class="map-select-btn" onclick="selectWarehouseFromMap('${warehouse.id}')">Select This Warehouse</button>
+        </div>
+    `;
+    
+    const infowindow = new google.maps.InfoWindow({
+        content: contentString,
+    });
+    
+    // Add click listener to open info window
+    marker.addListener("click", () => {
+        infowindow.open(map, marker);
+    });
+    
+    markers.push(marker);
+    return marker;
+}
+
+// Select warehouse from map button click
+function selectWarehouseFromMap(warehouseId) {
+    selectWarehouse(warehouseId);
+}
+
+// Select warehouse function
+function selectWarehouse(warehouseId) {
+    const warehouse = warehouses.find(w => w.id === warehouseId);
+    if (!warehouse) return;
+    
+    // Update hidden input
+    document.getElementById('warehouseId').value = warehouse.id;
+    
+    // Update display
+    document.getElementById('selectedWarehouseName').textContent = warehouse.name;
+    document.getElementById('selectedWarehouseAddress').textContent = warehouse.location;
+    document.getElementById('selectedWarehouseSpace').textContent = warehouse.availableSpace;
+    
+    // Show selected warehouse info and hide prompt
+    document.getElementById('selectedWarehouseContainer').style.display = 'block';
+    document.getElementById('warehouseSelectPrompt').style.display = 'none';
+    
+    // Enable submit button
+    document.getElementById('submitButton').disabled = false;
+    
+    // Highlight selected row in table
+    document.querySelectorAll('#warehousesTable tbody tr').forEach(row => {
+        if (row.getAttribute('data-id') === warehouseId) {
+            row.classList.add('selected-row');
+        } else {
+            row.classList.remove('selected-row');
+        }
+    });
+    
+    // Center map on selected warehouse
+    map.setCenter({ lat: warehouse.lat, lng: warehouse.lng });
+    map.setZoom(15);
+}
+
+// Clear selected warehouse
+function clearSelectedWarehouse() {
+    document.getElementById('warehouseId').value = '';
+    document.getElementById('selectedWarehouseContainer').style.display = 'none';
+    document.getElementById('warehouseSelectPrompt').style.display = 'block';
+    document.getElementById('submitButton').disabled = true;
+    
+    // Remove highlight from table
+    document.querySelectorAll('#warehousesTable tbody tr').forEach(row => {
+        row.classList.remove('selected-row');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle "Other" stock type selection
+    document.getElementById('stockType').addEventListener('change', function() {
+        const otherGroup = document.getElementById('otherStockTypeGroup');
+        if (this.value === 'Other') {
+            otherGroup.style.display = 'block';
+        } else {
+            otherGroup.style.display = 'none';
+        }
+    });
+    
+    // Add click handlers for select buttons in table
+    document.querySelectorAll('.select-warehouse').forEach(button => {
+        button.addEventListener('click', function() {
+            const warehouseId = this.getAttribute('data-id');
+            selectWarehouse(warehouseId);
+        });
+    });
+    
+    // Form submission handling
+    document.getElementById('newRequestForm').addEventListener('submit', function(event) {
+        if (this.checkValidity()) {
+            const stockType = document.getElementById('stockType').value;
+            if (stockType === 'Other') {
+                const otherStockType = document.getElementById('otherStockType').value;
+                if (!otherStockType.trim()) {
+                    event.preventDefault();
+                    alert('Please specify the stock type.');
+                    return false;
+                }
+            }
+            
+            const warehouseId = document.getElementById('warehouseId').value;
+            if (!warehouseId) {
+                event.preventDefault();
+                alert('Please select a warehouse.');
+                return false;
+            }
+        }
+    });
+    
+    // Check for warehouse_id parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const warehouseIdParam = urlParams.get('warehouse_id');
+    
+    if (warehouseIdParam) {
+        console.log("Found warehouse_id in URL:", warehouseIdParam);
+        // We need to wait for the map to initialize and warehouses to load
+        // before we can select the warehouse
+        const checkWarehousesLoaded = setInterval(function() {
+            if (warehouses.length > 0) {
+                clearInterval(checkWarehousesLoaded);
+                selectWarehouse(warehouseIdParam);
+                
+                // Scroll to the form section
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 500);
+    }
+});
+</script>
+
+<style>
+.selected-row {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.map-select-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 5px;
+}
+
+.map-select-btn:hover {
+    background-color: #0056b3;
+}
+
+.info-window {
+    padding: 5px;
+    max-width: 200px;
+}
+
+.info-window h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+.info-window p {
+    margin: 3px 0;
+    font-size: 14px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-tractor"></i>
+            <h2>Farmer Registration</h2>
+            <p>Register as a farmer to manage your crops</p>
+        </div>
+
+        <form method="POST" class="auth-form" onsubmit="return validateForm()">
+            <div class="form-group">
+                <label for="name">
+                    <i class="fas fa-user"></i>
+                    Full Name
+                </label>
+                <input type="text" id="name" name="name" required 
+                    placeholder="Enter your full name">
+            </div>
+
+            <div class="form-group">
+                <label for="address">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Address
+                </label>
+                <textarea id="address" name="address" required 
+                    placeholder="Enter your full address" rows="3"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="aadharNumber">
+                    <i class="fas fa-id-card"></i>
+                    Aadhar Card Number
+                </label>
+                <input type="text" id="aadharNumber" name="aadharNumber" required 
+                    pattern="[0-9]{12}" maxlength="12"
+                    placeholder="Enter 12-digit Aadhar number"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                <small class="form-hint">Enter 12 digits without spaces</small>
+            </div>
+
+            <div class="form-group">
+                <label for="phoneNumber">
+                    <i class="fas fa-phone"></i>
+                    Phone Number
+                </label>
+                <input type="tel" id="phoneNumber" name="phoneNumber" required 
+                    pattern="[0-9]{10}" maxlength="10"
+                    placeholder="Enter 10-digit phone number"
+                    oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                <small class="form-hint">Enter 10 digits without spaces</small>
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+                <input type="password" id="password" name="password" required 
+                    placeholder="Create a strong password"
+                    minlength="8">
+                <small class="form-hint">Minimum 8 characters</small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">
+                    <i class="fas fa-lock"></i>
+                    Confirm Password
+                </label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required 
+                    placeholder="Confirm your password"
+                    minlength="8">
+            </div>
+
+            <button type="submit" class="submit-btn">
+                <i class="fas fa-user-plus"></i>
+                Register
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+        </div>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 6rem);
+    padding: var(--spacing-md);
+}
+
+.auth-card {
+    background: var(--surface-color);
+    border-radius: 16px;
+    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-xl);
+    width: 100%;
+    max-width: 500px;
+    border: 1px solid var(--border-color);
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.auth-header i {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: var(--spacing-sm);
+}
+
+.auth-header h2 {
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.auth-header p {
+    color: var(--text-secondary);
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.form-group label {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.form-group label i {
+    color: var(--primary-color);
+}
+
+.form-group input,
+.form-group textarea {
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color-light);
+    outline: none;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-hint {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: -4px;
+}
+
+.submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: var(--spacing-md);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: var(--spacing-md);
+}
+
+.submit-btn:hover {
+    background: var(--primary-color-dark);
+    transform: translateY(-2px);
+}
+
+.submit-btn i {
+    font-size: 1.2rem;
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: var(--spacing-lg);
+}
+
+.auth-footer a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
+</style>
+
+<script>
+function validateForm() {
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (password !== confirmPassword) {
+        alert('Passwords do not match!');
+        return false;
+    }
+    return true;
+}
+</script>
+{% endblock %}

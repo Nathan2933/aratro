@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if current_user.is_authenticated %}
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    {% endif %}
+    <title>Supply Chain Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 350px;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .flash-message.success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .flash-message.error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        .flash-message.info {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .flash-message.warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .flash-message i {
+            margin-right: 0.5rem;
+        }
+
+        .flash-message-content {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+
+        .flash-message .close-flash-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            padding: 5px;
+            margin-left: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+        }
+
+        .flash-message .close-flash-btn:hover {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* Responsive navbar styles */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-wrap: wrap;
+                padding: 0.5rem;
+            }
+            
+            .navbar-brand {
+                flex: 1;
+            }
+            
+            .navbar-menu {
+                order: 3;
+                width: 100%;
+                margin-top: 0.5rem;
+                justify-content: center;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+            }
+            
+            .navbar-end {
+                flex: 0;
+            }
+            
+            .user-menu-dropdown {
+                right: 0;
+                left: auto;
+            }
+        }
+
+        .welcome-banner {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .welcome-banner-content {
+            flex-grow: 1;
+        }
+
+        .banner-hint {
+            display: block;
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .welcome-banner .close-banner-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: all 0.2s ease;
+            padding: 8px;
+            margin-left: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .welcome-banner .close-banner-btn:hover {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .welcome-banner .close-banner-btn i {
+            font-size: 16px;
+        }
+
+        .welcome-banner.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a href="{{ url_for('main.index') }}" class="brand-link">
+                <i class="fas fa-link"></i>
+                Supply Chain
+            </a>
+        </div>
+
+        {% if current_user.is_authenticated %}
+        <div class="navbar-menu">
+            <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                <i class="fas fa-chart-line"></i>
+                Dashboard
+            </a>
+            {% if current_user.role == 'farmer' %}
+            <a href="#" class="nav-link">
+                <i class="fas fa-warehouse"></i>
+                Find Warehouses
+            </a>
+            {% elif current_user.role == 'warehouse_manager' %}
+            <a href="#" class="nav-link">
+                <i class="fas fa-boxes"></i>
+                Manage Stock
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="navbar-end">
+            <div class="user-menu">
+                <button type="button" class="user-menu-btn" id="userMenuBtn" aria-expanded="false" aria-haspopup="true">
+                    <i class="fas fa-user-circle"></i>
+                    <span class="user-name">
+                    {% if current_user.role == 'warehouse_manager' and user_warehouse %}
+                        {{ user_warehouse.manager_name }}
+                    {% elif current_user.role == 'farmer' and user_farmer %}
+                        {{ user_farmer.name }}
+                    {% else %}
+                        {{ current_user.role|replace('_', ' ')|title }}
+                    {% endif %}
+                    </span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="user-menu-dropdown" id="userMenuDropdown">
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-user"></i>
+                        Profile
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </a>
+                    <div style="height: 1px; background-color: var(--border-color); margin: 0.5rem 0;"></div>
+                    <a href="{{ url_for('auth.logout') }}" class="dropdown-item logout-item">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="navbar-end">
+            <a href="{{ url_for('auth.login') }}" class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}">
+                <i class="fas fa-sign-in-alt"></i>
+                Login
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="nav-link {% if request.endpoint == 'auth.register' %}active{% endif %}">
+                <i class="fas fa-user-plus"></i>
+                Register
+            </a>
+        </div>
+        {% endif %}
+    </nav>
+
+    <div class="main-container">
+        {% if current_user.is_authenticated %}
+        <div class="welcome-banner" id="welcomeBanner">
+            <div class="welcome-banner-content">
+                {% if current_user.role == 'warehouse_manager' and user_warehouse %}
+                    Welcome back, {{ user_warehouse.manager_name }}!
+                {% elif current_user.role == 'farmer' and user_farmer %}
+                    Welcome back, {{ user_farmer.name }}!
+                {% else %}
+                    Welcome back, {{ current_user.role|replace('_', ' ')|title }}!
+                {% endif %}
+                <span class="banner-hint">(Click the X to dismiss)</span>
+            </div>
+            <button type="button" class="close-banner-btn" aria-label="Close" id="closeBannerBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        <div class="flash-messages">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}" role="alert">
+                            <div class="flash-message-content">
+                                {% if category == 'success' %}
+                                    <i class="fas fa-check-circle"></i>
+                                {% elif category == 'error' %}
+                                    <i class="fas fa-exclamation-circle"></i>
+                                {% elif category == 'info' %}
+                                    <i class="fas fa-info-circle"></i>
+                                {% elif category == 'warning' %}
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                {% endif %}
+                                <span>{{ message }}</span>
+                            </div>
+                            <button type="button" class="close-flash-btn" aria-label="Close">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script>
+        // All DOM interactions in a single DOMContentLoaded event
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded');
+            
+            // User dropdown functionality
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userMenuDropdown = document.getElementById('userMenuDropdown');
+            
+            if (userMenuBtn && userMenuDropdown) {
+                console.log('User menu elements found');
+                
+                // Toggle dropdown on button click
+                userMenuBtn.addEventListener('click', function(event) {
+                    console.log('User menu button clicked');
+                    event.preventDefault();
+                    event.stopPropagation();
+                    
+                    const expanded = this.getAttribute('aria-expanded') === 'true';
+                    this.setAttribute('aria-expanded', !expanded);
+                    
+                    if (expanded) {
+                        userMenuDropdown.style.display = 'none';
+                    } else {
+                        userMenuDropdown.style.display = 'block';
+                    }
+                });
+                
+                // Close dropdown when clicking elsewhere
+                document.addEventListener('click', function(event) {
+                    if (!userMenuBtn.contains(event.target) && !userMenuDropdown.contains(event.target)) {
+                        userMenuBtn.setAttribute('aria-expanded', 'false');
+                        userMenuDropdown.style.display = 'none';
+                    }
+                });
+                
+                // Close dropdown when pressing Escape
+                document.addEventListener('keydown', function(event) {
+                    if (event.key === 'Escape' && userMenuBtn.getAttribute('aria-expanded') === 'true') {
+                        userMenuBtn.setAttribute('aria-expanded', 'false');
+                        userMenuDropdown.style.display = 'none';
+                    }
+                });
+            } else {
+                console.log('User menu elements not found');
+                if (!userMenuBtn) console.log('userMenuBtn not found');
+                if (!userMenuDropdown) console.log('userMenuDropdown not found');
+            }
+            
+            // Flash message close buttons
+            const closeButtons = document.querySelectorAll('.close-flash-btn');
+            closeButtons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const flashMessage = this.closest('.flash-message');
+                    flashMessage.style.animation = 'fadeOut 0.3s forwards';
+                    setTimeout(function() {
+                        flashMessage.remove();
+                    }, 300);
+                });
+            });
+            
+            // Auto-hide flash messages after 5 seconds
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    if (document.body.contains(message)) {
+                        message.style.animation = 'fadeOut 0.3s forwards';
+                        setTimeout(function() {
+                            if (document.body.contains(message)) {
+                                message.remove();
+                            }
+                        }, 300);
+                    }
+                }, 5000);
+            });
+            
+            // Welcome banner close button
+            const welcomeBanner = document.getElementById('welcomeBanner');
+            const closeBannerBtn = document.getElementById('closeBannerBtn');
+            
+            function closeBanner() {
+                console.log('Closing banner');
+                if (welcomeBanner) {
+                    welcomeBanner.style.animation = 'fadeOut 0.3s forwards';
+                    setTimeout(function() {
+                        welcomeBanner.classList.add('hidden');
+                        // Store in local storage that the banner was closed
+                        localStorage.setItem('welcomeBannerClosed', 'true');
+                    }, 300);
+                }
+            }
+            
+            if (welcomeBanner) {
+                console.log('Welcome banner found');
+                // Check if banner should be hidden based on localStorage
+                if (localStorage.getItem('welcomeBannerClosed') === 'true') {
+                    welcomeBanner.classList.add('hidden');
+                }
+                
+                // Add event listener to close button
+                if (closeBannerBtn) {
+                    console.log('Close banner button found with ID:', closeBannerBtn.id);
+                    closeBannerBtn.addEventListener('click', function(event) {
+                        console.log('Close banner button clicked');
+                        event.preventDefault();
+                        event.stopPropagation();
+                        closeBanner();
+                    });
+                } else {
+                    console.log('Close banner button not found');
+                }
+                
+                // Make the entire banner clickable to close
+                welcomeBanner.addEventListener('click', function(event) {
+                    // Only close if clicking on the banner itself, not its children
+                    if (event.target === welcomeBanner) {
+                        closeBanner();
+                    }
+                });
+            } else {
+                console.log('Welcome banner not found');
+            }
+            
+            // Function to show alert
+            function showAlert(message, type) {
+                const flashMessages = document.querySelector('.flash-messages');
+                const newFlash = document.createElement('div');
+                newFlash.className = `flash-message ${type}`;
+                newFlash.role = 'alert';
+                
+                let icon = '';
+                if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
+                else if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
+                else if (type === 'info') icon = '<i class="fas fa-info-circle"></i>';
+                else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle"></i>';
+                
+                newFlash.innerHTML = `
+                    <div class="flash-message-content">
+                        ${icon}
+                        <span>${message}</span>
+                    </div>
+                    <button type="button" class="close-flash-btn" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+                
+                flashMessages.appendChild(newFlash);
+                
+                // Add click event to the new close button
+                const closeBtn = newFlash.querySelector('.close-flash-btn');
+                closeBtn.addEventListener('click', function() {
+                    newFlash.style.animation = 'fadeOut 0.3s forwards';
+                    setTimeout(function() {
+                        newFlash.remove();
+                    }, 300);
+                });
+                
+                // Auto-hide after 5 seconds
+                setTimeout(function() {
+                    if (document.body.contains(newFlash)) {
+                        newFlash.style.animation = 'fadeOut 0.3s forwards';
+                        setTimeout(function() {
+                            if (document.body.contains(newFlash)) {
+                                newFlash.remove();
+                            }
+                        }, 300);
+                    }
+                }, 5000);
+            }
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

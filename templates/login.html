@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-sign-in-alt main-icon"></i>
+            <h2>Welcome Back</h2>
+            <p>Please select your role and login</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="role-tabs">
+            <button class="role-tab active" data-role="farmer" type="button">
+                <i class="fas fa-tractor"></i>
+                Farmer
+            </button>
+            <button class="role-tab" data-role="warehouse" type="button">
+                <i class="fas fa-warehouse"></i>
+                Warehouse
+            </button>
+        </div>
+
+        <form method="POST" id="loginForm" class="needs-validation" novalidate>
+            <input type="hidden" name="role" id="role" value="farmer">
+            
+            <div class="mb-3">
+                <label for="phone_number" class="form-label">
+                    <i class="fas fa-phone"></i>
+                    Phone Number
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text">+91</span>
+                    <input type="tel" 
+                           class="form-control" 
+                           id="phone_number" 
+                           name="phone_number" 
+                           required 
+                           pattern="[0-9]{10}"
+                           placeholder="Enter your phone number">
+                    <div class="invalid-feedback">Please enter a valid 10-digit phone number</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+                <div class="password-input">
+                    <input type="password" 
+                           class="form-control" 
+                           id="password" 
+                           name="password" 
+                           required
+                           placeholder="Enter your password">
+                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <div class="invalid-feedback">Please enter your password</div>
+                </div>
+            </div>
+
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                <label class="form-check-label" for="remember">Remember me</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mb-3" id="loginBtn">
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                <span class="btn-text">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    Login
+                </span>
+            </button>
+        </form>
+
+        <div class="text-center mt-3">
+            <p>Don't have an account? Register as:</p>
+            <div class="role-register-buttons">
+                <a href="{{ url_for('auth.farmer_register') }}" class="btn btn-outline-primary register-btn">
+                    <i class="fas fa-tractor me-2"></i>
+                    Farmer
+                </a>
+                <a href="{{ url_for('auth.warehouse_register') }}" class="btn btn-outline-primary register-btn">
+                    <i class="fas fa-warehouse me-2"></i>
+                    Warehouse
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+}
+
+.auth-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    width: 100%;
+    max-width: 450px;
+    transition: all 0.3s ease;
+}
+
+.auth-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.auth-header .main-icon {
+    font-size: 3rem;
+    color: #0d6efd;
+    margin-bottom: 15px;
+    animation: bounce 2s infinite;
+}
+
+.role-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+    padding: 5px;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.role-tab {
+    border: none;
+    background: none;
+    padding: 12px 20px;
+    border-radius: 8px;
+    color: #6c757d;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.role-tab i {
+    font-size: 1.1rem;
+}
+
+.role-tab.active {
+    background: #0d6efd;
+    color: white;
+    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+}
+
+.password-input {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 5px;
+    transition: color 0.3s ease;
+}
+
+.password-toggle:hover {
+    color: #0d6efd;
+}
+
+.role-register-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+.register-btn {
+    flex: 1;
+    min-width: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    transition: all 0.3s ease;
+}
+
+.register-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-15px);
+    }
+    60% {
+        transform: translateY(-7px);
+    }
+}
+
+/* Loading state styles */
+.btn-primary:disabled {
+    cursor: not-allowed;
+}
+
+.spinner-border {
+    margin-right: 8px;
+}
+
+/* Error shake animation */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.shake {
+    animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+}
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Role selection
+const roleTabs = document.querySelectorAll('.role-tab');
+const roleInput = document.getElementById('role');
+const mainIcon = document.querySelector('.main-icon');
+const welcomeText = document.querySelector('.auth-header p');
+const loginForm = document.getElementById('loginForm');
+
+const roleIcons = {
+    'farmer': 'fa-tractor',
+    'warehouse': 'fa-warehouse'
+};
+
+const roleMessages = {
+    'farmer': 'Welcome Farmer! Please login to manage your produce',
+    'warehouse': 'Welcome Manager! Please login to manage warehouse operations'
+};
+
+roleTabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+        // Update active state
+        roleTabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        
+        // Update hidden role input
+        const role = tab.dataset.role;
+        roleInput.value = role;
+        
+        // Update header icon and message
+        mainIcon.className = `fas ${roleIcons[role]} main-icon`;
+        welcomeText.textContent = roleMessages[role];
+        
+        // Animate the icon
+        mainIcon.style.animation = 'none';
+        mainIcon.offsetHeight; // Trigger reflow
+        mainIcon.style.animation = 'bounce 2s infinite';
+        
+        // Clear any previous validation states when role changes
+        loginForm.classList.remove('was-validated');
+        const inputs = loginForm.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.classList.remove('is-valid', 'is-invalid');
+        });
+    });
+});
+
+// Password toggle
+function togglePassword() {
+    const passwordInput = document.getElementById('password');
+    const toggleButton = document.querySelector('.password-toggle i');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        toggleButton.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        passwordInput.type = 'password';
+        toggleButton.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
+
+// Form validation and submission
+const phoneInput = document.getElementById('phone_number');
+const passwordInput = document.getElementById('password');
+const loginBtn = document.getElementById('loginBtn');
+const spinner = loginBtn.querySelector('.spinner-border');
+const btnText = loginBtn.querySelector('.btn-text');
+
+phoneInput.addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);
+    validateInput(this);
+});
+
+passwordInput.addEventListener('input', function() {
+    validateInput(this);
+});
+
+function validateInput(input) {
+    if (input.checkValidity()) {
+        input.classList.remove('is-invalid');
+        input.classList.add('is-valid');
+    } else {
+        input.classList.remove('is-valid');
+        input.classList.add('is-invalid');
+    }
+}
+
+loginForm.addEventListener('submit', function(e) {
+    if (!loginForm.checkValidity()) {
+        e.preventDefault();
+        Array.from(loginForm.elements).forEach(input => {
+            validateInput(input);
+        });
+        
+        // Add shake animation to form on invalid submission
+        loginForm.classList.add('shake');
+        setTimeout(() => loginForm.classList.remove('shake'), 600);
+    } else {
+        // Show loading state
+        loginBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        btnText.textContent = 'Logging in...';
+    }
+    loginForm.classList.add('was-validated');
+});
+
+// Handle flash messages auto-hide
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            alert.classList.add('fade');
+            setTimeout(() => alert.remove(), 150);
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}
