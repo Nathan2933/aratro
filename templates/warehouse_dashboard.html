@@ -454,37 +454,38 @@ function initializeStorageChart() {
     const stockData = JSON.parse('{{ stocks_json|tojson|safe }}');
     
     // Process data for chart - only include stored stocks
-    const stocksByType = {};
+    const stocksByFarmer = {};
     let totalStored = 0;
     
     stockData.forEach(stock => {
         if (stock.status === 'stored') {
-            if (!stocksByType[stock.type]) {
-                stocksByType[stock.type] = {
+            const farmerName = stock.farmer.name;
+            if (!stocksByFarmer[farmerName]) {
+                stocksByFarmer[farmerName] = {
                     quantity: 0,
-                    farmers: {},
+                    types: {},
                     stocks: []
                 };
             }
-            if (!stocksByType[stock.type].farmers[stock.farmer.name]) {
-                stocksByType[stock.type].farmers[stock.farmer.name] = {
+            if (!stocksByFarmer[farmerName].types[stock.type]) {
+                stocksByFarmer[farmerName].types[stock.type] = {
                     quantity: 0,
                     stocks: []
                 };
             }
-            stocksByType[stock.type].quantity += stock.quantity;
-            stocksByType[stock.type].farmers[stock.farmer.name].quantity += stock.quantity;
-            stocksByType[stock.type].farmers[stock.farmer.name].stocks.push(stock);
-            stocksByType[stock.type].stocks.push(stock);
+            stocksByFarmer[farmerName].quantity += stock.quantity;
+            stocksByFarmer[farmerName].types[stock.type].quantity += stock.quantity;
+            stocksByFarmer[farmerName].types[stock.type].stocks.push(stock);
+            stocksByFarmer[farmerName].stocks.push(stock);
             totalStored += stock.quantity;
         }
     });
 
     const data = {
-        labels: Object.keys(stocksByType),
+        labels: Object.keys(stocksByFarmer),
         datasets: [{
-            data: Object.values(stocksByType).map(s => s.quantity),
-            backgroundColor: Object.keys(stocksByType).map((_, index) => getColorForIndex(index)),
+            data: Object.values(stocksByFarmer).map(s => s.quantity),
+            backgroundColor: Object.keys(stocksByFarmer).map((_, index) => getColorForIndex(index)),
             borderWidth: 1
         }]
     };
@@ -510,22 +511,22 @@ function initializeStorageChart() {
                         }
                     },
                     onClick: function(e, legendItem) {
-                        const type = legendItem.text;
+                        const farmer = legendItem.text;
                         if (editMode) {
-                            showStockEditModal(type, stocksByType[type]);
+                            showStockEditModal(farmer, stocksByFarmer[farmer]);
                         }
                     }
                 },
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            const type = context.label;
+                            const farmer = context.label;
                             const value = context.raw;
                             const percentage = ((value / totalStored) * 100).toFixed(1);
-                            const farmers = Object.keys(stocksByType[type].farmers).join(', ');
+                            const types = Object.keys(stocksByFarmer[farmer].types).join(', ');
                             return [
-                                `${type}: ${value.toFixed(2)} tons (${percentage}%)`,
-                                `Farmers: ${farmers}`
+                                `${farmer}: ${value.toFixed(2)} tons (${percentage}%)`,
+                                `Crops: ${types}`
                             ];
                         }
                     }
@@ -535,31 +536,31 @@ function initializeStorageChart() {
             onClick: function(event, elements) {
                 if (elements.length > 0) {
                     const index = elements[0].index;
-                    const type = this.data.labels[index];
+                    const farmer = this.data.labels[index];
                     if (editMode) {
-                        showStockEditModal(type, stocksByType[type]);
+                        showStockEditModal(farmer, stocksByFarmer[farmer]);
                     }
                 }
             }
         }
     });
 
-    return { chart, stocksByType, totalStored };
+    return { chart, stocksByFarmer, totalStored };
 }
 
-function showStockEditModal(stockType, stockData) {
-    currentStockType = stockType;
+function showStockEditModal(farmer, farmerData) {
+    currentStockType = null;
     const modal = document.getElementById('stockEditModal');
     const totalDisplay = document.getElementById('stockTotalQuantity');
     const distributionsContainer = document.getElementById('farmerDistributions');
     
-    totalDisplay.textContent = `Total Quantity: ${stockData.quantity.toFixed(2)} tons`;
+    totalDisplay.textContent = `Total Quantity: ${farmerData.quantity.toFixed(2)} tons`;
     
     let html = '';
-    Object.entries(stockData.farmers).forEach(([farmer, data]) => {
+    Object.entries(farmerData.types).forEach(([type, data]) => {
         html += `
-            <div class="farmer-control mb-3" data-farmer="${farmer}">
-                <label>${farmer}</label>
+            <div class="farmer-control mb-3" data-type="${type}">
+                <label>${type}</label>
                 <div class="flex gap-2 items-center">
                     <input type="number" 
                            class="form-control" 
@@ -567,10 +568,10 @@ function showStockEditModal(stockType, stockData) {
                            min="0"
                            step="0.01"
                            data-original="${data.quantity}"
-                           onchange="updateStockQuantity(this, '${stockType}', '${farmer}')"
+                           onchange="updateStockQuantity(this, '${type}', '${farmer}')"
                     >
                     <span>tons</span>
-                    <button class="btn btn-outline btn-sm" onclick="returnStockToFarmer('${stockType}', '${farmer}')">
+                    <button class="btn btn-outline btn-sm" onclick="returnStockToFarmer('${type}', '${farmer}')">
                         <i class="fas fa-undo"></i>
                         Return to Farmer
                     </button>
@@ -692,48 +693,49 @@ function toggleChartEdit() {
     }
 }
 
-function showEditControls(selectedType = null) {
+function showEditControls(selectedFarmer = null) {
     const controlsContainer = document.querySelector('.stock-controls');
     const stockData = JSON.parse('{{ stocks_json|tojson|safe }}');
-    const stocksByType = {};
+    const stocksByFarmer = {};
     
-    // Group stocks by type and farmer
+    // Group stocks by farmer and type
     stockData.forEach(stock => {
         if (stock.status === 'stored') {
-            if (!stocksByType[stock.type]) {
-                stocksByType[stock.type] = {
+            const farmerName = stock.farmer.name;
+            if (!stocksByFarmer[farmerName]) {
+                stocksByFarmer[farmerName] = {
                     quantity: 0,
-                    farmers: {}
+                    types: {}
                 };
             }
-            if (!stocksByType[stock.type].farmers[stock.farmer.name]) {
-                stocksByType[stock.type].farmers[stock.farmer.name] = 0;
+            if (!stocksByFarmer[farmerName].types[stock.type]) {
+                stocksByFarmer[farmerName].types[stock.type] = 0;
             }
-            stocksByType[stock.type].farmers[stock.farmer.name] += stock.quantity;
-            stocksByType[stock.type].quantity += stock.quantity;
+            stocksByFarmer[farmerName].types[stock.type] += stock.quantity;
+            stocksByFarmer[farmerName].quantity += stock.quantity;
         }
     });
 
     let html = '';
-    Object.entries(stocksByType).forEach(([type, data]) => {
-        const isSelected = selectedType === type;
+    Object.entries(stocksByFarmer).forEach(([farmer, data]) => {
+        const isSelected = selectedFarmer === farmer;
         html += `
-            <div class="stock-type-control ${isSelected ? 'selected' : ''}" data-type="${type}">
+            <div class="stock-type-control ${isSelected ? 'selected' : ''}" data-farmer="${farmer}">
                 <div class="flex justify-between items-center mb-2">
-                    <h4>${type}</h4>
+                    <h4>${farmer}</h4>
                     <span>Total: ${data.quantity.toFixed(2)} tons</span>
                 </div>
                 <div class="farmer-distributions">
-                    ${Object.entries(data.farmers).map(([farmer, quantity]) => `
+                    ${Object.entries(data.types).map(([type, quantity]) => `
                         <div class="farmer-control mb-2">
-                            <label>${farmer}</label>
+                            <label>${type}</label>
                             <div class="flex gap-2 items-center">
                                 <input type="number" 
                                        class="form-control form-control-sm" 
                                        value="${quantity.toFixed(2)}"
                                        min="0"
                                        step="0.01"
-                                       data-farmer="${farmer}"
+                                       data-type="${type}"
                                        data-original="${quantity}"
                                        onchange="updateChartData(this, '${type}', '${farmer}')"
                                 >
