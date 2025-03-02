@@ -1,10 +1,28 @@
 from app import app, db
 from models import User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest
 import datetime
+from sqlalchemy import text
 
 # Create all tables
 with app.app_context():
+    # Drop existing tables
+    db.drop_all()
+    
+    # Create tables
     db.create_all()
+    
+    # Explicitly create stock_request table with correct schema
+    db.session.execute(text("""
+        CREATE TABLE IF NOT EXISTS stock_request (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            from_id INTEGER NOT NULL,
+            to_id INTEGER NOT NULL,
+            stock_id INTEGER NOT NULL,
+            request_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            status VARCHAR(20) DEFAULT 'pending'
+        )
+    """))
+    db.session.commit()
     
     # Check if we need to add some sample warehouse requests
     if not WarehouseRequest.query.first():

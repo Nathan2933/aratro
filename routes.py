@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, session
 from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest
+from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification
 import re
+from datetime import datetime
 
 auth = Blueprint('auth', __name__)
 main = Blueprint('main', __name__)
@@ -339,27 +340,14 @@ def view_requests_page():
         flash('Access denied: You must be a farmer to view this page', 'error')
         return redirect(url_for('main.dashboard'))
     
-    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
-    
-    # Get farmer's stock requests
-    try:
-        # Try new schema
-        requests = StockRequest.query.filter_by(farmer_id=farmer.id).order_by(StockRequest.date_requested.desc()).all()
-    except Exception as e:
-        # If new schema fails, try old schema
-        try:
-            requests = StockRequest.query.filter_by(to_id=farmer.id).order_by(StockRequest.request_date.desc()).all()
-        except Exception as inner_e:
-            requests = []
-    
     # Get open warehouse requests
     try:
         warehouse_requests = WarehouseRequest.query.filter_by(status='open').order_by(WarehouseRequest.date_posted.desc()).all()
     except Exception as e:
-        # WarehouseRequest model might not exist yet
         warehouse_requests = []
+        flash('Error loading warehouse requests', 'error')
     
-    return render_template('view_requests.html', requests=requests, warehouse_requests=warehouse_requests)
+    return render_template('view_requests.html', warehouse_requests=warehouse_requests)
 
 @farmer_dashboard.route('/warehouse_request_details/<int:request_id>')
 @login_required
@@ -399,7 +387,6 @@ def submit_request():
     warehouse_id = request.form.get('warehouse_id')
     stock_type = request.form.get('stock_type')
     quantity = request.form.get('quantity')
-    notes = request.form.get('notes', '')
     
     if stock_type == 'Other':
         stock_type = request.form.get('other_stock_type')
@@ -426,38 +413,29 @@ def submit_request():
         
         farmer = Farmer.query.filter_by(user_id=current_user.id).first()
         
-        # Try to create a request using the new schema
-        try:
-            new_request = StockRequest(
-                farmer_id=farmer.id,
-                warehouse_id=warehouse.id,
-                stock_type=stock_type,
-                quantity=quantity,
-                notes=notes,
-                status='pending'
-            )
-            db.session.add(new_request)
-            db.session.commit()
-        except Exception as e:
-            # If new schema fails, try old schema
-            db.session.rollback()
-            try:
-                new_request = StockRequest(
-                    from_id=farmer.id,
-                    to_id=warehouse.id,
-                    stock_type=stock_type,
-                    quantity=quantity,
-                    status='pending'
-                )
-                db.session.add(new_request)
-                db.session.commit()
-            except Exception as inner_e:
-                db.session.rollback()
-                flash(f'Error submitting request: {str(inner_e)}', 'error')
-                return redirect(url_for('farmer_dashboard.create_request_page'))
+        # First create a stock entry
+        stock = Stock(
+            type=stock_type,
+            quantity=quantity,
+            farmer_id=farmer.id,
+            warehouse_id=warehouse.id,
+            status='pending'
+        )
+        db.session.add(stock)
+        db.session.flush()  # Get the stock.id before committing
+        
+        # Create request using the actual schema
+        new_request = StockRequest(
+            from_id=farmer.id,
+            to_id=warehouse.id,
+            stock_id=stock.id,
+            status='pending'
+        )
+        db.session.add(new_request)
+        db.session.commit()
         
         flash('Stock request submitted successfully', 'success')
-        return redirect(url_for('farmer_dashboard.view_requests_page'))
+        return redirect(url_for('farmer_dashboard.farmer_home'))
         
     except ValueError:
         flash('Invalid quantity value', 'error')
@@ -560,41 +538,287 @@ def warehouse_home():
         return redirect(url_for('main.index'))
     
     warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    
+    # Get all stocks in the warehouse
     stocks = Stock.query.filter_by(warehouse_id=warehouse.id).all()
-    return render_template('warehouse_dashboard.html', stocks=stocks, warehouse=warehouse)
+    
+    # Prepare JSON-serializable stock data
+    stocks_json = [
+        {
+            'type': stock.type,
+            'quantity': stock.quantity,
+            'status': stock.status,
+            'farmer': {
+                'name': stock.farmer.name if stock.farmer else 'Unknown'
+            }
+        }
+        for stock in stocks
+    ]
+    
+    # Get pending stock requests
+    stock_requests = StockRequest.query.filter_by(to_id=warehouse.id).all()
+    
+    # Get warehouse's open requests
+    warehouse_requests = WarehouseRequest.query.filter_by(warehouse_id=warehouse.id).order_by(WarehouseRequest.date_posted.desc()).all()
+    
+    return render_template('warehouse_dashboard.html', 
+                         warehouse=warehouse, 
+                         stocks=stocks,
+                         stocks_json=stocks_json,
+                         stock_requests=stock_requests,
+                         warehouse_requests=warehouse_requests)
 
-@warehouse_dashboard.route('/update_stock', methods=['POST'])
+@warehouse_dashboard.route('/respond_to_request', methods=['POST'])
 @login_required
-def update_stock():
+def respond_to_request():
     if current_user.role != 'warehouse_manager':
-        return jsonify({'error': 'Unauthorized access'}), 403
+        return jsonify({'success': False, 'message': 'Access denied'})
     
-    crop_type = request.form.get('crop_type')
-    quantity = request.form.get('quantity')
-    action = request.form.get('action')
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
     
-    if not all([crop_type, quantity, action]):
-        return jsonify({'error': 'Missing required fields'}), 400
+    # Handle both form data and JSON data
+    if request.is_json:
+        data = request.get_json()
+        request_id = data.get('request_id')
+        approved_quantity = float(data.get('approved_quantity', 0))
+        notes = data.get('notes', '')
+        action = data.get('action')
+    else:
+        request_id = request.form.get('request_id')
+        approved_quantity = float(request.form.get('approved_quantity', 0))
+        notes = request.form.get('notes', '')
+        action = request.form.get('action')
+    
+    if not request_id:
+        return jsonify({'success': False, 'message': 'Request ID is required'})
     
     try:
-        warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
-        stock = Stock.query.filter_by(warehouse_id=warehouse.id, crop_type=crop_type).first()
+        stock_request = StockRequest.query.get(request_id)
+        if not stock_request or stock_request.to_id != warehouse.id:
+            return jsonify({'success': False, 'message': 'Request not found'})
         
-        if action == 'add':
-            if not stock:
-                stock = Stock(warehouse_id=warehouse.id, crop_type=crop_type, quantity=0)
-                db.session.add(stock)
-            stock.quantity += float(quantity)
-        elif action == 'remove':
-            if not stock or stock.quantity < float(quantity):
-                return jsonify({'error': 'Insufficient stock'}), 400
-            stock.quantity -= float(quantity)
+        if stock_request.status != 'pending':
+            return jsonify({'success': False, 'message': 'Request cannot be modified'})
+        
+        if action == 'approve':
+            # Check if warehouse has enough space
+            if approved_quantity > warehouse.available_space:
+                return jsonify({'success': False, 'message': 'Insufficient warehouse space'})
+            
+            # Update the stock quantity if different from requested
+            if approved_quantity != stock_request.stock.quantity:
+                stock_request.stock.quantity = approved_quantity
+            
+            # Update warehouse space
+            warehouse.available_space -= approved_quantity
+            
+            # Update request status and stock status
+            stock_request.status = 'approved'
+            stock_request.stock.status = 'stored'
+        elif action == 'reject':
+            # Update request status and stock status
+            stock_request.status = 'rejected'
+            stock_request.stock.status = 'rejected'
+        else:
+            return jsonify({'success': False, 'message': 'Invalid action'})
+        
+        # Update notes
+        stock_request.admin_notes = notes
+        
+        # Create notification for the farmer
+        notification = Notification(
+            user_id=stock_request.stock.farmer.user_id,
+            title=f'Stock Request {stock_request.status.capitalize()}',
+            message=f'Your stock request for {stock_request.stock.quantity} tons of {stock_request.stock.type} has been {stock_request.status}.',
+            type=stock_request.status
+        )
+        db.session.add(notification)
         
         db.session.commit()
-        return jsonify({'message': 'Stock updated successfully', 'new_quantity': stock.quantity})
+        return jsonify({'success': True})
+        
     except Exception as e:
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'success': False, 'message': str(e)})
+
+@warehouse_dashboard.route('/reject_request', methods=['POST'])
+@login_required
+def reject_request():
+    if current_user.role != 'warehouse_manager':
+        return jsonify({'success': False, 'message': 'Access denied'})
+    
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    data = request.get_json()
+    request_id = data.get('request_id')
+    notes = data.get('notes', '')
+    
+    if not request_id:
+        return jsonify({'success': False, 'message': 'Request ID is required'})
+    
+    try:
+        stock_request = StockRequest.query.get(request_id)
+        if not stock_request or stock_request.to_id != warehouse.id:
+            return jsonify({'success': False, 'message': 'Request not found'})
+        
+        if stock_request.status != 'pending':
+            return jsonify({'success': False, 'message': 'Request cannot be modified'})
+        
+        # Update request status and stock status
+        stock_request.status = 'rejected'
+        stock_request.admin_notes = notes
+        stock_request.stock.status = 'rejected'  # Update stock status to rejected
+        
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+
+@warehouse_dashboard.route('/create_request', methods=['POST'])
+@login_required
+def create_request():
+    if current_user.role != 'warehouse_manager':
+        return jsonify({'success': False, 'message': 'Access denied'})
+    
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    
+    stock_type = request.form.get('stock_type')
+    if stock_type == 'Other':
+        stock_type = request.form.get('other_stock_type')
+    
+    quantity = request.form.get('quantity')
+    price_per_ton = request.form.get('price_per_ton')
+    expiry_date = request.form.get('expiry_date')
+    description = request.form.get('description', '')
+    
+    if not all([stock_type, quantity, price_per_ton, expiry_date]):
+        return jsonify({'success': False, 'message': 'All required fields must be filled'})
+    
+    try:
+        quantity = float(quantity)
+        price_per_ton = float(price_per_ton)
+        expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d')
+        
+        if quantity <= 0 or price_per_ton <= 0:
+            return jsonify({'success': False, 'message': 'Quantity and price must be greater than zero'})
+        
+        if expiry_date <= datetime.now():
+            return jsonify({'success': False, 'message': 'Expiry date must be in the future'})
+        
+        # Create new warehouse request
+        new_request = WarehouseRequest(
+            warehouse_id=warehouse.id,
+            stock_type=stock_type,
+            quantity=quantity,
+            price_per_ton=price_per_ton,
+            description=description,
+            expiry_date=expiry_date
+        )
+        
+        db.session.add(new_request)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Invalid numeric values'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+
+@warehouse_dashboard.route('/delete_request/<int:request_id>', methods=['POST'])
+@login_required
+def delete_request(request_id):
+    if current_user.role != 'warehouse_manager':
+        return jsonify({'success': False, 'message': 'Access denied'})
+    
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    
+    try:
+        request = WarehouseRequest.query.get(request_id)
+        if not request or request.warehouse_id != warehouse.id:
+            return jsonify({'success': False, 'message': 'Request not found'})
+        
+        if request.status != 'open':
+            return jsonify({'success': False, 'message': 'Only open requests can be deleted'})
+        
+        db.session.delete(request)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+
+@warehouse_dashboard.route('/update_stock_distribution', methods=['POST'])
+@login_required
+def update_stock_distribution():
+    if current_user.role != 'warehouse_manager':
+        return jsonify({'success': False, 'message': 'Access denied'})
+    
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    data = request.get_json()
+    updates = data.get('updates', [])
+    
+    try:
+        for update in updates:
+            stock_type = update['type']
+            farmer_name = update['farmer']
+            new_quantity = float(update['quantity'])
+            return_to_farmer = update.get('return_to_farmer', False)
+            
+            # Get all stocks for this farmer and type
+            stocks = Stock.query.join(Farmer).filter(
+                Stock.warehouse_id == warehouse.id,
+                Stock.type == stock_type,
+                Stock.status == 'stored',
+                Farmer.name == farmer_name
+            ).all()
+            
+            if not stocks:
+                continue
+            
+            current_total = sum(stock.quantity for stock in stocks)
+            
+            if return_to_farmer:
+                # Return all stock to farmer
+                for stock in stocks:
+                    warehouse.available_space += stock.quantity
+                    stock.status = 'returned'
+                    stock.return_date = datetime.utcnow()
+                    
+                    # Create notification for farmer
+                    notification = Notification(
+                        user_id=stock.farmer.user_id,
+                        title=f'Stock Returned',
+                        message=f'{stock.quantity} tons of {stock.type} has been returned from {warehouse.name}',
+                        type='stock_return'
+                    )
+                    db.session.add(notification)
+            else:
+                # Update stock quantities
+                if current_total == 0:
+                    continue
+                    
+                ratio = new_quantity / current_total
+                
+                for stock in stocks:
+                    old_quantity = stock.quantity
+                    new_stock_quantity = stock.quantity * ratio
+                    
+                    quantity_difference = old_quantity - new_stock_quantity
+                    warehouse.available_space += quantity_difference
+                    
+                    stock.quantity = new_stock_quantity
+        
+        db.session.commit()
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
 
 # Main Routes
 @main.route('/')

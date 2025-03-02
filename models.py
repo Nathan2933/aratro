@@ -45,26 +45,22 @@ class Stock(db.Model):
     status = db.Column(db.String(20))  # 'available', 'in_transit', 'stored'
 
 class StockRequest(db.Model):
+    __tablename__ = 'stock_request'
+    
     id = db.Column(db.Integer, primary_key=True)
-    farmer_id = db.Column(db.Integer, db.ForeignKey('farmer.id'), nullable=False)
-    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)
-    stock_type = db.Column(db.String(50), nullable=False)
-    quantity = db.Column(db.Float, nullable=False)  # in tons
-    notes = db.Column(db.Text)
-    admin_notes = db.Column(db.Text)
+    from_id = db.Column(db.Integer, db.ForeignKey('farmer.id'), nullable=False)  # Farmer's ID
+    to_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)    # Warehouse's ID
+    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
+    request_date = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='pending')
-    date_requested = db.Column(db.DateTime, default=datetime.utcnow)
-    date_processed = db.Column(db.DateTime)
     
-    # For compatibility with old schema
-    from_id = db.Column(db.Integer)
-    to_id = db.Column(db.Integer)
-    request_date = db.Column(db.DateTime)
-    crop_type = db.Column(db.String(50))
+    # Add relationships
+    farmer = db.relationship('Farmer', foreign_keys=[from_id], backref='stock_requests')
+    warehouse = db.relationship('Warehouse', foreign_keys=[to_id], backref='received_requests')
+    stock = db.relationship('Stock', backref='request')
     
-    # Relationships
-    farmer = db.relationship('Farmer', backref='stock_requests')
-    warehouse = db.relationship('Warehouse', backref='stock_requests')
+    def __repr__(self):
+        return f'<StockRequest {self.id}: from {self.from_id} to {self.to_id}>'
 
 class WarehouseRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -82,3 +78,18 @@ class WarehouseRequest(db.Model):
     
     def __repr__(self):
         return f'<WarehouseRequest {self.id}: {self.warehouse.name} requesting {self.quantity} tons of {self.stock_type}>'
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    title = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    type = db.Column(db.String(50))  # e.g., 'stock_return', 'request_update', etc.
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    read = db.Column(db.Boolean, default=False)
+    
+    # Relationship with User
+    user = db.relationship('User', backref='notifications')
+    
+    def __repr__(self):
+        return f'<Notification {self.id}: {self.title}>'

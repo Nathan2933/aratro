@@ -12,50 +12,95 @@
 <div class="dashboard-stats">
     <div class="stat-card">
         <i class="fas fa-clock fa-2x mb-3"></i>
-        <h3>{{ requests|length }}</h3>
+        <h3>{{ requests|selectattr('status', 'equalto', 'pending')|list|length }}</h3>
         <p>Pending Requests</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-check-circle fa-2x mb-3 text-success"></i>
+        <h3>{{ requests|selectattr('status', 'equalto', 'approved')|list|length }}</h3>
+        <p>Approved Requests</p>
+    </div>
+    <div class="stat-card">
+        <i class="fas fa-times-circle fa-2x mb-3 text-error"></i>
+        <h3>{{ requests|selectattr('status', 'equalto', 'rejected')|list|length }}</h3>
+        <p>Rejected Requests</p>
     </div>
     <div class="stat-card">
         <i class="fas fa-warehouse fa-2x mb-3"></i>
         <h3>{{ warehouses|length }}</h3>
         <p>Nearby Warehouses</p>
     </div>
-    <div class="stat-card">
-        <i class="fas fa-check-circle fa-2x mb-3"></i>
-        <h3>0</h3>
-        <p>Completed Requests</p>
-    </div>
 </div>
 
 <div class="flex gap-3 mb-4">
-    <div class="card" style="flex: 1;">
-        <h2>Request Status</h2>
+    <div class="card" style="flex: 2;">
+        <div class="flex justify-between items-center mb-3">
+            <h2>Request Status Overview</h2>
+            <div class="flex gap-2">
+                <select id="timeFilter" class="form-select">
+                    <option value="all">All Time</option>
+                    <option value="week">Last Week</option>
+                    <option value="month">Last Month</option>
+                    <option value="year">Last Year</option>
+                </select>
+            </div>
+        </div>
         <div class="mt-4">
-            <div class="flex justify-between items-center mb-2">
-                <span>Pending</span>
-                <span>{{ requests|selectattr('status', 'equalto', 'pending')|list|length }}</span>
-            </div>
-            <div class="mt-2" style="height: 10px; background-color: var(--border-color); border-radius: 5px; overflow: hidden;">
-                {% set pending_percentage = (requests|selectattr('status', 'equalto', 'pending')|list|length / requests|length * 100)|round if requests|length > 0 else 0 %}
-                <div style="height: 100%; width: {{ pending_percentage }}%; background: var(--warning-color); border-radius: 5px;"></div>
+            <div class="status-group mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center">
+                        <span class="status-dot warning"></span>
+                        <span>Pending</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold">{{ requests|selectattr('status', 'equalto', 'pending')|list|length }}</span>
+                        <span class="text-sm text-muted">requests</span>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    {% set pending_percentage = (requests|selectattr('status', 'equalto', 'pending')|list|length / requests|length * 100)|round if requests|length > 0 else 0 %}
+                    <div class="progress-bar warning" style="width: {{ pending_percentage }}%">
+                        <span class="progress-text">{{ pending_percentage }}%</span>
+                    </div>
+                </div>
             </div>
             
-            <div class="flex justify-between items-center mb-2 mt-3">
-                <span>Approved</span>
-                <span>{{ requests|selectattr('status', 'equalto', 'approved')|list|length }}</span>
-            </div>
-            <div class="mt-2" style="height: 10px; background-color: var(--border-color); border-radius: 5px; overflow: hidden;">
-                {% set approved_percentage = (requests|selectattr('status', 'equalto', 'approved')|list|length / requests|length * 100)|round if requests|length > 0 else 0 %}
-                <div style="height: 100%; width: {{ approved_percentage }}%; background: var(--success-color); border-radius: 5px;"></div>
+            <div class="status-group mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center">
+                        <span class="status-dot success"></span>
+                        <span>Approved</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold">{{ requests|selectattr('status', 'equalto', 'approved')|list|length }}</span>
+                        <span class="text-sm text-muted">requests</span>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    {% set approved_percentage = (requests|selectattr('status', 'equalto', 'approved')|list|length / requests|length * 100)|round if requests|length > 0 else 0 %}
+                    <div class="progress-bar success" style="width: {{ approved_percentage }}%">
+                        <span class="progress-text">{{ approved_percentage }}%</span>
+                    </div>
+                </div>
             </div>
             
-            <div class="flex justify-between items-center mb-2 mt-3">
-                <span>Rejected</span>
-                <span>{{ requests|selectattr('status', 'equalto', 'rejected')|list|length }}</span>
-            </div>
-            <div class="mt-2" style="height: 10px; background-color: var(--border-color); border-radius: 5px; overflow: hidden;">
-                {% set rejected_percentage = (requests|selectattr('status', 'equalto', 'rejected')|list|length / requests|length * 100)|round if requests|length > 0 else 0 %}
-                <div style="height: 100%; width: {{ rejected_percentage }}%; background: var(--error-color); border-radius: 5px;"></div>
+            <div class="status-group mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <div class="flex items-center">
+                        <span class="status-dot error"></span>
+                        <span>Rejected</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold">{{ requests|selectattr('status', 'equalto', 'rejected')|list|length }}</span>
+                        <span class="text-sm text-muted">requests</span>
+                    </div>
+                </div>
+                <div class="progress-container">
+                    {% set rejected_percentage = (requests|selectattr('status', 'equalto', 'rejected')|list|length / requests|length * 100)|round if requests|length > 0 else 0 %}
+                    <div class="progress-bar error" style="width: {{ rejected_percentage }}%">
+                        <span class="progress-text">{{ rejected_percentage }}%</span>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -71,9 +116,13 @@
                 <i class="fas fa-map-marker-alt"></i>
                 View Warehouse Map
             </button>
-            <button class="btn btn-outline w-full">
+            <button class="btn btn-outline w-full mb-3">
                 <i class="fas fa-history"></i>
                 View Request History
+            </button>
+            <button class="btn btn-outline w-full">
+                <i class="fas fa-download"></i>
+                Export Requests
             </button>
         </div>
     </div>
@@ -350,5 +399,89 @@ function createRequest(warehouseId) {
     // Redirect to create request page with warehouse ID
     window.location.href = "{{ url_for('farmer_dashboard.create_request_page') }}?warehouse_id=" + warehouseId;
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Time filter functionality
+    const timeFilter = document.getElementById('timeFilter');
+    if (timeFilter) {
+        timeFilter.addEventListener('change', function() {
+            const selectedValue = this.value;
+            const rows = document.querySelectorAll('#requestsTable tbody tr');
+            
+            rows.forEach(row => {
+                const dateCell = row.querySelector('td:nth-child(5)');
+                if (!dateCell) return;
+                
+                const requestDate = new Date(dateCell.textContent);
+                const now = new Date();
+                let show = true;
+                
+                switch (selectedValue) {
+                    case 'week':
+                        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                        show = requestDate >= weekAgo;
+                        break;
+                    case 'month':
+                        const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                        show = requestDate >= monthAgo;
+                        break;
+                    case 'year':
+                        const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+                        show = requestDate >= yearAgo;
+                        break;
+                    default:
+                        show = true;
+                }
+                
+                row.style.display = show ? '' : 'none';
+            });
+            
+            updateStatusCounts();
+        });
+    }
+    
+    // Function to update status counts and percentages
+    function updateStatusCounts() {
+        const visibleRows = Array.from(document.querySelectorAll('#requestsTable tbody tr')).filter(row => row.style.display !== 'none');
+        const totalVisible = visibleRows.length;
+        
+        const statusTypes = ['pending', 'approved', 'rejected'];
+        statusTypes.forEach(status => {
+            const count = visibleRows.filter(row => {
+                const statusCell = row.querySelector('td:nth-child(6) .badge');
+                return statusCell && statusCell.textContent.toLowerCase() === status;
+            }).length;
+            
+            const percentage = totalVisible > 0 ? (count / totalVisible * 100).toFixed(1) : 0;
+            
+            // Update count in status cards
+            const countElement = document.querySelector(`.status-group:nth-child(${statusTypes.indexOf(status) + 1}) .font-bold`);
+            if (countElement) countElement.textContent = count;
+            
+            // Update progress bar
+            const progressBar = document.querySelector(`.status-group:nth-child(${statusTypes.indexOf(status) + 1}) .progress-bar`);
+            if (progressBar) {
+                progressBar.style.width = `${percentage}%`;
+                progressBar.querySelector('.progress-text').textContent = `${percentage}%`;
+            }
+        });
+    }
+    
+    // Search functionality
+    const requestSearch = document.getElementById('requestSearch');
+    if (requestSearch) {
+        requestSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#requestsTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+            
+            updateStatusCounts();
+        });
+    }
+});
 </script>
 {% endblock %}

@@ -3,169 +3,1460 @@
 {% block content %}
 <div class="flex justify-between items-center mb-4">
     <h1>Warehouse Dashboard</h1>
-    <button class="btn btn-primary">
+    <button class="btn btn-primary" onclick="openCreateRequestModal()">
         <i class="fas fa-plus"></i>
-        Add New Stock
+        Create Stock Request
     </button>
 </div>
 
 <div class="dashboard-stats">
     <div class="stat-card">
-        <i class="fas fa-box-open fa-2x mb-3"></i>
-        <h3>{{ warehouse.available_space }}</h3>
+        <i class="fas fa-box fa-2x mb-3"></i>
+        <h3>{{ warehouse.available_space|round(2) }}</h3>
         <p>Available Space (tons)</p>
     </div>
     <div class="stat-card">
         <i class="fas fa-warehouse fa-2x mb-3"></i>
-        <h3>{{ warehouse.capacity }}</h3>
-        <p>Total Capacity (tons)</p>
+        <h3>{{ (warehouse.capacity - warehouse.available_space)|round(2) }}</h3>
+        <p>Occupied Space (tons)</p>
     </div>
     <div class="stat-card">
-        <i class="fas fa-cubes fa-2x mb-3"></i>
+        <i class="fas fa-clock fa-2x mb-3"></i>
         <h3>{{ stocks|length }}</h3>
-        <p>Total Stock Items</p>
+        <p>Active Stocks</p>
     </div>
 </div>
 
-<div class="flex gap-3">
-    <div class="card" style="flex: 1;">
-        <h2>Storage Capacity</h2>
-        <div class="mt-4" style="height: 20px; background-color: var(--border-color); border-radius: 10px; overflow: hidden;">
-            {% set used_percentage = ((warehouse.capacity - warehouse.available_space) / warehouse.capacity * 100)|round %}
-            <div style="height: 100%; width: {{ used_percentage }}%; background: linear-gradient(to right, var(--primary-color), var(--primary-dark)); border-radius: 10px;"></div>
+<div class="flex gap-4 mt-6">
+    <!-- Storage Graph -->
+    <div class="card" style="flex: 2;">
+        <div class="card-header">
+            <div class="flex justify-between items-center">
+                <h2>Storage Distribution</h2>
+                <button class="btn btn-sm btn-outline" onclick="toggleChartEdit()">
+                    <i class="fas fa-edit"></i>
+                    Edit Distribution
+                </button>
+            </div>
         </div>
-        <div class="flex justify-between mt-2">
-            <span>{{ used_percentage }}% Used</span>
-            <span>{{ (warehouse.capacity - warehouse.available_space) }} / {{ warehouse.capacity }} tons</span>
+        <div class="card-body">
+            <canvas id="storageChart" height="300"></canvas>
+            <div id="chartEditControls" style="display: none; margin-top: 1rem;">
+                <div class="stock-controls">
+                    <!-- Controls will be dynamically added here -->
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button class="btn btn-outline" onclick="cancelChartEdit()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveChartChanges()">Save Changes</button>
+                </div>
+            </div>
         </div>
     </div>
     
+    <!-- Quick Actions -->
     <div class="card" style="flex: 1;">
-        <h2>Update Storage Details</h2>
-        <form id="storage-form" class="mt-3">
-            <div class="form-group">
-                <label for="capacity">Total Capacity (tons)</label>
-                <input type="number" class="form-control" id="capacity" name="capacity" value="{{ warehouse.capacity }}" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <label for="available_space">Available Space (tons)</label>
-                <input type="number" class="form-control" id="available_space" name="available_space" value="{{ warehouse.available_space }}" step="0.01" required>
-            </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i>
-                Update Storage
+        <div class="card-header">
+            <h2>Quick Actions</h2>
+        </div>
+        <div class="card-body">
+            <button class="btn btn-primary w-full mb-3" onclick="openCreateRequestModal()">
+                <i class="fas fa-plus"></i>
+                Create Stock Request
             </button>
-        </form>
-    </div>
-</div>
-
-<div class="card">
-    <div class="flex justify-between items-center mb-3">
-        <h2>Current Stocks</h2>
-        <div class="flex gap-2">
-            <button class="btn btn-outline">
-                <i class="fas fa-filter"></i>
-                Filter
+            <button class="btn btn-outline w-full mb-3" onclick="viewStockHistory()">
+                <i class="fas fa-history"></i>
+                View Stock History
             </button>
-            <button class="btn btn-outline">
-                <i class="fas fa-download"></i>
-                Export
+            <button class="btn btn-outline w-full">
+                <i class="fas fa-file-export"></i>
+                Export Report
             </button>
         </div>
     </div>
-    <div class="table-container">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Stock Type</th>
-                    <th>Quantity (tons)</th>
-                    <th>Source Farmer</th>
-                    <th>Date Added</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for stock in stocks %}
-                <tr>
-                    <td>{{ stock.type }}</td>
-                    <td>
-                        <div class="flex items-center gap-2">
-                            <input type="number" class="form-control" value="{{ stock.quantity }}" 
-                                id="quantity-{{ stock.id }}" step="0.01" style="width: 100px;">
-                            <span>tons</span>
-                        </div>
-                    </td>
-                    <td>{{ stock.farmer.name }}</td>
-                    <td>{{ stock.date_added.strftime('%Y-%m-%d') }}</td>
-                    <td>
-                        {% if stock.status == 'available' %}
-                        <span class="badge badge-success">Available</span>
-                        {% elif stock.status == 'reserved' %}
-                        <span class="badge badge-warning">Reserved</span>
-                        {% elif stock.status == 'depleted' %}
-                        <span class="badge badge-error">Depleted</span>
-                        {% else %}
-                        <span class="badge badge-info">{{ stock.status }}</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="flex gap-2">
-                            <button class="btn btn-primary" onclick="updateStock({{ stock.id }})">
-                                <i class="fas fa-save"></i>
+</div>
+
+<!-- Farmer Requests Table -->
+<div class="card mt-6">
+    <div class="card-header">
+        <div class="flex justify-between items-center">
+            <h2>Incoming Stock Requests</h2>
+            <div class="flex gap-2">
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="requestSearch" placeholder="Search requests..." class="search-input">
+                </div>
+                <select id="statusFilter" class="form-control">
+                    <option value="all">All Status</option>
+                    <option value="pending">Pending</option>
+                    <option value="approved">Approved</option>
+                    <option value="rejected">Rejected</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table" id="requestsTable">
+                <thead>
+                    <tr>
+                        <th>Farmer Name</th>
+                        <th>Stock Type</th>
+                        <th>Requested Quantity</th>
+                        <th>Date Requested</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in stock_requests %}
+                    <tr data-request-id="{{ request.id }}" 
+                        data-farmer-name="{{ request.farmer.name }}"
+                        data-stock-type="{{ request.stock.type }}"
+                        data-quantity="{{ request.stock.quantity }}">
+                        <td>{{ request.farmer.name }}</td>
+                        <td>{{ request.stock.type }}</td>
+                        <td>{{ request.stock.quantity }} tons</td>
+                        <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <span class="badge badge-{{ request.status }}">
+                                {{ request.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if request.status == 'pending' %}
+                            <button class="btn btn-sm btn-primary" onclick="openResponseModal({{ request.id }})">
+                                <i class="fas fa-reply"></i>
+                                Respond
                             </button>
-                            <button class="btn btn-outline" onclick="viewStockDetails({{ stock.id }})">
+                            {% else %}
+                            <button class="btn btn-sm btn-outline" onclick="viewRequestDetails({{ request.id }})">
                                 <i class="fas fa-eye"></i>
+                                View
+                            </button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- My Stock Requests -->
+<div class="card mt-6">
+    <div class="card-header">
+        <div class="flex justify-between items-center">
+            <h2>My Stock Requests</h2>
+            <button class="btn btn-primary" onclick="openCreateRequestModal()">
+                <i class="fas fa-plus"></i>
+                New Request
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Stock Type</th>
+                        <th>Quantity Needed</th>
+                        <th>Price Offered</th>
+                        <th>Posted Date</th>
+                        <th>Expiry Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in warehouse_requests %}
+                    <tr>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td>₹{{ request.price_per_ton }}/ton</td>
+                        <td>{{ request.date_posted.strftime('%Y-%m-%d') }}</td>
+                        <td>{{ request.expiry_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            <span class="badge badge-{{ request.status }}">
+                                {{ request.status|capitalize }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline" onclick="editRequest('{{ request.id }}')">
+                                <i class="fas fa-edit"></i>
+                                Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteRequest('{{ request.id }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Response Modal -->
+<div class="modal" id="responseModal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="text-2xl font-semibold text-gray-800">Respond to Stock Request</h3>
+                <button class="close-modal-btn" onclick="closeResponseModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Farmer Information -->
+                <div class="info-card bg-white p-6 rounded-xl shadow-sm mb-6 border border-gray-100">
+                    <div class="flex items-center mb-6 border-b pb-4">
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-50 mr-4">
+                            <i class="fas fa-user text-blue-500 text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-800">Farmer Information</h4>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="info-field">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm text-gray-600 font-medium">Name</label>
+                                <p class="text-lg font-semibold text-gray-800" id="farmerName"></p>
+                            </div>
+                        </div>
+                        <div class="info-field">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm text-gray-600 font-medium">Phone</label>
+                                <p class="text-lg font-semibold text-gray-800" id="farmerPhone"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stock Information -->
+                <div class="info-card bg-white p-6 rounded-xl shadow-sm mb-6 border border-gray-100">
+                    <div class="flex items-center mb-6 border-b pb-4">
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-green-50 mr-4">
+                            <i class="fas fa-box text-green-500 text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-800">Stock Information</h4>
+                    </div>
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="info-field">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm text-gray-600 font-medium">Type</label>
+                                <p class="text-lg font-semibold text-gray-800" id="stockType"></p>
+                            </div>
+                        </div>
+                        <div class="info-field">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm text-gray-600 font-medium">Requested Quantity</label>
+                                <p class="text-lg font-semibold text-gray-800" id="requestedQuantity"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Warehouse Space -->
+                <div class="info-card bg-white p-6 rounded-xl shadow-sm mb-6 border border-gray-100">
+                    <div class="flex items-center mb-6 border-b pb-4">
+                        <div class="flex items-center justify-center w-12 h-12 rounded-full bg-purple-50 mr-4">
+                            <i class="fas fa-warehouse text-purple-500 text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-semibold text-gray-800">Warehouse Space</h4>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="info-field">
+                            <div class="flex items-center justify-between mb-2">
+                                <label class="text-sm text-gray-600 font-medium">Available Space</label>
+                                <p class="text-lg font-semibold text-gray-800" id="availableSpace"></p>
+                            </div>
+                        </div>
+                        <div class="relative pt-1">
+                            <div class="flex mb-2 items-center justify-between">
+                                <div class="text-xs font-semibold text-gray-600 uppercase">Storage Capacity</div>
+                                <div class="text-right">
+                                    <span id="spacePercentage" class="text-xs font-semibold text-green-600">
+                                        0%
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="overflow-hidden h-3 text-xs flex rounded-full bg-gray-200">
+                                <div class="bg-green-500 rounded-full transition-all duration-300 relative" id="spaceIndicator" style="width: 0%">
+                                    <div class="opacity-25 bg-white absolute top-0 left-0 bottom-0 right-0"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Response Form -->
+                <form id="responseForm" class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <input type="hidden" id="requestId" name="request_id">
+                    
+                    <div class="form-group mb-6">
+                        <label for="approvedQuantity" class="text-sm font-semibold text-gray-800 mb-2 block">
+                            Approved Quantity (tons)
+                        </label>
+                        <div class="flex gap-3 items-center">
+                            <div class="flex-1">
+                                <input type="number" 
+                                       id="approvedQuantity" 
+                                       name="approved_quantity" 
+                                       class="form-control text-lg" 
+                                       step="0.01" 
+                                       min="0" 
+                                       onchange="validateQuantity(this)">
+                            </div>
+                            <button type="button" 
+                                    id="useRequestedBtn" 
+                                    class="btn btn-outline hover:bg-gray-50" 
+                                    onclick="useRequestedQuantity()">
+                                Use Requested
                             </button>
                         </div>
-                    </td>
-                </tr>
-                {% endfor %}
-                {% if not stocks %}
-                <tr>
-                    <td colspan="6" class="text-center">No stocks found</td>
-                </tr>
-                {% endif %}
-            </tbody>
-        </table>
+                        <div id="quantityWarning" class="mt-2 p-3 bg-red-50 text-red-600 rounded-lg hidden">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span>Warning: Approved quantity exceeds available space</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="responseNotes" class="text-sm font-semibold text-gray-800 mb-2 block">
+                            Notes
+                        </label>
+                        <textarea id="responseNotes" 
+                                  name="notes" 
+                                  class="form-control" 
+                                  rows="3" 
+                                  placeholder="Add any additional notes or instructions..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <div class="flex justify-end gap-3">
+                    <button class="btn btn-outline hover:bg-gray-50" onclick="closeResponseModal()">
+                        Cancel
+                    </button>
+                    <button class="btn bg-red-500 hover:bg-red-600 text-white" onclick="rejectRequest()">
+                        <i class="fas fa-times mr-2"></i>
+                        Reject
+                    </button>
+                    <button class="btn bg-green-500 hover:bg-green-600 text-white" onclick="approveRequest()">
+                        <i class="fas fa-check mr-2"></i>
+                        Approve
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Request Modal -->
+<div class="modal" id="createRequestModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Create Stock Request</h3>
+                <button type="button" class="close-modal-btn" onclick="closeCreateRequestModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="createRequestForm" action="{{ url_for('warehouse_dashboard.create_request') }}" method="POST">
+                    <div class="form-group">
+                        <label for="stockType">Stock Type</label>
+                        <select id="stockType" name="stock_type" class="form-control" required>
+                            <option value="">-- Select Stock Type --</option>
+                            <option value="Rice">Rice</option>
+                            <option value="Wheat">Wheat</option>
+                            <option value="Corn">Corn</option>
+                            <option value="Sugarcane">Sugarcane</option>
+                            <option value="Vegetables">Vegetables</option>
+                            <option value="Fruits">Fruits</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="otherStockTypeGroup" style="display: none;">
+                        <label for="otherStockType">Specify Stock Type</label>
+                        <input type="text" id="otherStockType" name="other_stock_type" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="quantity">Quantity Needed (tons)</label>
+                        <input type="number" id="quantity" name="quantity" class="form-control" required min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="pricePerTon">Price per Ton (₹)</label>
+                        <input type="number" id="pricePerTon" name="price_per_ton" class="form-control" required min="0.01" step="0.01">
+                    </div>
+                    <div class="form-group">
+                        <label for="expiryDate">Request Valid Until</label>
+                        <input type="date" id="expiryDate" name="expiry_date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="description">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-outline" onclick="closeCreateRequestModal()">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Request</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Edit Modal -->
+<div class="modal" id="stockEditModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edit Stock Distribution</h3>
+                <button type="button" class="close-modal-btn" onclick="closeStockEditModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-4">
+                    <h4 id="stockTotalQuantity"></h4>
+                </div>
+                <div id="farmerDistributions" class="farmer-distributions">
+                    <!-- Farmer controls will be added dynamically -->
+                </div>
+                <div class="flex justify-end gap-2 mt-4">
+                    <button class="btn btn-outline" onclick="closeStockEditModal()">Cancel</button>
+                    <button class="btn btn-primary" onclick="saveStockChanges()">Save Changes</button>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-function updateStock(stockId) {
-    const quantity = $(`#quantity-${stockId}`).val();
-    $.post('/update_stock', {
-        stock_id: stockId,
-        quantity: quantity
+// Global variables
+let chart = null;
+let editMode = false;
+let currentStockType = null;
+let stockRequests = [];
+
+// Initialize warehouse data
+window.warehouse = {
+    available_space: {{ warehouse.available_space|float }},
+    capacity: {{ warehouse.capacity|float }}
+};
+
+function initializeStorageChart() {
+    const ctx = document.getElementById('storageChart').getContext('2d');
+    const stockData = JSON.parse('{{ stocks_json|tojson|safe }}');
+    
+    // Process data for chart - only include stored stocks
+    const stocksByType = {};
+    let totalStored = 0;
+    
+    stockData.forEach(stock => {
+        if (stock.status === 'stored') {
+            if (!stocksByType[stock.type]) {
+                stocksByType[stock.type] = {
+                    quantity: 0,
+                    farmers: {},
+                    stocks: []
+                };
+            }
+            if (!stocksByType[stock.type].farmers[stock.farmer.name]) {
+                stocksByType[stock.type].farmers[stock.farmer.name] = {
+                    quantity: 0,
+                    stocks: []
+                };
+            }
+            stocksByType[stock.type].quantity += stock.quantity;
+            stocksByType[stock.type].farmers[stock.farmer.name].quantity += stock.quantity;
+            stocksByType[stock.type].farmers[stock.farmer.name].stocks.push(stock);
+            stocksByType[stock.type].stocks.push(stock);
+            totalStored += stock.quantity;
+        }
+    });
+
+    const data = {
+        labels: Object.keys(stocksByType),
+        datasets: [{
+            data: Object.values(stocksByType).map(s => s.quantity),
+            backgroundColor: Object.keys(stocksByType).map((_, index) => getColorForIndex(index)),
+            borderWidth: 1
+        }]
+    };
+
+    // Destroy existing chart if it exists
+    if (chart) {
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx, {
+        type: 'doughnut',
+        data: data,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        font: {
+                            size: 12
+                        }
+                    },
+                    onClick: function(e, legendItem) {
+                        const type = legendItem.text;
+                        if (editMode) {
+                            showStockEditModal(type, stocksByType[type]);
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const type = context.label;
+                            const value = context.raw;
+                            const percentage = ((value / totalStored) * 100).toFixed(1);
+                            const farmers = Object.keys(stocksByType[type].farmers).join(', ');
+                            return [
+                                `${type}: ${value.toFixed(2)} tons (${percentage}%)`,
+                                `Farmers: ${farmers}`
+                            ];
+                        }
+                    }
+                }
+            },
+            cutout: '60%',
+            onClick: function(event, elements) {
+                if (elements.length > 0) {
+                    const index = elements[0].index;
+                    const type = this.data.labels[index];
+                    if (editMode) {
+                        showStockEditModal(type, stocksByType[type]);
+                    }
+                }
+            }
+        }
+    });
+
+    return { chart, stocksByType, totalStored };
+}
+
+function showStockEditModal(stockType, stockData) {
+    currentStockType = stockType;
+    const modal = document.getElementById('stockEditModal');
+    const totalDisplay = document.getElementById('stockTotalQuantity');
+    const distributionsContainer = document.getElementById('farmerDistributions');
+    
+    totalDisplay.textContent = `Total Quantity: ${stockData.quantity.toFixed(2)} tons`;
+    
+    let html = '';
+    Object.entries(stockData.farmers).forEach(([farmer, data]) => {
+        html += `
+            <div class="farmer-control mb-3" data-farmer="${farmer}">
+                <label>${farmer}</label>
+                <div class="flex gap-2 items-center">
+                    <input type="number" 
+                           class="form-control" 
+                           value="${data.quantity.toFixed(2)}"
+                           min="0"
+                           step="0.01"
+                           data-original="${data.quantity}"
+                           onchange="updateStockQuantity(this, '${stockType}', '${farmer}')"
+                    >
+                    <span>tons</span>
+                    <button class="btn btn-outline btn-sm" onclick="returnStockToFarmer('${stockType}', '${farmer}')">
+                        <i class="fas fa-undo"></i>
+                        Return to Farmer
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    distributionsContainer.innerHTML = html;
+    modal.classList.add('show');
+}
+
+function closeStockEditModal() {
+    const modal = document.getElementById('stockEditModal');
+    modal.classList.remove('show');
+    currentStockType = null;
+}
+
+function updateStockQuantity(input, type, farmer) {
+    const newValue = parseFloat(input.value);
+    const originalValue = parseFloat(input.dataset.original);
+    
+    if (isNaN(newValue) || newValue < 0) {
+        input.value = originalValue;
+        return;
+    }
+
+    // Update the total quantity display
+    let totalQuantity = 0;
+    document.querySelectorAll('.farmer-control input').forEach(input => {
+        totalQuantity += parseFloat(input.value) || 0;
+    });
+
+    document.getElementById('stockTotalQuantity').textContent = 
+        `Total Quantity: ${totalQuantity.toFixed(2)} tons`;
+}
+
+function returnStockToFarmer(type, farmer) {
+    if (confirm(`Are you sure you want to return all ${type} stock to ${farmer}?`)) {
+        const updates = [{
+            type,
+            farmer,
+            quantity: 0,
+            return_to_farmer: true
+        }];
+
+        saveUpdates(updates);
+    }
+}
+
+function saveStockChanges() {
+    if (!currentStockType) return;
+    
+    const updates = [];
+    document.querySelectorAll('.farmer-control').forEach(control => {
+        const farmer = control.dataset.farmer;
+        const input = control.querySelector('input');
+        const newValue = parseFloat(input.value);
+        const originalValue = parseFloat(input.dataset.original);
+        
+        if (newValue !== originalValue) {
+            updates.push({
+                type: currentStockType,
+                farmer,
+                quantity: newValue
+            });
+        }
+    });
+
+    if (updates.length === 0) {
+        showAlert('No changes to save', 'info');
+        closeStockEditModal();
+        return;
+    }
+
+    saveUpdates(updates);
+}
+
+function saveUpdates(updates) {
+    fetch('/warehouse/update_stock_distribution', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ updates })
     })
-    .done(function(response) {
-        showAlert('Stock updated successfully', 'success');
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Stock distribution updated successfully', 'success');
+            closeStockEditModal();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message || 'Error updating stock distribution', 'error');
+        }
     })
-    .fail(function(error) {
-        showAlert('Failed to update stock', 'error');
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error updating stock distribution', 'error');
     });
 }
 
-function viewStockDetails(stockId) {
-    // This would open a modal with stock details
-    showAlert('Viewing stock details is not implemented yet', 'info');
+function toggleChartEdit() {
+    editMode = !editMode;
+    const controls = document.getElementById('chartEditControls');
+    const editBtn = document.querySelector('.card-header button');
+    
+    if (editMode) {
+        controls.style.display = 'block';
+        editBtn.classList.add('btn-primary');
+        editBtn.classList.remove('btn-outline');
+        editBtn.innerHTML = '<i class="fas fa-check"></i> Save Distribution';
+        showEditControls();
+    } else {
+        controls.style.display = 'none';
+        editBtn.classList.remove('btn-primary');
+        editBtn.classList.add('btn-outline');
+        editBtn.innerHTML = '<i class="fas fa-edit"></i> Edit Distribution';
+    }
 }
 
-$('#storage-form').submit(function(e) {
+function showEditControls(selectedType = null) {
+    const controlsContainer = document.querySelector('.stock-controls');
+    const stockData = JSON.parse('{{ stocks_json|tojson|safe }}');
+    const stocksByType = {};
+    
+    // Group stocks by type and farmer
+    stockData.forEach(stock => {
+        if (stock.status === 'stored') {
+            if (!stocksByType[stock.type]) {
+                stocksByType[stock.type] = {
+                    quantity: 0,
+                    farmers: {}
+                };
+            }
+            if (!stocksByType[stock.type].farmers[stock.farmer.name]) {
+                stocksByType[stock.type].farmers[stock.farmer.name] = 0;
+            }
+            stocksByType[stock.type].farmers[stock.farmer.name] += stock.quantity;
+            stocksByType[stock.type].quantity += stock.quantity;
+        }
+    });
+
+    let html = '';
+    Object.entries(stocksByType).forEach(([type, data]) => {
+        const isSelected = selectedType === type;
+        html += `
+            <div class="stock-type-control ${isSelected ? 'selected' : ''}" data-type="${type}">
+                <div class="flex justify-between items-center mb-2">
+                    <h4>${type}</h4>
+                    <span>Total: ${data.quantity.toFixed(2)} tons</span>
+                </div>
+                <div class="farmer-distributions">
+                    ${Object.entries(data.farmers).map(([farmer, quantity]) => `
+                        <div class="farmer-control mb-2">
+                            <label>${farmer}</label>
+                            <div class="flex gap-2 items-center">
+                                <input type="number" 
+                                       class="form-control form-control-sm" 
+                                       value="${quantity.toFixed(2)}"
+                                       min="0"
+                                       step="0.01"
+                                       data-farmer="${farmer}"
+                                       data-original="${quantity}"
+                                       onchange="updateChartData(this, '${type}', '${farmer}')"
+                                >
+                                <span class="text-sm">tons</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    });
+
+    controlsContainer.innerHTML = html;
+}
+
+function updateChartData(input, type, farmer) {
+    const newValue = parseFloat(input.value);
+    const originalValue = parseFloat(input.dataset.original);
+    const stockData = JSON.parse('{{ stocks_json|tojson|safe }}');
+    
+    // Update the stock data
+    let totalQuantity = 0;
+    stockData.forEach(stock => {
+        if (stock.status === 'stored' && 
+            stock.type === type && 
+            stock.farmer.name === farmer) {
+            const ratio = newValue / originalValue;
+            stock.quantity = stock.quantity * ratio;
+            totalQuantity += stock.quantity;
+        }
+    });
+
+    // Update the total display
+    const totalElement = input.closest('.stock-type-control').querySelector('span');
+    totalElement.textContent = `Total: ${totalQuantity.toFixed(2)} tons`;
+
+    // Reinitialize the chart with new data
+    initializeStorageChart();
+}
+
+function saveChartChanges() {
+    const updates = [];
+    
+    // Collect all updates from the form
+    document.querySelectorAll('.farmer-control input').forEach(input => {
+        const type = input.closest('.stock-type-control').dataset.type;
+        const farmer = input.dataset.farmer;
+        const newValue = parseFloat(input.value);
+        const originalValue = parseFloat(input.dataset.original);
+        
+        if (newValue !== originalValue) {
+            updates.push({
+                type,
+                farmer,
+                quantity: newValue
+            });
+        }
+    });
+
+    if (updates.length === 0) {
+        showAlert('No changes to save', 'info');
+        toggleChartEdit();
+        return;
+    }
+
+    // Send updates to server
+    fetch('/warehouse/update_stock_distribution', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ updates })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Stock distribution updated successfully', 'success');
+            toggleChartEdit();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message || 'Error updating stock distribution', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error updating stock distribution', 'error');
+    });
+}
+
+function cancelChartEdit() {
+    initializeStorageChart();
+    toggleChartEdit();
+}
+
+// Color generator for chart
+function getColorForIndex(index) {
+    const colors = [
+        '#4CAF50', '#2196F3', '#FFC107', '#E91E63',
+        '#9C27B0', '#00BCD4', '#FF5722', '#795548'
+    ];
+    return colors[index % colors.length];
+}
+
+// Modal handling
+function openResponseModal(requestId) {
+    const requestRow = document.querySelector(`tr[data-request-id="${requestId}"]`);
+    if (!requestRow) {
+        showAlert('Request not found', 'error');
+        return;
+    }
+    
+    const farmerName = requestRow.getAttribute('data-farmer-name');
+    const stockType = requestRow.getAttribute('data-stock-type');
+    const quantity = parseFloat(requestRow.getAttribute('data-quantity'));
+    
+    document.getElementById('requestId').value = requestId;
+    document.getElementById('farmerName').textContent = farmerName;
+    document.getElementById('stockType').textContent = stockType;
+    document.getElementById('requestedQuantity').textContent = `${quantity} tons`;
+    document.getElementById('availableSpace').textContent = `${window.warehouse.available_space} tons`;
+    
+    const spacePercentage = (window.warehouse.available_space / window.warehouse.capacity) * 100;
+    document.getElementById('spaceIndicator').style.width = `${spacePercentage}%`;
+    document.getElementById('spacePercentage').textContent = `${spacePercentage.toFixed(1)}%`;
+    
+    document.getElementById('approvedQuantity').value = quantity;
+    document.getElementById('responseNotes').value = '';
+    document.getElementById('quantityWarning').style.display = 'none';
+    
+    document.getElementById('responseModal').classList.add('show');
+}
+
+function closeResponseModal() {
+    document.getElementById('responseModal').classList.remove('show');
+}
+
+function openCreateRequestModal() {
+    document.getElementById('createRequestModal').classList.add('show');
+    
+    // Set minimum expiry date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('expiryDate').min = tomorrow.toISOString().split('T')[0];
+}
+
+function closeCreateRequestModal() {
+    document.getElementById('createRequestModal').classList.remove('show');
+}
+
+// Form handling
+document.getElementById('responseForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    $.post('/update_storage', {
-        capacity: $('#capacity').val(),
-        available_space: $('#available_space').val()
+    const formData = new FormData(this);
+    
+    fetch('/warehouse/respond_to_request', {
+        method: 'POST',
+        body: formData
     })
-    .done(function(response) {
-        showAlert('Storage details updated successfully', 'success');
-        setTimeout(() => location.reload(), 1000);
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Request approved successfully');
+            closeResponseModal();
+            location.reload();
+        } else {
+            alert(data.message || 'Failed to approve request');
+        }
     })
-    .fail(function(error) {
-        showAlert('Failed to update storage details', 'error');
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error processing request');
     });
 });
+
+document.getElementById('createRequestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Request created successfully', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message || 'Error creating request', 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error creating request', 'error');
+    });
+});
+
+// Stock type handling
+document.getElementById('stockType').addEventListener('change', function() {
+    const otherGroup = document.getElementById('otherStockTypeGroup');
+    otherGroup.style.display = this.value === 'Other' ? 'block' : 'none';
+});
+
+// Search functionality
+document.getElementById('requestSearch').addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    const rows = document.querySelectorAll('#requestsTable tbody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+
+// Status filter
+document.getElementById('statusFilter').addEventListener('change', function() {
+    const status = this.value;
+    const rows = document.querySelectorAll('#requestsTable tbody tr');
+    
+    rows.forEach(row => {
+        if (status === 'all') {
+            row.style.display = '';
+        } else {
+            const rowStatus = row.querySelector('.badge').textContent.toLowerCase();
+            row.style.display = rowStatus === status ? '' : 'none';
+        }
+    });
+});
+
+// Initialize chart when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize stock requests data
+    const requestRows = document.querySelectorAll('#requestsTable tbody tr');
+    requestRows.forEach(row => {
+        const id = row.getAttribute('data-request-id');
+        if (id) {
+            stockRequests.push({
+                id: parseInt(id),
+                farmer: {
+                    name: row.cells[0].textContent,
+                    phone: 'N/A' // You can add phone if available in your data
+                },
+                stock: {
+                    type: row.cells[1].textContent,
+                    quantity: parseFloat(row.cells[2].textContent)
+                },
+                request_date: row.cells[3].textContent
+            });
+        }
+    });
+    
+    initializeStorageChart();
+});
+
+// Request management functions
+function editRequest(requestId) {
+    // Implement edit functionality
+    showAlert('Edit functionality coming soon', 'info');
+}
+
+function deleteRequest(requestId) {
+    if (confirm('Are you sure you want to delete this request?')) {
+        fetch(`/warehouse/delete_request/${requestId}`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Request deleted successfully', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showAlert(data.message || 'Error deleting request', 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('Error deleting request', 'error');
+        });
+    }
+}
+
+function validateQuantity(input) {
+    const approvedQuantity = parseFloat(input.value);
+    const warning = document.getElementById('quantityWarning');
+    
+    if (approvedQuantity > window.warehouse.available_space) {
+        warning.style.display = 'block';
+        warning.textContent = `Warning: Approved quantity exceeds available space (${window.warehouse.available_space} tons)`;
+    } else {
+        warning.style.display = 'none';
+    }
+}
+
+function useRequestedQuantity() {
+    const requestedQuantity = document.getElementById('requestedQuantity').textContent;
+    const quantity = parseFloat(requestedQuantity);
+    const input = document.getElementById('approvedQuantity');
+    input.value = quantity;
+    validateQuantity(input);
+}
+
+function approveRequest() {
+    const requestId = document.getElementById('requestId').value;
+    const quantity = document.getElementById('approvedQuantity').value;
+    const notes = document.getElementById('responseNotes').value;
+    
+    if (!quantity) {
+        showAlert('Please enter approved quantity', 'error');
+        return;
+    }
+    
+    if (parseFloat(quantity) > window.warehouse.available_space) {
+        showAlert('Approved quantity exceeds available space', 'error');
+        return;
+    }
+    
+    const requestData = {
+        request_id: requestId,
+        approved_quantity: quantity,
+        notes: notes,
+        action: 'approve'
+    };
+    
+    fetch('/warehouse/respond_to_request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Request approved successfully', 'success');
+            closeResponseModal();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message || 'Failed to approve request', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error processing request', 'error');
+    });
+}
+
+function rejectRequest() {
+    const requestId = document.getElementById('requestId').value;
+    const notes = document.getElementById('responseNotes').value;
+    
+    const requestData = {
+        request_id: requestId,
+        notes: notes,
+        action: 'reject'
+    };
+    
+    fetch('/warehouse/respond_to_request', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Request rejected successfully', 'success');
+            closeResponseModal();
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message || 'Failed to reject request', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error rejecting request', 'error');
+    });
+}
+
+// Add this utility function for showing alerts
+function showAlert(message, type = 'info') {
+    // You can implement this based on your alert system
+    alert(message);
+}
 </script>
+
+<style>
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.badge {
+    padding: 0.25em 0.5em;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.badge-pending {
+    background-color: var(--warning-color);
+    color: var(--warning-text);
+}
+
+.badge-approved {
+    background-color: var(--success-color);
+    color: var(--success-text);
+}
+
+.badge-rejected {
+    background-color: var(--error-color);
+    color: var(--error-text);
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+}
+
+.modal.show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-dialog {
+    background: var(--card-bg);
+    border-radius: 0.5rem;
+    width: 90%;
+    max-width: 500px;
+}
+
+.modal-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 1rem;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.search-container {
+    position: relative;
+}
+
+.search-container i {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+.search-input {
+    padding-left: 2rem;
+}
+
+.stock-type-control {
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stock-type-control.selected {
+    border-color: var(--primary-color);
+    background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+.farmer-control {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+}
+
+.farmer-control label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+
+.farmer-control input {
+    width: 120px;
+    text-align: right;
+}
+
+.farmer-distributions {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 1rem;
+}
+
+#chartEditControls {
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+    margin-top: 1rem;
+}
+
+.stock-controls {
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: 1rem;
+}
+
+.modal-lg {
+    max-width: 800px;
+    width: 90%;
+}
+
+.request-info p {
+    margin-bottom: 0.5rem;
+}
+
+.space-info {
+    transition: all 0.3s ease;
+}
+
+.space-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.quantity-warning {
+    font-size: 0.875rem;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+/* Modern Modal Styles */
+.modal-content {
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.modal-header {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-body {
+    background: #f8fafc;
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    background: #ffffff;
+    padding: 1.5rem;
+    border-top: 1px solid #f0f0f0;
+}
+
+.close-modal-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.close-modal-btn:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+
+.info-card {
+    transition: all 0.3s ease;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    position: relative;
+    overflow: hidden;
+}
+
+.info-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1), 0 4px 8px -4px rgba(0, 0, 0, 0.06);
+    border-color: #d1d5db;
+}
+
+.info-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(to right, #3b82f6, #60a5fa);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.info-card:hover::before {
+    opacity: 1;
+}
+
+.info-field {
+    background: #ffffff;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s ease;
+}
+
+.info-field:hover {
+    background-color: #f9fafb;
+    border-color: #d1d5db;
+    box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.info-field label {
+    color: #4b5563;
+    font-weight: 500;
+    margin-right: 1rem;
+}
+
+.info-field p {
+    margin: 0;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    background-color: #f3f4f6;
+    display: inline-block;
+}
+
+.modal-body {
+    background: #f8fafc;
+    padding: 1.5rem;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Update the progress bar animation */
+@keyframes progress {
+    0% { background-position: 0 0; }
+    100% { background-position: 30px 0; }
+}
+
+.bg-green-500 {
+    background-image: linear-gradient(
+        45deg,
+        rgba(255, 255, 255, .15) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, .15) 50%,
+        rgba(255, 255, 255, .15) 75%,
+        transparent 75%,
+        transparent
+    );
+    background-size: 30px 30px;
+    animation: progress 1s linear infinite;
+}
+</style>
 {% endblock %}
+

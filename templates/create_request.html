@@ -1,6 +1,42 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+.selected-row {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.map-select-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 5px;
+}
+
+.map-select-btn:hover {
+    background-color: #0056b3;
+}
+
+.info-window {
+    padding: 5px;
+    max-width: 200px;
+}
+
+.info-window h3 {
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+.info-window p {
+    margin: 3px 0;
+    font-size: 14px;
+}
+</style>
+
 <div class="flex items-center mb-4">
     <a href="{{ url_for('farmer_dashboard.farmer_home') }}" class="btn btn-outline mr-4">
         <i class="fas fa-arrow-left"></i>
@@ -41,23 +77,36 @@
                     <label for="stockType">Stock Type</label>
                     <select id="stockType" name="stock_type" class="form-control" required>
                         <option value="">-- Select Stock Type --</option>
-                        <option value="Rice">Rice</option>
-                        <option value="Wheat">Wheat</option>
-                        <option value="Corn">Corn</option>
-                        <option value="Sugarcane">Sugarcane</option>
-                        <option value="Vegetables">Vegetables</option>
-                        <option value="Fruits">Fruits</option>
-                        <option value="Other">Other</option>
+                        <option value="Rice" {% if warehouse_request and warehouse_request.stock_type == 'Rice' %}selected{% endif %}>Rice</option>
+                        <option value="Wheat" {% if warehouse_request and warehouse_request.stock_type == 'Wheat' %}selected{% endif %}>Wheat</option>
+                        <option value="Corn" {% if warehouse_request and warehouse_request.stock_type == 'Corn' %}selected{% endif %}>Corn</option>
+                        <option value="Sugarcane" {% if warehouse_request and warehouse_request.stock_type == 'Sugarcane' %}selected{% endif %}>Sugarcane</option>
+                        <option value="Vegetables" {% if warehouse_request and warehouse_request.stock_type == 'Vegetables' %}selected{% endif %}>Vegetables</option>
+                        <option value="Fruits" {% if warehouse_request and warehouse_request.stock_type == 'Fruits' %}selected{% endif %}>Fruits</option>
+                        <option value="Other" {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}selected{% endif %}>Other</option>
                     </select>
                 </div>
-                <div class="form-group" id="otherStockTypeGroup" style="display: none;">
+                <div class="form-group" id="otherStockTypeGroup" style="display: {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}block{% else %}none{% endif %};">
                     <label for="otherStockType">Specify Stock Type</label>
-                    <input type="text" id="otherStockType" name="other_stock_type" class="form-control" placeholder="Enter stock type">
+                    <input type="text" id="otherStockType" name="other_stock_type" class="form-control" placeholder="Enter stock type" {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}value="{{ warehouse_request.stock_type }}"{% endif %}>
                 </div>
                 <div class="form-group">
                     <label for="quantity">Quantity (tons)</label>
-                    <input type="number" id="quantity" name="quantity" class="form-control" min="0.01" step="0.01" required>
+                    <input type="number" id="quantity" name="quantity" class="form-control" min="0.01" step="0.01" required value="{% if warehouse_request %}{{ warehouse_request.quantity }}{% endif %}">
                 </div>
+                {% if warehouse_request %}
+                <div class="form-group">
+                    <div class="alert alert-info">
+                        <h4>Warehouse Request Details</h4>
+                        <p><strong>Price Offered:</strong> ₹{{ warehouse_request.price_per_ton }}/ton</p>
+                        <p><strong>Posted Date:</strong> {{ warehouse_request.date_posted.strftime('%Y-%m-%d') }}</p>
+                        <p><strong>Expiry Date:</strong> {{ warehouse_request.expiry_date.strftime('%Y-%m-%d') }}</p>
+                        {% if warehouse_request.description %}
+                        <p><strong>Description:</strong> {{ warehouse_request.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
                 <div class="form-group">
                     <label for="notes">Additional Notes</label>
                     <textarea id="notes" name="notes" class="form-control" rows="3"></textarea>
@@ -96,7 +145,16 @@
                         </thead>
                         <tbody>
                             {% for warehouse in warehouses %}
-                            <tr data-id="{{ warehouse.id }}" data-name="{{ warehouse.name }}" data-location="{{ warehouse.location }}" data-lat="{{ warehouse.latitude }}" data-lng="{{ warehouse.longitude }}" data-type="{{ warehouse.warehouse_type }}" data-space="{{ warehouse.available_space }}">
+                            <tr data-id="{{ warehouse.id }}" 
+                                data-name="{{ warehouse.name }}" 
+                                data-location="{{ warehouse.location }}" 
+                                data-lat="{{ warehouse.latitude }}" 
+                                data-lng="{{ warehouse.longitude }}" 
+                                data-type="{{ warehouse.warehouse_type }}" 
+                                data-space="{{ warehouse.available_space }}"
+                                {% if warehouse_request and warehouse_request.warehouse_id == warehouse.id %}
+                                data-request-id="{{ warehouse_request.id }}"
+                                {% endif %}>
                                 <td>{{ warehouse.name }}</td>
                                 <td>{{ warehouse.location }}</td>
                                 <td>{{ warehouse.warehouse_type|capitalize }}</td>
@@ -368,6 +426,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check for warehouse_id parameter in URL
     const urlParams = new URLSearchParams(window.location.search);
     const warehouseIdParam = urlParams.get('warehouse_id');
+    const warehouseRequestIdParam = urlParams.get('warehouse_request_id');
     
     if (warehouseIdParam) {
         console.log("Found warehouse_id in URL:", warehouseIdParam);
@@ -382,43 +441,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
             }
         }, 500);
+    } else if (warehouseRequestIdParam) {
+        console.log("Found warehouse_request_id in URL:", warehouseRequestIdParam);
+        // Handle warehouse request selection
+        const checkWarehousesLoaded = setInterval(function() {
+            if (warehouses.length > 0) {
+                clearInterval(checkWarehousesLoaded);
+                // Find the warehouse associated with this request
+                const warehouseRow = document.querySelector(`tr[data-request-id="${warehouseRequestIdParam}"]`);
+                if (warehouseRow) {
+                    const warehouseId = warehouseRow.getAttribute('data-warehouse-id');
+                    selectWarehouse(warehouseId);
+                }
+                // Scroll to the form section
+                document.querySelector('.card').scrollIntoView({ behavior: 'smooth' });
+            }
+        }, 500);
     }
 });
 </script>
-
-<style>
-.selected-row {
-    background-color: rgba(0, 123, 255, 0.1);
-}
-
-.map-select-btn {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-top: 5px;
-}
-
-.map-select-btn:hover {
-    background-color: #0056b3;
-}
-
-.info-window {
-    padding: 5px;
-    max-width: 200px;
-}
-
-.info-window h3 {
-    margin-top: 0;
-    margin-bottom: 5px;
-    font-size: 16px;
-}
-
-.info-window p {
-    margin: 3px 0;
-    font-size: 14px;
-}
-</style>
 {% endblock %}
