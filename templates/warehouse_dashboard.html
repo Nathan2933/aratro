@@ -40,7 +40,9 @@
             </div>
         </div>
         <div class="card-body">
-            <canvas id="storageChart" height="300"></canvas>
+            <div class="chart-container">
+                <canvas id="storageChart" height="300"></canvas>
+            </div>
             <div id="chartEditControls" style="display: none; margin-top: 1rem;">
                 <div class="stock-controls">
                     <!-- Controls will be dynamically added here -->
@@ -412,7 +414,7 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Edit Stock Distribution</h3>
+                <h3>Stock Information</h3>
                 <button type="button" class="close-modal-btn" onclick="closeStockEditModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -425,8 +427,7 @@
                     <!-- Farmer controls will be added dynamically -->
                 </div>
                 <div class="flex justify-end gap-2 mt-4">
-                    <button class="btn btn-outline" onclick="closeStockEditModal()">Cancel</button>
-                    <button class="btn btn-primary" onclick="saveStockChanges()">Save Changes</button>
+                    <button class="btn btn-outline" onclick="closeStockEditModal()">Close</button>
                 </div>
             </div>
         </div>
@@ -512,9 +513,7 @@ function initializeStorageChart() {
                     },
                     onClick: function(e, legendItem) {
                         const farmer = legendItem.text;
-                        if (editMode) {
-                            showStockEditModal(farmer, stocksByFarmer[farmer]);
-                        }
+                        showStockEditModal(farmer, stocksByFarmer[farmer]);
                     }
                 },
                 tooltip: {
@@ -526,7 +525,8 @@ function initializeStorageChart() {
                             const types = Object.keys(stocksByFarmer[farmer].types).join(', ');
                             return [
                                 `${farmer}: ${value.toFixed(2)} tons (${percentage}%)`,
-                                `Crops: ${types}`
+                                `Crops: ${types}`,
+                                'Click to edit allocation'
                             ];
                         }
                     }
@@ -537,9 +537,7 @@ function initializeStorageChart() {
                 if (elements.length > 0) {
                     const index = elements[0].index;
                     const farmer = this.data.labels[index];
-                    if (editMode) {
-                        showStockEditModal(farmer, stocksByFarmer[farmer]);
-                    }
+                    showStockEditModal(farmer, stocksByFarmer[farmer]);
                 }
             }
         }
@@ -549,39 +547,60 @@ function initializeStorageChart() {
 }
 
 function showStockEditModal(farmer, farmerData) {
-    currentStockType = null;
+    if (!farmer || !farmerData) {
+        console.error('Invalid farmer data');
+        return;
+    }
+    
     const modal = document.getElementById('stockEditModal');
     const totalDisplay = document.getElementById('stockTotalQuantity');
     const distributionsContainer = document.getElementById('farmerDistributions');
+    
+    if (!modal || !totalDisplay || !distributionsContainer) {
+        console.error('Required modal elements not found');
+        return;
+    }
+    
+    // Update modal title to reflect it's now just for viewing
+    modal.querySelector('.modal-header h3').textContent = 'Stock Information';
     
     totalDisplay.textContent = `Total Quantity: ${farmerData.quantity.toFixed(2)} tons`;
     
     let html = '';
     Object.entries(farmerData.types).forEach(([type, data]) => {
         html += `
-            <div class="farmer-control mb-3" data-type="${type}">
-                <label>${type}</label>
-                <div class="flex gap-2 items-center">
-                    <input type="number" 
-                           class="form-control" 
-                           value="${data.quantity.toFixed(2)}"
-                           min="0"
-                           step="0.01"
-                           data-original="${data.quantity}"
-                           onchange="updateStockQuantity(this, '${type}', '${farmer}')"
-                    >
-                    <span>tons</span>
-                    <button class="btn btn-outline btn-sm" onclick="returnStockToFarmer('${type}', '${farmer}')">
-                        <i class="fas fa-undo"></i>
-                        Return to Farmer
-                    </button>
+            <div class="farmer-control mb-3">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-medium">${type}</span>
+                    <span class="text-sm text-gray-500">
+                        Quantity: ${data.quantity.toFixed(2)} tons
+                    </span>
+                </div>
+                <div class="flex items-center mt-2">
+                    <div class="flex-grow bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-500 rounded-full h-2" style="width: ${(data.quantity / farmerData.quantity * 100).toFixed(1)}%"></div>
+                    </div>
+                    <span class="text-sm text-gray-500 ml-2">${(data.quantity / farmerData.quantity * 100).toFixed(1)}%</span>
                 </div>
             </div>
         `;
     });
     
     distributionsContainer.innerHTML = html;
+    
+    // Remove the save and cancel buttons, just keep close
+    const footerButtons = modal.querySelector('.modal-body .flex.justify-end');
+    footerButtons.innerHTML = `
+        <button class="btn btn-outline" onclick="closeStockEditModal()">Close</button>
+    `;
+    
     modal.classList.add('show');
+    
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            closeStockEditModal();
+        }
+    });
 }
 
 function closeStockEditModal() {
@@ -593,9 +612,17 @@ function closeStockEditModal() {
 function updateStockQuantity(input, type, farmer) {
     const newValue = parseFloat(input.value);
     const originalValue = parseFloat(input.dataset.original);
+    const maxValue = parseFloat(input.dataset.max);
     
     if (isNaN(newValue) || newValue < 0) {
         input.value = originalValue;
+        return;
+    }
+
+    // Enforce maximum limit
+    if (newValue > maxValue) {
+        input.value = maxValue;
+        showAlert(`Cannot exceed maximum allowed quantity of ${maxValue} tons`, 'warning');
         return;
     }
 
@@ -607,6 +634,13 @@ function updateStockQuantity(input, type, farmer) {
 
     document.getElementById('stockTotalQuantity').textContent = 
         `Total Quantity: ${totalQuantity.toFixed(2)} tons`;
+        
+    // Update progress bar
+    const progressBar = input.closest('.farmer-control').querySelector('.bg-blue-500');
+    const progressText = input.closest('.farmer-control').querySelector('.text-gray-500.ml-2');
+    const percentage = (newValue / maxValue * 100).toFixed(1);
+    progressBar.style.width = `${percentage}%`;
+    progressText.textContent = `${percentage}%`;
 }
 
 function returnStockToFarmer(type, farmer) {
@@ -623,31 +657,56 @@ function returnStockToFarmer(type, farmer) {
 }
 
 function saveStockChanges() {
-    if (!currentStockType) return;
-    
     const updates = [];
     document.querySelectorAll('.farmer-control').forEach(control => {
+        const type = control.dataset.type;
         const farmer = control.dataset.farmer;
         const input = control.querySelector('input');
         const newValue = parseFloat(input.value);
         const originalValue = parseFloat(input.dataset.original);
+        const maxValue = parseFloat(input.dataset.max);
         
         if (newValue !== originalValue) {
+            if (newValue > maxValue) {
+                showAlert(`Cannot save: ${type} quantity exceeds maximum allowed (${maxValue} tons)`, 'error');
+                return;
+            }
+            
             updates.push({
-                type: currentStockType,
-                farmer,
+                type: type,
+                farmer: farmer,
                 quantity: newValue
             });
         }
     });
-
+    
     if (updates.length === 0) {
-        showAlert('No changes to save', 'info');
-        closeStockEditModal();
+        alert('No changes to save');
+        toggleChartEdit();
         return;
     }
-
-    saveUpdates(updates);
+    
+    fetch('/warehouse/update_stock_distribution', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ updates })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            closeStockEditModal();
+            initializeStorageChart();
+            alert('Changes saved successfully');
+        } else {
+            alert('Error saving changes: ' + (data.message || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error saving changes');
+    });
 }
 
 function saveUpdates(updates) {
@@ -684,7 +743,7 @@ function toggleChartEdit() {
         editBtn.classList.add('btn-primary');
         editBtn.classList.remove('btn-outline');
         editBtn.innerHTML = '<i class="fas fa-check"></i> Save Distribution';
-        showEditControls();
+        loadEditControls();
     } else {
         controls.style.display = 'none';
         editBtn.classList.remove('btn-primary');
@@ -693,53 +752,60 @@ function toggleChartEdit() {
     }
 }
 
-function showEditControls(selectedFarmer = null) {
+function loadEditControls() {
     const controlsContainer = document.querySelector('.stock-controls');
     const stockData = JSON.parse('{{ stocks_json|tojson|safe }}');
-    const stocksByFarmer = {};
     
-    // Group stocks by farmer and type
+    // Group stocks by farmer
+    const stocksByFarmer = {};
+    let totalStored = 0;
+    
     stockData.forEach(stock => {
         if (stock.status === 'stored') {
             const farmerName = stock.farmer.name;
             if (!stocksByFarmer[farmerName]) {
                 stocksByFarmer[farmerName] = {
                     quantity: 0,
-                    types: {}
+                    crops: {}
                 };
             }
-            if (!stocksByFarmer[farmerName].types[stock.type]) {
-                stocksByFarmer[farmerName].types[stock.type] = 0;
+            if (!stocksByFarmer[farmerName].crops[stock.type]) {
+                stocksByFarmer[farmerName].crops[stock.type] = 0;
             }
-            stocksByFarmer[farmerName].types[stock.type] += stock.quantity;
+            stocksByFarmer[farmerName].crops[stock.type] += stock.quantity;
             stocksByFarmer[farmerName].quantity += stock.quantity;
+            totalStored += stock.quantity;
         }
     });
 
+    // Generate HTML for each farmer's section
     let html = '';
     Object.entries(stocksByFarmer).forEach(([farmer, data]) => {
-        const isSelected = selectedFarmer === farmer;
+        const percentage = ((data.quantity / totalStored) * 100).toFixed(1);
         html += `
-            <div class="stock-type-control ${isSelected ? 'selected' : ''}" data-farmer="${farmer}">
-                <div class="flex justify-between items-center mb-2">
-                    <h4>${farmer}</h4>
-                    <span>Total: ${data.quantity.toFixed(2)} tons</span>
+            <div class="farmer-section mb-6 p-4 border rounded-lg" data-farmer="${farmer}">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-lg font-semibold">${farmer}</h3>
+                        <p class="text-sm text-gray-600">Total Storage: ${data.quantity.toFixed(2)} tons (${percentage}%)</p>
+                    </div>
+                    <button class="btn btn-sm btn-outline" onclick="showReallocationModal('${farmer}')">
+                        <i class="fas fa-exchange-alt mr-1"></i>
+                        Reallocate
+                    </button>
                 </div>
-                <div class="farmer-distributions">
-                    ${Object.entries(data.types).map(([type, quantity]) => `
-                        <div class="farmer-control mb-2">
-                            <label>${type}</label>
-                            <div class="flex gap-2 items-center">
-                                <input type="number" 
-                                       class="form-control form-control-sm" 
-                                       value="${quantity.toFixed(2)}"
-                                       min="0"
-                                       step="0.01"
-                                       data-type="${type}"
-                                       data-original="${quantity}"
-                                       onchange="updateChartData(this, '${type}', '${farmer}')"
-                                >
-                                <span class="text-sm">tons</span>
+                <div class="crop-list space-y-3">
+                    ${Object.entries(data.crops).map(([crop, amount]) => `
+                        <div class="crop-item" data-crop="${crop}">
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="text-sm font-medium">${crop}</label>
+                                <span class="text-sm text-gray-600">${amount.toFixed(2)} tons</span>
+                            </div>
+                            <div class="flex items-center mt-2">
+                                <div class="flex-grow bg-gray-200 rounded-full h-2">
+                                    <div class="bg-blue-500 rounded-full h-2" style="width: ${(amount / data.quantity * 100).toFixed(1)}%"></div>
+                                </div>
+                                <span class="text-sm text-gray-500 ml-2">${(amount / data.quantity * 100).toFixed(1)}%</span>
                             </div>
                         </div>
                     `).join('')}
@@ -751,46 +817,272 @@ function showEditControls(selectedFarmer = null) {
     controlsContainer.innerHTML = html;
 }
 
-function updateChartData(input, type, farmer) {
-    const newValue = parseFloat(input.value);
-    const originalValue = parseFloat(input.dataset.original);
-    const stockData = JSON.parse('{{ stocks_json|tojson|safe }}');
-    
-    // Update the stock data
+function handleDirectQuantityInput(numberInput, farmer, crop) {
+    updateChartPreview();
+}
+
+function updateChartPreview() {
+    const stocksByFarmer = {};
     let totalQuantity = 0;
-    stockData.forEach(stock => {
-        if (stock.status === 'stored' && 
-            stock.type === type && 
-            stock.farmer.name === farmer) {
-            const ratio = newValue / originalValue;
-            stock.quantity = stock.quantity * ratio;
-            totalQuantity += stock.quantity;
+
+    // Collect current values from all inputs
+    document.querySelectorAll('.farmer-section').forEach(section => {
+        const farmer = section.dataset.farmer;
+        stocksByFarmer[farmer] = { quantity: 0 };
+
+        section.querySelectorAll('input[type="number"]').forEach(input => {
+            const quantity = parseFloat(input.value) || 0;
+            stocksByFarmer[farmer].quantity += quantity;
+            totalQuantity += quantity;
+        });
+    });
+
+    // Update farmer section totals
+    document.querySelectorAll('.farmer-section').forEach(section => {
+        const farmer = section.dataset.farmer;
+        const quantity = stocksByFarmer[farmer].quantity;
+        const percentage = totalQuantity > 0 ? ((quantity / totalQuantity) * 100).toFixed(1) : '0.0';
+        section.querySelector('p').textContent = `Total Storage: ${quantity.toFixed(2)} tons (${percentage}%)`;
+    });
+
+    // Update chart
+    if (chart) {
+        chart.data.labels = Object.keys(stocksByFarmer);
+        chart.data.datasets[0].data = Object.values(stocksByFarmer).map(d => d.quantity);
+        chart.update();
+    }
+}
+
+function showReallocationModal(fromFarmer) {
+    const farmerSection = document.querySelector(`.farmer-section[data-farmer="${fromFarmer}"]`);
+    const crops = Array.from(farmerSection.querySelectorAll('.crop-item')).map(item => ({
+        type: item.dataset.crop,
+        quantity: parseFloat(item.querySelector('.text-gray-600').textContent)
+    }));
+
+    const modal = document.createElement('div');
+    modal.className = 'modal show';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-gradient-to-r from-blue-500 to-blue-600">
+                    <h3 class="text-xl font-semibold text-white">
+                        <i class="fas fa-exchange-alt mr-2"></i>
+                        Reallocate Stock from ${fromFarmer}
+                    </h3>
+                    <button type="button" class="close-modal-btn text-white hover:text-gray-200" onclick="this.closest('.modal').remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <!-- Source Farmer Info -->
+                    <div class="bg-blue-50 p-4 rounded-lg mb-6">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-user-circle text-blue-500 text-2xl mr-2"></i>
+                            <h4 class="text-lg font-medium text-blue-800">Source: ${fromFarmer}</h4>
+                        </div>
+                    </div>
+
+                    <!-- Target Farmer Selection -->
+                    <div class="form-group mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-user-plus mr-1"></i>
+                            Reallocate to:
+                        </label>
+                        <select class="form-control bg-white" id="reallocateToFarmer">
+                            <option value="">-- Select Target Farmer --</option>
+                            ${Array.from(document.querySelectorAll('.farmer-section'))
+                                .map(section => section.dataset.farmer)
+                                .filter(farmer => farmer !== fromFarmer)
+                                .map(farmer => `<option value="${farmer}">${farmer}</option>`)
+                                .join('')}
+                        </select>
+                    </div>
+
+                    <!-- Crop Selection -->
+                    <div class="form-group mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-3">
+                            <i class="fas fa-boxes mr-1"></i>
+                            Select Crops and Quantities:
+                        </label>
+                        <div class="space-y-4">
+                            ${crops.map(crop => `
+                                <div class="crop-selection-item bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <div class="flex items-center">
+                                            <input type="checkbox" 
+                                                   id="crop_${crop.type}" 
+                                                   value="${crop.type}"
+                                                   data-quantity="${crop.quantity}"
+                                                   class="form-checkbox h-4 w-4 text-blue-600"
+                                                   onchange="toggleReallocationQuantity(this)">
+                                            <label for="crop_${crop.type}" class="ml-2 text-gray-700 font-medium">
+                                                ${crop.type}
+                                            </label>
+                                        </div>
+                                        <span class="text-sm text-gray-500">
+                                            Available: ${crop.quantity.toFixed(2)} tons
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-4 pl-6">
+                                        <div class="flex-1">
+                                            <input type="range" 
+                                                   class="w-full"
+                                                   value="${crop.quantity}"
+                                                   min="0"
+                                                   max="${crop.quantity}"
+                                                   step="0.01"
+                                                   disabled
+                                                   data-crop="${crop.type}"
+                                                   oninput="updateReallocationQuantity(this)">
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" 
+                                                   class="form-control form-control-sm w-24 text-right"
+                                                   value="${crop.quantity}"
+                                                   min="0"
+                                                   max="${crop.quantity}"
+                                                   step="0.01"
+                                                   disabled
+                                                   data-crop="${crop.type}"
+                                                   onchange="validateAndUpdateReallocationQuantity(this)">
+                                            <span class="text-sm text-gray-600">tons</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Reallocation Reason -->
+                    <div class="form-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <i class="fas fa-comment-alt mr-1"></i>
+                            Reason for Reallocation:
+                        </label>
+                        <textarea class="form-control" 
+                                  id="reallocationReason" 
+                                  rows="3"
+                                  placeholder="Please provide a reason for this reallocation..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-gray-50">
+                    <button class="btn btn-outline" onclick="this.closest('.modal').remove()">
+                        Cancel
+                    </button>
+                    <button class="btn bg-blue-600 hover:bg-blue-700 text-white" onclick="processReallocation('${fromFarmer}')">
+                        <i class="fas fa-check mr-1"></i>
+                        Confirm Reallocation
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+function updateReallocationQuantity(rangeInput) {
+    const numberInput = rangeInput.parentElement.parentElement.querySelector('input[type="number"]');
+    numberInput.value = rangeInput.value;
+    validateReallocationQuantity(numberInput);
+}
+
+function validateAndUpdateReallocationQuantity(numberInput) {
+    validateReallocationQuantity(numberInput);
+    const rangeInput = numberInput.parentElement.parentElement.parentElement.querySelector('input[type="range"]');
+    rangeInput.value = numberInput.value;
+}
+
+function toggleReallocationQuantity(checkbox) {
+    const container = checkbox.closest('.crop-selection-item');
+    const rangeInput = container.querySelector('input[type="range"]');
+    const numberInput = container.querySelector('input[type="number"]');
+    rangeInput.disabled = !checkbox.checked;
+    numberInput.disabled = !checkbox.checked;
+}
+
+function processReallocation(fromFarmer) {
+    const toFarmer = document.getElementById('reallocateToFarmer').value;
+    const reason = document.getElementById('reallocationReason').value;
+    const updates = [];
+
+    // Collect all checked crops and their quantities
+    document.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+        const quantityInput = checkbox.parentElement.querySelector('input[type="number"]');
+        const crop = checkbox.value;
+        const quantity = parseFloat(quantityInput.value);
+        const maxQuantity = parseFloat(quantityInput.max);
+
+        if (quantity > 0 && quantity <= maxQuantity) {
+            updates.push(
+                {
+                    type: crop,
+                    farmer: fromFarmer,
+                    quantity: maxQuantity - quantity,
+                    notify: true,
+                    notification_message: `${quantity} tons of your ${crop} has been reallocated to ${toFarmer}. Reason: ${reason}`
+                },
+                {
+                    type: crop,
+                    farmer: toFarmer,
+                    quantity: quantity,
+                    is_reallocation: true,
+                    from_farmer: fromFarmer
+                }
+            );
         }
     });
 
-    // Update the total display
-    const totalElement = input.closest('.stock-type-control').querySelector('span');
-    totalElement.textContent = `Total: ${totalQuantity.toFixed(2)} tons`;
+    if (updates.length === 0) {
+        showAlert('Please select at least one crop and specify quantity to reallocate', 'error');
+        return;
+    }
 
-    // Reinitialize the chart with new data
-    initializeStorageChart();
+    // Send updates to server
+    fetch('/warehouse/update_stock_distribution', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ updates })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Stock reallocated successfully', 'success');
+            document.querySelector('.modal').remove();
+            loadEditControls();
+            updateChartPreview();
+        } else {
+            showAlert(data.message || 'Error reallocating stock', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error reallocating stock', 'error');
+    });
 }
 
 function saveChartChanges() {
     const updates = [];
     
-    // Collect all updates from the form
-    document.querySelectorAll('.farmer-control input').forEach(input => {
-        const type = input.closest('.stock-type-control').dataset.type;
-        const farmer = input.dataset.farmer;
+    // Collect all changes
+    document.querySelectorAll('.crop-item').forEach(cropItem => {
+        const farmer = cropItem.closest('.farmer-section').dataset.farmer;
+        const crop = cropItem.dataset.crop;
+        const input = cropItem.querySelector('input[type="number"]');
         const newValue = parseFloat(input.value);
         const originalValue = parseFloat(input.dataset.original);
         
         if (newValue !== originalValue) {
             updates.push({
-                type,
-                farmer,
-                quantity: newValue
+                type: crop,
+                farmer: farmer,
+                quantity: newValue,
+                notify: newValue < originalValue,
+                notification_message: newValue < originalValue ? 
+                    `Your ${crop} storage has been reduced by ${(originalValue - newValue).toFixed(2)} tons` : 
+                    null
             });
         }
     });
@@ -1167,24 +1459,29 @@ function showAlert(message, type = 'info') {
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1000;
-}
-
-.modal.show {
-    display: flex;
     align-items: center;
     justify-content: center;
 }
 
+.modal.show {
+    display: flex;
+}
+
 .modal-dialog {
-    background: var(--card-bg);
-    border-radius: 0.5rem;
+    background: white;
+    border-radius: 8px;
     width: 90%;
-    max-width: 500px;
+    max-width: 600px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content {
+    position: relative;
 }
 
 .modal-header {
     padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid #e5e7eb;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -1192,13 +1489,54 @@ function showAlert(message, type = 'info') {
 
 .modal-body {
     padding: 1rem;
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
 }
 
-.form-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 1rem;
+.close-modal-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #6b7280;
+}
+
+.close-modal-btn:hover {
+    color: #374151;
+}
+
+.farmer-distributions {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.farmer-control {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.farmer-control label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+.farmer-control input[type="number"] {
+    width: 120px;
+    text-align: right;
+    padding: 0.5rem;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+}
+
+.farmer-control input[type="number"]:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
 }
 
 .table-container {
@@ -1234,230 +1572,29 @@ function showAlert(message, type = 'info') {
     background-color: rgba(var(--primary-color-rgb), 0.1);
 }
 
-.farmer-control {
-    margin-bottom: 1rem;
-    padding: 1rem;
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
-}
-
-.farmer-control label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-}
-
-.farmer-control input {
-    width: 120px;
-    text-align: right;
-}
-
-.farmer-distributions {
-    max-height: 400px;
-    overflow-y: auto;
-    padding-right: 1rem;
-}
-
-#chartEditControls {
-    background: var(--card-bg);
-    border-top: 1px solid var(--border-color);
-    padding-top: 1rem;
-    margin-top: 1rem;
-}
-
-.stock-controls {
-    max-height: 400px;
-    overflow-y: auto;
-    padding-right: 1rem;
-}
-
-.modal-lg {
-    max-width: 800px;
-    width: 90%;
-}
-
-.request-info p {
-    margin-bottom: 0.5rem;
-}
-
-.space-info {
-    transition: all 0.3s ease;
-}
-
-.space-info:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.quantity-warning {
-    font-size: 0.875rem;
-}
-
-.btn-success {
-    background-color: #28a745;
+.notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
     color: white;
-}
-
-.btn-success:hover {
-    background-color: #218838;
-}
-
-.btn-danger {
-    background-color: #dc3545;
-    color: white;
-}
-
-.btn-danger:hover {
-    background-color: #c82333;
-}
-
-/* Modern Modal Styles */
-.modal-content {
-    background: #ffffff;
-    border-radius: 1rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-}
-
-.modal-header {
-    background: #ffffff;
-    padding: 1.5rem;
-    border-bottom: 1px solid #f0f0f0;
-}
-
-.modal-body {
-    background: #f8fafc;
-    padding: 1.5rem;
-}
-
-.modal-footer {
-    background: #ffffff;
-    padding: 1.5rem;
-    border-top: 1px solid #f0f0f0;
-}
-
-.close-modal-btn {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 9999px;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #64748b;
-    transition: all 0.2s;
-    border: none;
-    background: transparent;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.chart-legend-item {
     cursor: pointer;
-}
-
-.close-modal-btn:hover {
-    background: #f1f5f9;
-    color: #0f172a;
-}
-
-.info-card {
-    transition: all 0.3s ease;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    position: relative;
-    overflow: hidden;
-}
-
-.info-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1), 0 4px 8px -4px rgba(0, 0, 0, 0.06);
-    border-color: #d1d5db;
-}
-
-.info-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(to right, #3b82f6, #60a5fa);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.info-card:hover::before {
-    opacity: 1;
-}
-
-.info-field {
-    background: #ffffff;
-    border-radius: 0.75rem;
-    padding: 0.75rem 1rem;
-    border: 1px solid #e5e7eb;
     transition: all 0.2s ease;
 }
 
-.info-field:hover {
-    background-color: #f9fafb;
-    border-color: #d1d5db;
-    box-shadow: 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-}
-
-.info-field label {
-    color: #4b5563;
-    font-weight: 500;
-    margin-right: 1rem;
-}
-
-.info-field p {
-    margin: 0;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.375rem;
-    background-color: #f3f4f6;
-    display: inline-block;
-}
-
-.modal-body {
-    background: #f8fafc;
-    padding: 1.5rem;
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-.modal-body::-webkit-scrollbar {
-    width: 6px;
-}
-
-.modal-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-.modal-body::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-}
-
-.modal-body::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* Update the progress bar animation */
-@keyframes progress {
-    0% { background-position: 0 0; }
-    100% { background-position: 30px 0; }
-}
-
-.bg-green-500 {
-    background-image: linear-gradient(
-        45deg,
-        rgba(255, 255, 255, .15) 25%,
-        transparent 25%,
-        transparent 50%,
-        rgba(255, 255, 255, .15) 50%,
-        rgba(255, 255, 255, .15) 75%,
-        transparent 75%,
-        transparent
-    );
-    background-size: 30px 30px;
-    animation: progress 1s linear infinite;
+.chart-legend-item:hover {
+    transform: translateX(4px);
 }
 </style>
 {% endblock %}

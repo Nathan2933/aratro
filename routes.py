@@ -768,6 +768,8 @@ def update_stock_distribution():
             farmer_name = update['farmer']
             new_quantity = float(update['quantity'])
             return_to_farmer = update.get('return_to_farmer', False)
+            is_reallocation = update.get('is_reallocation', False)
+            from_farmer = update.get('from_farmer')
             
             # Get all stocks for this farmer and type
             stocks = Stock.query.join(Farmer).filter(
@@ -792,9 +794,10 @@ def update_stock_distribution():
                     # Create notification for farmer
                     notification = Notification(
                         user_id=stock.farmer.user_id,
-                        title=f'Stock Returned',
+                        title='Stock Returned',
                         message=f'{stock.quantity} tons of {stock.type} has been returned from {warehouse.name}',
-                        type='stock_return'
+                        type='stock_return',
+                        created_at=datetime.utcnow()
                     )
                     db.session.add(notification)
             else:
@@ -803,6 +806,7 @@ def update_stock_distribution():
                     continue
                     
                 ratio = new_quantity / current_total
+                total_difference = current_total - new_quantity
                 
                 for stock in stocks:
                     old_quantity = stock.quantity
@@ -812,6 +816,25 @@ def update_stock_distribution():
                     warehouse.available_space += quantity_difference
                     
                     stock.quantity = new_stock_quantity
+                    
+                    # Create notification for farmer if stock was reduced
+                    if quantity_difference > 0:
+                        notification_message = (
+                            f'{quantity_difference:.2f} tons of your {stock.type} storage has been '
+                            f'{"reallocated" if is_reallocation else "reduced"}'
+                        )
+                        
+                        if is_reallocation and from_farmer:
+                            notification_message += f' and transferred to {from_farmer}'
+                            
+                        notification = Notification(
+                            user_id=stock.farmer.user_id,
+                            title='Storage Update',
+                            message=notification_message,
+                            type='storage_update',
+                            created_at=datetime.utcnow()
+                        )
+                        db.session.add(notification)
         
         db.session.commit()
         return jsonify({'success': True})
