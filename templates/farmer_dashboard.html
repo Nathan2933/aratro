@@ -137,6 +137,45 @@
 /* Rejected Requests Section */
 .rejected-requests {
     margin-top: 2rem;
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.rejected-requests-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.rejected-requests-header h2 {
+    color: #2d6b45;
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.view-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: #55c759;
+    color: white;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.view-all-btn:hover {
+    background: #3da042;
+    transform: translateY(-2px);
+}
+
+.view-all-btn i {
+    font-size: 1rem;
 }
 
 .rejected-request-card {
@@ -435,46 +474,26 @@
                 <i class="fas fa-bell fa-5x mb-4" style="color: var(--primary-color);"></i>
                 <h2 class="text-xl mb-3">Partial Acceptances</h2>
                 <p class="mb-4">Requests where warehouses accepted partial quantities</p>
-                <div class="partial-requests-list">
-                    {% set partial_requests = [] %}
-                    {% for request in requests %}
-                        {% if request.status == 'approved' and request.stock.quantity < request.stock.requested_quantity %}
-                            {% set _ = partial_requests.append(request) %}
-                        {% endif %}
-                    {% endfor %}
-                    
-                    {% if partial_requests %}
-                        {% for request in partial_requests %}
-                        <div class="partial-request-item">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="warehouse-name">{{ request.warehouse.name }}</span>
-                                <span class="date">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
-                            </div>
-                            <div class="quantities">
-                                <div class="quantity-item">
-                                    <span class="label">Requested:</span>
-                                    <span class="value">{{ request.stock.requested_quantity }} tons</span>
-                                </div>
-                                <div class="quantity-item">
-                                    <span class="label">Accepted:</span>
-                                    <span class="value">{{ request.stock.quantity }} tons</span>
-                                </div>
-                            </div>
-                            <div class="stock-type mt-2">
-                                <i class="fas fa-box"></i> {{ request.stock.type }}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center text-muted py-4">
-                            <p>No partial acceptances</p>
-                        </div>
-                    {% endif %}
-                </div>
+                <a href="{{ url_for('farmer_dashboard.partial_acceptances') }}" class="btn btn-primary w-full">
+                    <i class="fas fa-eye"></i>
+                    View Partial Acceptances
+                </a>
+            </div>
+        </div>
+
+        <div class="card dashboard-option-card">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-times-circle fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">Rejected Requests</h2>
+                <p class="mb-4">View requests that were rejected by warehouses</p>
+                <a href="{{ url_for('farmer_dashboard.rejected_requests') }}" class="btn btn-primary w-full">
+                    <i class="fas fa-eye"></i>
+                    View Rejected Requests
+                </a>
             </div>
         </div>
         
-        <div class="card dashboard-option-card" onclick="window.location.href='{{ url_for('farmer_dashboard.view_requests_page') }}'">
+        <div class="card dashboard-option-card">
             <div class="card-content text-center py-6 px-4">
                 <i class="fas fa-list-alt fa-5x mb-4" style="color: var(--primary-color);"></i>
                 <h2 class="text-xl mb-3">View Requests</h2>
@@ -485,66 +504,6 @@
                 </a>
             </div>
         </div>
-    </div>
-
-    <!-- Rejected Requests Section -->
-    <div class="rejected-requests">
-        <h2 class="mb-4">Rejected Requests</h2>
-        {% set rejected_requests = requests|selectattr('status', 'equalto', 'rejected')|list %}
-        
-        {% if rejected_requests %}
-            {% for request in rejected_requests %}
-            <div class="rejected-request-card">
-                <div class="rejected-request-header">
-                    <h3>Stock Request #{{ request.id }}</h3>
-                    <span class="badge badge-error">Rejected</span>
-                </div>
-                
-                <div class="rejected-request-info">
-                    <div class="info-group">
-                        <span class="info-label">Stock Type</span>
-                        <span class="info-value">{{ request.stock.type }}</span>
-                    </div>
-                    <div class="info-group">
-                        <span class="info-label">Requested Quantity</span>
-                        <span class="info-value">{{ request.stock.requested_quantity }} tons</span>
-                    </div>
-                    <div class="info-group">
-                        <span class="info-label">Warehouse</span>
-                        <span class="info-value">{{ request.warehouse.name }}</span>
-                    </div>
-                    <div class="info-group">
-                        <span class="info-label">Rejection Date</span>
-                        <span class="info-value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
-                    </div>
-                </div>
-                
-                <div class="warehouse-options">
-                    <h4>Other Available Warehouses</h4>
-                    <div class="warehouse-list">
-                        {% for warehouse in warehouses %}
-                            {% if warehouse.id != request.warehouse.id %}
-                            <div class="warehouse-option" onclick="requestWarehouse('{{ request.stock.type }}', {{ request.stock.requested_quantity }}, {{ warehouse.id }})">
-                                <div class="warehouse-name">{{ warehouse.name }}</div>
-                                <div class="warehouse-detail">
-                                    <i class="fas fa-map-marker-alt"></i> {{ warehouse.location }}
-                                </div>
-                                <div class="warehouse-detail">
-                                    <i class="fas fa-warehouse"></i> Available: {{ warehouse.capacity - warehouse.available_space }} tons
-                                </div>
-                            </div>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="text-center text-muted py-4">
-                <i class="fas fa-check-circle fa-3x mb-3"></i>
-                <p>No rejected requests</p>
-            </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}

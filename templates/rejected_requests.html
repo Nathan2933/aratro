@@ -30,11 +30,9 @@
                 </div>
             </div>
             
-            {% set rejected_requests = requests|selectattr('status', 'equalto', 'rejected')|list %}
-            
-            {% if rejected_requests %}
+            {% if requests %}
                 <div class="rejected-requests-grid">
-                    {% for request in rejected_requests %}
+                    {% for request in requests %}
                     <div class="rejected-request-card">
                         <div class="card-header">
                             <div class="request-info">
@@ -69,19 +67,19 @@
                                 <span class="label">Rejection Date</span>
                                 <span class="value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
                             </div>
-                            {% if request.rejection_reason %}
+                            {% if request.admin_notes %}
                             <div class="detail-group">
                                 <span class="label">Rejection Reason</span>
-                                <span class="value">{{ request.rejection_reason }}</span>
+                                <span class="value">{{ request.admin_notes }}</span>
                             </div>
                             {% endif %}
                         </div>
 
                         <div class="action-buttons">
-                            <button class="btn btn-primary resubmit-request" data-request-id="{{ request.id }}" data-stock-type="{{ request.stock.type }}" data-quantity="{{ request.stock.requested_quantity }}">
-                                <i class="fas fa-redo"></i>
-                                Resubmit Request
-                            </button>
+                            <a href="{{ url_for('farmer_dashboard.request_details', request_id=request.id) }}" class="btn btn-primary view-request">
+                                <i class="fas fa-eye"></i>
+                                View Details
+                            </a>
                             <button class="btn btn-outline find-alternatives" data-stock-type="{{ request.stock.type }}" data-quantity="{{ request.stock.requested_quantity }}">
                                 <i class="fas fa-search"></i>
                                 Find Alternative Warehouses
@@ -225,7 +223,67 @@ h4 {
     font-size: 1rem;
 }
 
-.warehouses-grid {
+.action-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: #55c759;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #3da042;
+    transform: translateY(-2px);
+}
+
+.btn-outline {
+    background: transparent;
+    border: 1px solid #55c759;
+    color: #55c759;
+}
+
+.btn-outline:hover {
+    background: #f1f8f1;
+    transform: translateY(-2px);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    color: #55c759;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state h3 {
+    color: #2d6b45;
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: #666;
+    margin-bottom: 2rem;
+}
+
+.warehouse-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 1rem;
@@ -252,135 +310,90 @@ h4 {
 }
 
 .warehouse-detail {
-    color: #666;
     font-size: 0.875rem;
-    margin-bottom: 0.25rem;
-}
-
-.warehouse-detail i {
-    width: 1rem;
-    text-align: center;
-    margin-right: 0.5rem;
-}
-
-.empty-state {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 3rem;
-    background: white;
-    border-radius: 12px;
-    border: 1px solid #e0e0e0;
-}
-
-.empty-state i {
-    color: #55c759;
-    margin-bottom: 1rem;
-}
-
-.empty-state h3 {
-    color: #2d6b45;
-    margin-bottom: 0.5rem;
-}
-
-.empty-state p {
     color: #666;
-}
-
-@media (max-width: 768px) {
-    .rejected-requests-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .container {
-        padding: 1rem;
-    }
-    
-    .warehouses-grid {
-        grid-template-columns: 1fr;
-    }
 }
 </style>
 
-{% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Search functionality
-        const searchInput = document.getElementById('rejectedRequestSearchInput');
-        const requestCards = document.querySelectorAll('.rejected-request-card');
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('rejectedRequestSearchInput');
+    const requestCards = document.querySelectorAll('.rejected-request-card');
+
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
         
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
+        requestCards.forEach(card => {
+            const stockType = card.querySelector('.stock-details .value').textContent.toLowerCase();
+            const warehouseName = card.querySelector('.warehouse-details .value').textContent.toLowerCase();
+            const requestId = card.querySelector('.request-info h3').textContent.toLowerCase();
             
-            requestCards.forEach(card => {
-                const stockType = card.querySelector('.stock-details .value').textContent.toLowerCase();
-                const warehouseName = card.querySelector('.warehouse-details .value').textContent.toLowerCase();
-                
-                if (stockType.includes(searchTerm) || warehouseName.includes(searchTerm)) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-        
-        // Resubmit request
-        const resubmitButtons = document.querySelectorAll('.resubmit-request');
-        resubmitButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const requestId = this.getAttribute('data-request-id');
-                const stockType = this.getAttribute('data-stock-type');
-                const quantity = this.getAttribute('data-quantity');
-                
-                // Show confirmation dialog
-                if (confirm(`Do you want to resubmit this request for ${quantity} tons of ${stockType}?`)) {
-                    // Redirect to create request page with prefilled data
-                    window.location.href = `/create_request?resubmit=${requestId}&stock_type=${stockType}&quantity=${quantity}`;
-                }
-            });
-        });
-        
-        // Find alternative warehouses
-        const findAlternativesButtons = document.querySelectorAll('.find-alternatives');
-        findAlternativesButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const stockType = this.getAttribute('data-stock-type');
-                const quantity = this.getAttribute('data-quantity');
-                
-                // Display warehouses in modal
-                const warehousesList = document.getElementById('alternativeWarehousesList');
-                warehousesList.innerHTML = '';
-                
-                // Get warehouses from server-rendered data
-                let hasWarehouses = false;
-                
-                {% for warehouse in warehouses %}
-                const warehouseItem = document.createElement('div');
-                warehouseItem.className = 'warehouse-item';
-                warehouseItem.innerHTML = `
-                    <div class="warehouse-info">
-                        <h4>{{ warehouse.name }}</h4>
-                        <p><i class="fas fa-map-marker-alt"></i> {{ warehouse.location }}</p>
-                        <p><i class="fas fa-phone"></i> {{ warehouse.contact_number }}</p>
-                    </div>
-                    <div class="warehouse-actions">
-                        <a href="/create_request?warehouse_id={{ warehouse.id }}&stock_type=${stockType}&quantity=${quantity}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Create Request
-                        </a>
-                    </div>
-                `;
-                warehousesList.appendChild(warehouseItem);
-                hasWarehouses = true;
-                {% endfor %}
-                
-                if (!hasWarehouses) {
-                    warehousesList.innerHTML = '<div class="empty-message">No alternative warehouses found.</div>';
-                }
-                
-                // Show modal
-                $('#alternativeWarehousesModal').modal('show');
-            });
+            if (stockType.includes(searchTerm) || warehouseName.includes(searchTerm) || requestId.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
         });
     });
+
+    // Find alternative warehouses functionality
+    const findAlternativesButtons = document.querySelectorAll('.find-alternatives');
+    const alternativeWarehousesModal = document.getElementById('alternativeWarehousesModal');
+    const alternativeWarehousesList = document.getElementById('alternativeWarehousesList');
+
+    // Convert warehouse data to JSON-serializable format
+    const warehousesData = [
+        {% for warehouse in warehouses %}
+        {
+            "id": {{ warehouse.id }},
+            "name": "{{ warehouse.name }}",
+            "location": "{{ warehouse.location }}",
+            "available_space": {{ warehouse.available_space }},
+            "capacity": {{ warehouse.capacity }}
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    findAlternativesButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const stockType = this.dataset.stockType;
+            const quantity = parseFloat(this.dataset.quantity);
+
+            // Filter available warehouses based on stock type and quantity
+            const availableWarehouses = warehousesData.filter(warehouse => {
+                return warehouse.available_space >= quantity;
+            });
+
+            // Update modal content
+            alternativeWarehousesList.innerHTML = '';
+            if (availableWarehouses.length > 0) {
+                availableWarehouses.forEach(warehouse => {
+                    const warehouseElement = document.createElement('div');
+                    warehouseElement.className = 'warehouse-option';
+                    warehouseElement.innerHTML = `
+                        <div class="warehouse-name">${warehouse.name}</div>
+                        <div class="warehouse-detail">Location: ${warehouse.location}</div>
+                        <div class="warehouse-detail">Available Space: ${warehouse.available_space} tons</div>
+                        <a href="{{ url_for('farmer_dashboard.create_request_page') }}?warehouse_id=${warehouse.id}&stock_type=${encodeURIComponent(stockType)}&quantity=${quantity}" 
+                           class="btn btn-primary btn-sm mt-2">
+                            Create Request
+                        </a>
+                    `;
+                    alternativeWarehousesList.appendChild(warehouseElement);
+                });
+            } else {
+                alternativeWarehousesList.innerHTML = `
+                    <div class="empty-state">
+                        <p>No alternative warehouses found with sufficient space.</p>
+                    </div>
+                `;
+            }
+
+            // Show modal
+            $(alternativeWarehousesModal).modal('show');
+        });
+    });
+});
 </script>
-{% endblock %}
 {% endblock %} 
