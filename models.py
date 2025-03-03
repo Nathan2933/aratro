@@ -37,12 +37,17 @@ class Warehouse(db.Model):
 
 class Stock(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.String(50), nullable=False)  # type of crop/product
-    quantity = db.Column(db.Float, nullable=False)  # in tons
-    farmer_id = db.Column(db.Integer, db.ForeignKey('farmer.id'))
-    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'))
-    date_added = db.Column(db.DateTime, default=datetime.utcnow)
-    status = db.Column(db.String(20))  # 'available', 'in_transit', 'stored'
+    type = db.Column(db.String(100), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    requested_quantity = db.Column(db.Float, nullable=False)  # Original requested quantity
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending, stored, rejected
+    farmer_id = db.Column(db.Integer, db.ForeignKey('farmer.id'), nullable=False)
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<Stock {self.type} - {self.quantity} tons>'
 
 class StockRequest(db.Model):
     __tablename__ = 'stock_request'
@@ -53,6 +58,8 @@ class StockRequest(db.Model):
     stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
     request_date = db.Column(db.DateTime, default=datetime.utcnow)
     status = db.Column(db.String(20), default='pending')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Add relationships
     farmer = db.relationship('Farmer', foreign_keys=[from_id], backref='stock_requests')

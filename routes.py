@@ -18,18 +18,16 @@ def before_request():
 
 @auth.route('/register')
 def register():
-    # If user is logged in, log them out before showing registration options
+    # If user is logged in, redirect to dashboard
     if current_user.is_authenticated:
-        logout_user()
-        session.clear()
+        return redirect(url_for('main.dashboard'))
     return render_template('register.html')
 
 @auth.route('/farmer/register', methods=['GET', 'POST'])
 def farmer_register():
-    # If user is logged in, log them out before registration
+    # If user is logged in, redirect to dashboard
     if current_user.is_authenticated:
-        logout_user()
-        session.clear()
+        return redirect(url_for('main.dashboard'))
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -109,12 +107,7 @@ def farmer_register():
 
 @auth.route('/warehouse/register', methods=['GET', 'POST'])
 def warehouse_register():
-    # If user is logged in, log them out before registration
-    if current_user.is_authenticated:
-        logout_user()
-        session.clear()
-
-    # If user is already logged in, redirect to dashboard
+    # If user is logged in, redirect to dashboard
     if current_user.is_authenticated:
         return redirect(url_for('main.dashboard'))
 
@@ -297,45 +290,90 @@ def farmer_home():
 
     return render_template('farmer_dashboard.html', farmer=farmer, requests=requests, warehouses=warehouses)
 
-@farmer_dashboard.route('/create_request')
+@farmer_dashboard.route('/create_request', methods=['GET', 'POST'])
 @login_required
 def create_request_page():
     if current_user.role != 'farmer':
-        flash('Access denied: You must be a farmer to access this page', 'error')
+        flash('Access denied. Farmers only.', 'error')
         return redirect(url_for('main.dashboard'))
     
-    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    farmer = current_user.farmer
+    if not farmer:
+        flash('Farmer profile not found.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    if request.method == 'POST':
+        if request.is_json:
+            # Handle AJAX request for rejected request resubmission
+            data = request.get_json()
+            stock_type = data.get('stock_type')
+            quantity = data.get('quantity')
+            warehouse_id = data.get('warehouse_id')
+            
+            if not all([stock_type, quantity, warehouse_id]):
+                return jsonify({'success': False, 'message': 'Missing required fields'})
+            
+            warehouse = Warehouse.query.get(warehouse_id)
+            if not warehouse:
+                return jsonify({'success': False, 'message': 'Warehouse not found'})
+            
+            # Check warehouse capacity
+            total_allocated = sum([s.quantity for s in Stock.query.filter_by(
+                warehouse_id=warehouse_id, 
+                status='stored'
+            ).all()])
+            
+            if quantity > (warehouse.capacity - total_allocated):
+                return jsonify({
+                    'success': False,
+                    'message': f'Insufficient space. Only {warehouse.capacity - total_allocated:.2f} tons available.'
+                })
+            
+            try:
+                # Create new stock entry
+                stock = Stock(
+                    type=stock_type,
+                    quantity=0,  # Will be set when approved
+                    requested_quantity=quantity,
+                    status='pending',
+                    farmer_id=farmer.id,
+                    warehouse_id=warehouse_id
+                )
+                db.session.add(stock)
+                db.session.flush()  # Get the stock ID
+                
+                # Create stock request
+                stock_request = StockRequest(
+                    from_id=farmer.id,
+                    to_id=warehouse_id,
+                    stock_id=stock.id,
+                    status='pending'
+                )
+                db.session.add(stock_request)
+                
+                # Create notification for warehouse manager
+                notification = Notification(
+                    user_id=warehouse.user.id,
+                    title='New Stock Request',
+                    message=f'New request for {quantity} tons of {stock_type} from {farmer.name}',
+                    type='new_request'
+                )
+                db.session.add(notification)
+                
+                db.session.commit()
+                return jsonify({'success': True})
+                
+            except Exception as e:
+                db.session.rollback()
+                return jsonify({'success': False, 'message': str(e)})
+        
+        # Handle regular form submission
+        warehouses = Warehouse.query.all()
+        return render_template('create_request.html', warehouses=warehouses)
+    
+    # Handle GET request
     warehouses = Warehouse.query.all()
-    
-    # Check if we're responding to a warehouse request
-    warehouse_request_id = request.args.get('warehouse_request_id')
-    warehouse_request = None
-    
-    if warehouse_request_id:
-        try:
-            warehouse_request = WarehouseRequest.query.get(int(warehouse_request_id))
-        except:
-            pass
-    
-    # Check if a specific warehouse was selected
-    warehouse_id = request.args.get('warehouse_id')
-    selected_warehouse = None
-    
-    if warehouse_id:
-        try:
-            selected_warehouse = Warehouse.query.get(int(warehouse_id))
-        except:
-            pass
-    
-    # Get Google Maps API key from config
-    maps_api_key = current_app.config.get('GOOGLE_MAPS_API_KEY', '')
-    
-    return render_template('create_request.html', 
-                          farmer=farmer, 
-                          warehouses=warehouses, 
-                          maps_api_key=maps_api_key, 
-                          warehouse_request=warehouse_request,
-                          selected_warehouse=selected_warehouse)
+    return render_template('create_request.html', warehouses=warehouses)
 
 @farmer_dashboard.route('/view_requests')
 @login_required
@@ -411,24 +449,21 @@ def submit_request():
             flash('Quantity must be greater than zero', 'error')
             return redirect(url_for('farmer_dashboard.create_request_page'))
         
-        if quantity > warehouse.available_space:
-            flash(f'Requested quantity exceeds available space in the warehouse ({warehouse.available_space} tons)', 'error')
-            return redirect(url_for('farmer_dashboard.create_request_page'))
-        
         farmer = Farmer.query.filter_by(user_id=current_user.id).first()
         
-        # First create a stock entry
+        # Create a stock entry with requested quantity
         stock = Stock(
             type=stock_type,
             quantity=quantity,
             farmer_id=farmer.id,
             warehouse_id=warehouse.id,
-            status='pending'
+            status='pending',
+            requested_quantity=quantity  # Store the original requested quantity
         )
         db.session.add(stock)
-        db.session.flush()  # Get the stock.id before committing
+        db.session.flush()
         
-        # Create request using the actual schema
+        # Create request
         new_request = StockRequest(
             from_id=farmer.id,
             to_id=warehouse.id,
@@ -533,44 +568,90 @@ def cancel_request(request_id):
     
     return jsonify({'success': False, 'message': 'Request not found or cannot be canceled'})
 
+@farmer_dashboard.route('/rejected-requests')
+@login_required
+def rejected_requests():
+    if current_user.role != 'farmer':
+        flash('Access denied. Farmers only.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    if not farmer:
+        flash('Farmer profile not found.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    requests = StockRequest.query.filter_by(
+        from_id=farmer.id,
+        status='rejected'
+    ).order_by(StockRequest.updated_at.desc()).all()
+    
+    warehouses = Warehouse.query.all()
+    
+    return render_template('rejected_requests.html', requests=requests, warehouses=warehouses)
+
+@farmer_dashboard.route('/partial-acceptances')
+@login_required
+def partial_acceptances():
+    if current_user.role != 'farmer':
+        flash('Access denied. Farmers only.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    if not farmer:
+        flash('Farmer profile not found.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    requests = StockRequest.query.filter_by(
+        from_id=farmer.id,
+        status='approved'
+    ).join(Stock).filter(
+        Stock.quantity < Stock.requested_quantity
+    ).order_by(StockRequest.updated_at.desc()).all()
+    
+    warehouses = Warehouse.query.all()
+    
+    return render_template('partial_acceptances.html', requests=requests, warehouses=warehouses)
+
 # Warehouse Dashboard Routes
-@warehouse_dashboard.route('/dashboard')
+@warehouse_dashboard.route('/')
 @login_required
 def warehouse_home():
     if current_user.role != 'warehouse_manager':
-        flash('Access denied. You must be a warehouse manager to view this page.', 'error')
-        return redirect(url_for('main.index'))
+        flash('Access denied', 'error')
+        return redirect(url_for('main.dashboard'))
     
     warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found', 'error')
+        return redirect(url_for('main.dashboard'))
     
-    # Get all stocks in the warehouse
-    stocks = Stock.query.filter_by(warehouse_id=warehouse.id).all()
+    # Get total allocated space
+    total_allocated_space = db.session.query(db.func.sum(Stock.quantity))\
+        .filter(Stock.warehouse_id == warehouse.id)\
+        .filter(Stock.status == 'stored')\
+        .scalar() or 0
     
-    # Prepare JSON-serializable stock data
-    stocks_json = [
-        {
-            'type': stock.type,
-            'quantity': stock.quantity,
-            'status': stock.status,
-            'farmer': {
-                'name': stock.farmer.name if stock.farmer else 'Unknown'
-            }
-        }
-        for stock in stocks
-    ]
+    # Get pending requests
+    pending_requests = StockRequest.query\
+        .join(Stock)\
+        .filter(Stock.warehouse_id == warehouse.id)\
+        .filter(StockRequest.status == 'pending')\
+        .order_by(StockRequest.created_at.desc())\
+        .all()
     
-    # Get pending stock requests
-    stock_requests = StockRequest.query.filter_by(to_id=warehouse.id).all()
+    # Get approved requests
+    approved_requests = StockRequest.query\
+        .join(Stock)\
+        .filter(Stock.warehouse_id == warehouse.id)\
+        .filter(StockRequest.status == 'approved')\
+        .order_by(StockRequest.created_at.desc())\
+        .all()
     
-    # Get warehouse's open requests
-    warehouse_requests = WarehouseRequest.query.filter_by(warehouse_id=warehouse.id).order_by(WarehouseRequest.date_posted.desc()).all()
-    
-    return render_template('warehouse_dashboard.html', 
-                         warehouse=warehouse, 
-                         stocks=stocks,
-                         stocks_json=stocks_json,
-                         stock_requests=stock_requests,
-                         warehouse_requests=warehouse_requests)
+    return render_template('warehouse_dashboard.html',
+                         warehouse=warehouse,
+                         total_allocated_space=total_allocated_space,
+                         pending_requests=pending_requests,
+                         approved_requests=approved_requests)
 
 @warehouse_dashboard.route('/respond_to_request', methods=['POST'])
 @login_required
@@ -605,38 +686,60 @@ def respond_to_request():
             return jsonify({'success': False, 'message': 'Request cannot be modified'})
         
         if action == 'approve':
-            # Check if warehouse has enough space
-            if approved_quantity > warehouse.available_space:
-                return jsonify({'success': False, 'message': 'Insufficient warehouse space'})
+            # Validate the approved quantity
+            if approved_quantity <= 0:
+                return jsonify({'success': False, 'message': 'Approved quantity must be greater than zero'})
             
-            # Update the stock quantity if different from requested
-            if approved_quantity != stock_request.stock.quantity:
-                stock_request.stock.quantity = approved_quantity
+            # Check if warehouse has enough remaining space
+            total_allocated = sum([
+                s.quantity for s in Stock.query.filter_by(
+                    warehouse_id=warehouse.id, 
+                    status='stored'
+                ).all()
+            ])
             
-            # Update warehouse space
-            warehouse.available_space -= approved_quantity
+            remaining_space = warehouse.capacity - total_allocated
+            
+            if approved_quantity > remaining_space:
+                return jsonify({
+                    'success': False, 
+                    'message': f'Insufficient warehouse space. Only {remaining_space:.2f} tons available.'
+                })
+            
+            # Update the stock with approved quantity
+            stock_request.stock.quantity = approved_quantity
             
             # Update request status and stock status
             stock_request.status = 'approved'
             stock_request.stock.status = 'stored'
+            
+            # Create notification for the farmer
+            notification = Notification(
+                user_id=stock_request.stock.farmer.user_id,
+                title='Stock Request Approved',
+                message=f'Your stock request has been approved for {approved_quantity} tons of {stock_request.stock.type}.',
+                type='approved'
+            )
+            db.session.add(notification)
+            
         elif action == 'reject':
             # Update request status and stock status
             stock_request.status = 'rejected'
             stock_request.stock.status = 'rejected'
+            
+            # Create notification for the farmer
+            notification = Notification(
+                user_id=stock_request.stock.farmer.user_id,
+                title='Stock Request Rejected',
+                message=f'Your stock request for {stock_request.stock.requested_quantity} tons of {stock_request.stock.type} has been rejected.',
+                type='rejected'
+            )
+            db.session.add(notification)
         else:
             return jsonify({'success': False, 'message': 'Invalid action'})
         
         # Update notes
         stock_request.admin_notes = notes
-        
-        # Create notification for the farmer
-        notification = Notification(
-            user_id=stock_request.stock.farmer.user_id,
-            title=f'Stock Request {stock_request.status.capitalize()}',
-            message=f'Your stock request for {stock_request.stock.quantity} tons of {stock_request.stock.type} has been {stock_request.status}.',
-            type=stock_request.status
-        )
-        db.session.add(notification)
         
         db.session.commit()
         return jsonify({'success': True})

@@ -1,0 +1,386 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="header-section mb-4">
+        <div class="flex justify-between items-center">
+            <h1>Rejected Requests</h1>
+            <a href="{{ url_for('farmer_dashboard.farmer_home') }}" class="btn btn-outline">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
+        </div>
+        <p class="text-muted">Review rejected requests and find alternative warehouses</p>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h2>Rejected Stock Requests</h2>
+            <span class="text-muted">Requests that were rejected by warehouses</span>
+        </div>
+        <div class="card-body">
+            <div class="search-container mb-4">
+                <div class="input-group">
+                    <input type="text" id="rejectedRequestSearchInput" class="form-control" placeholder="Search rejected requests...">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            {% set rejected_requests = requests|selectattr('status', 'equalto', 'rejected')|list %}
+            
+            {% if rejected_requests %}
+                <div class="rejected-requests-grid">
+                    {% for request in rejected_requests %}
+                    <div class="rejected-request-card">
+                        <div class="card-header">
+                            <div class="request-info">
+                                <h3>Stock Request #{{ request.id }}</h3>
+                                <span class="date">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                            <span class="badge badge-error">Rejected</span>
+                        </div>
+
+                        <div class="stock-details">
+                            <div class="detail-group">
+                                <span class="label">Stock Type</span>
+                                <span class="value">{{ request.stock.type }}</span>
+                            </div>
+                            <div class="detail-group">
+                                <span class="label">Requested Quantity</span>
+                                <span class="value">{{ request.stock.requested_quantity }} tons</span>
+                            </div>
+                        </div>
+
+                        <div class="warehouse-details">
+                            <h4>Rejected By</h4>
+                            <div class="detail-group">
+                                <span class="label">Warehouse</span>
+                                <span class="value">{{ request.warehouse.name }}</span>
+                            </div>
+                            <div class="detail-group">
+                                <span class="label">Location</span>
+                                <span class="value">{{ request.warehouse.location }}</span>
+                            </div>
+                            <div class="detail-group">
+                                <span class="label">Rejection Date</span>
+                                <span class="value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                            {% if request.rejection_reason %}
+                            <div class="detail-group">
+                                <span class="label">Rejection Reason</span>
+                                <span class="value">{{ request.rejection_reason }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-primary resubmit-request" data-request-id="{{ request.id }}" data-stock-type="{{ request.stock.type }}" data-quantity="{{ request.stock.requested_quantity }}">
+                                <i class="fas fa-redo"></i>
+                                Resubmit Request
+                            </button>
+                            <button class="btn btn-outline find-alternatives" data-stock-type="{{ request.stock.type }}" data-quantity="{{ request.stock.requested_quantity }}">
+                                <i class="fas fa-search"></i>
+                                Find Alternative Warehouses
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>No Rejected Requests</h3>
+                    <p>You don't have any rejected requests at the moment.</p>
+                    <a href="{{ url_for('farmer_dashboard.create_request_page') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Create New Request
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Alternative Warehouses Modal -->
+    <div class="modal fade" id="alternativeWarehousesModal" tabindex="-1" role="dialog" aria-labelledby="alternativeWarehousesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="alternativeWarehousesModalLabel">Alternative Warehouses</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="alternativeWarehousesList" class="warehouse-list">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header-section h1 {
+    color: #2d6b45;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.header-section .text-muted {
+    color: #666;
+}
+
+.rejected-requests-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.rejected-request-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+}
+
+.request-info h3 {
+    color: #2d6b45;
+    font-size: 1.25rem;
+    margin-bottom: 0.25rem;
+}
+
+.date {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.badge-error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.stock-details, .warehouse-details {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.detail-group {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.detail-group:last-child {
+    margin-bottom: 0;
+}
+
+.detail-group .label {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.detail-group .value {
+    color: #2d6b45;
+    font-weight: 500;
+}
+
+h4 {
+    color: #2d6b45;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+.warehouses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.warehouse-option {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    transition: all 0.3s ease;
+}
+
+.warehouse-option:hover {
+    border-color: #55c759;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.warehouse-name {
+    color: #2d6b45;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.warehouse-detail {
+    color: #666;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.warehouse-detail i {
+    width: 1rem;
+    text-align: center;
+    margin-right: 0.5rem;
+}
+
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+}
+
+.empty-state i {
+    color: #55c759;
+    margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+    color: #2d6b45;
+    margin-bottom: 0.5rem;
+}
+
+.empty-state p {
+    color: #666;
+}
+
+@media (max-width: 768px) {
+    .rejected-requests-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .container {
+        padding: 1rem;
+    }
+    
+    .warehouses-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Search functionality
+        const searchInput = document.getElementById('rejectedRequestSearchInput');
+        const requestCards = document.querySelectorAll('.rejected-request-card');
+        
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            requestCards.forEach(card => {
+                const stockType = card.querySelector('.stock-details .value').textContent.toLowerCase();
+                const warehouseName = card.querySelector('.warehouse-details .value').textContent.toLowerCase();
+                
+                if (stockType.includes(searchTerm) || warehouseName.includes(searchTerm)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+        
+        // Resubmit request
+        const resubmitButtons = document.querySelectorAll('.resubmit-request');
+        resubmitButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const requestId = this.getAttribute('data-request-id');
+                const stockType = this.getAttribute('data-stock-type');
+                const quantity = this.getAttribute('data-quantity');
+                
+                // Show confirmation dialog
+                if (confirm(`Do you want to resubmit this request for ${quantity} tons of ${stockType}?`)) {
+                    // Redirect to create request page with prefilled data
+                    window.location.href = `/create_request?resubmit=${requestId}&stock_type=${stockType}&quantity=${quantity}`;
+                }
+            });
+        });
+        
+        // Find alternative warehouses
+        const findAlternativesButtons = document.querySelectorAll('.find-alternatives');
+        findAlternativesButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const stockType = this.getAttribute('data-stock-type');
+                const quantity = this.getAttribute('data-quantity');
+                
+                // Display warehouses in modal
+                const warehousesList = document.getElementById('alternativeWarehousesList');
+                warehousesList.innerHTML = '';
+                
+                // Get warehouses from server-rendered data
+                let hasWarehouses = false;
+                
+                {% for warehouse in warehouses %}
+                const warehouseItem = document.createElement('div');
+                warehouseItem.className = 'warehouse-item';
+                warehouseItem.innerHTML = `
+                    <div class="warehouse-info">
+                        <h4>{{ warehouse.name }}</h4>
+                        <p><i class="fas fa-map-marker-alt"></i> {{ warehouse.location }}</p>
+                        <p><i class="fas fa-phone"></i> {{ warehouse.contact_number }}</p>
+                    </div>
+                    <div class="warehouse-actions">
+                        <a href="/create_request?warehouse_id={{ warehouse.id }}&stock_type=${stockType}&quantity=${quantity}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Create Request
+                        </a>
+                    </div>
+                `;
+                warehousesList.appendChild(warehouseItem);
+                hasWarehouses = true;
+                {% endfor %}
+                
+                if (!hasWarehouses) {
+                    warehousesList.innerHTML = '<div class="empty-message">No alternative warehouses found.</div>';
+                }
+                
+                // Show modal
+                $('#alternativeWarehousesModal').modal('show');
+            });
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

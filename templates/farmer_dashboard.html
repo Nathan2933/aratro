@@ -133,6 +133,174 @@
 .text-muted {
     color: var(--text-secondary);
 }
+
+/* Rejected Requests Section */
+.rejected-requests {
+    margin-top: 2rem;
+}
+
+.rejected-request-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.rejected-request-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.rejected-request-info {
+    display: flex;
+    gap: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.info-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.info-label {
+    font-size: 0.875rem;
+    color: #666;
+    margin-bottom: 0.25rem;
+}
+
+.info-value {
+    font-weight: 500;
+    color: #2d6b45;
+}
+
+.warehouse-options {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-top: 1rem;
+}
+
+.warehouse-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.warehouse-option {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.warehouse-option:hover {
+    border-color: #55c759;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.warehouse-name {
+    font-weight: 500;
+    color: #2d6b45;
+    margin-bottom: 0.5rem;
+}
+
+.warehouse-detail {
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.partial-requests-list {
+    margin-top: 1rem;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.partial-request-item {
+    background: #f1f8f1;
+    border: 1px solid #d7e6d7;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    transition: all 0.3s ease;
+}
+
+.partial-request-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(53, 136, 86, 0.1);
+}
+
+.partial-request-item .warehouse-name {
+    color: #2d6b45;
+    font-weight: 500;
+}
+
+.partial-request-item .date {
+    color: #666;
+    font-size: 0.875rem;
+}
+
+.partial-request-item .quantities {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 6px;
+}
+
+.partial-request-item .quantity-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.25rem;
+}
+
+.partial-request-item .quantity-item .label {
+    color: #456946;
+    font-size: 0.875rem;
+}
+
+.partial-request-item .quantity-item .value {
+    color: #2d6b45;
+    font-weight: 500;
+}
+
+.partial-request-item .stock-type {
+    color: #55c759;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-align: right;
+}
+
+.partial-request-item .stock-type i {
+    margin-right: 0.25rem;
+}
+
+.partial-requests-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.partial-requests-list::-webkit-scrollbar-track {
+    background: #f1f8f1;
+    border-radius: 3px;
+}
+
+.partial-requests-list::-webkit-scrollbar-thumb {
+    background: #55c759;
+    border-radius: 3px;
+}
+
+.partial-requests-list::-webkit-scrollbar-thumb:hover {
+    background: #3da042;
+}
 </style>
 {% endblock %}
 
@@ -221,20 +389,30 @@
         </div>
 
         <div class="card" style="flex: 1;">
-            <h2>Quick Actions</h2>
-            <div class="mt-4">
-                <a href="{{ url_for('farmer_dashboard.create_request_page') }}" class="btn btn-primary w-full mb-3">
-                    <i class="fas fa-plus"></i>
-                    Create New Request
-                </a>
-                <a href="{{ url_for('farmer_dashboard.view_requests_page') }}" class="btn btn-outline w-full mb-3">
-                    <i class="fas fa-list"></i>
-                    View All Requests
-                </a>
-                <button class="btn btn-outline w-full">
-                    <i class="fas fa-download"></i>
-                    Export Requests
-                </button>
+            <div class="quick-actions">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <a href="{{ url_for('farmer_dashboard.create_request_page') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Create New Request
+                    </a>
+                    <a href="{{ url_for('farmer_dashboard.view_requests_page') }}" class="btn btn-outline">
+                        <i class="fas fa-list"></i>
+                        View All Requests
+                    </a>
+                    <a href="{{ url_for('farmer_dashboard.rejected_requests') }}" class="btn btn-outline">
+                        <i class="fas fa-times-circle"></i>
+                        View Rejected Requests
+                    </a>
+                    <a href="{{ url_for('farmer_dashboard.partial_acceptances') }}" class="btn btn-outline">
+                        <i class="fas fa-exclamation-circle"></i>
+                        View Partial Acceptances
+                    </a>
+                    <button class="btn btn-outline" onclick="exportRequests()">
+                        <i class="fas fa-download"></i>
+                        Export Requests
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -251,6 +429,50 @@
                 </a>
             </div>
         </div>
+
+        <div class="card dashboard-option-card">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-bell fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">Partial Acceptances</h2>
+                <p class="mb-4">Requests where warehouses accepted partial quantities</p>
+                <div class="partial-requests-list">
+                    {% set partial_requests = [] %}
+                    {% for request in requests %}
+                        {% if request.status == 'approved' and request.stock.quantity < request.stock.requested_quantity %}
+                            {% set _ = partial_requests.append(request) %}
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if partial_requests %}
+                        {% for request in partial_requests %}
+                        <div class="partial-request-item">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="warehouse-name">{{ request.warehouse.name }}</span>
+                                <span class="date">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
+                            </div>
+                            <div class="quantities">
+                                <div class="quantity-item">
+                                    <span class="label">Requested:</span>
+                                    <span class="value">{{ request.stock.requested_quantity }} tons</span>
+                                </div>
+                                <div class="quantity-item">
+                                    <span class="label">Accepted:</span>
+                                    <span class="value">{{ request.stock.quantity }} tons</span>
+                                </div>
+                            </div>
+                            <div class="stock-type mt-2">
+                                <i class="fas fa-box"></i> {{ request.stock.type }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <p>No partial acceptances</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
         
         <div class="card dashboard-option-card" onclick="window.location.href='{{ url_for('farmer_dashboard.view_requests_page') }}'">
             <div class="card-content text-center py-6 px-4">
@@ -264,11 +486,101 @@
             </div>
         </div>
     </div>
+
+    <!-- Rejected Requests Section -->
+    <div class="rejected-requests">
+        <h2 class="mb-4">Rejected Requests</h2>
+        {% set rejected_requests = requests|selectattr('status', 'equalto', 'rejected')|list %}
+        
+        {% if rejected_requests %}
+            {% for request in rejected_requests %}
+            <div class="rejected-request-card">
+                <div class="rejected-request-header">
+                    <h3>Stock Request #{{ request.id }}</h3>
+                    <span class="badge badge-error">Rejected</span>
+                </div>
+                
+                <div class="rejected-request-info">
+                    <div class="info-group">
+                        <span class="info-label">Stock Type</span>
+                        <span class="info-value">{{ request.stock.type }}</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Requested Quantity</span>
+                        <span class="info-value">{{ request.stock.requested_quantity }} tons</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Warehouse</span>
+                        <span class="info-value">{{ request.warehouse.name }}</span>
+                    </div>
+                    <div class="info-group">
+                        <span class="info-label">Rejection Date</span>
+                        <span class="info-value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
+                    </div>
+                </div>
+                
+                <div class="warehouse-options">
+                    <h4>Other Available Warehouses</h4>
+                    <div class="warehouse-list">
+                        {% for warehouse in warehouses %}
+                            {% if warehouse.id != request.warehouse.id %}
+                            <div class="warehouse-option" onclick="requestWarehouse('{{ request.stock.type }}', {{ request.stock.requested_quantity }}, {{ warehouse.id }})">
+                                <div class="warehouse-name">{{ warehouse.name }}</div>
+                                <div class="warehouse-detail">
+                                    <i class="fas fa-map-marker-alt"></i> {{ warehouse.location }}
+                                </div>
+                                <div class="warehouse-detail">
+                                    <i class="fas fa-warehouse"></i> Available: {{ warehouse.capacity - warehouse.available_space }} tons
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center text-muted py-4">
+                <i class="fas fa-check-circle fa-3x mb-3"></i>
+                <p>No rejected requests</p>
+            </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <script>
+function requestWarehouse(stockType, quantity, warehouseId) {
+    if (confirm(`Would you like to request storage for ${quantity} tons of ${stockType} from this warehouse?`)) {
+        fetch("{{ url_for('farmer_dashboard.create_request_page') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                stock_type: stockType,
+                quantity: quantity,
+                warehouse_id: warehouseId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showAlert('Request submitted successfully', 'success');
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showAlert(data.message || 'Error submitting request', 'error');
+            }
+        })
+        .catch(error => {
+            showAlert('Error processing request', 'error');
+            console.error('Error:', error);
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Add hover effect to cards
     const cards = document.querySelectorAll('.dashboard-option-card');

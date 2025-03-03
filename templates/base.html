@@ -302,6 +302,142 @@
             border-color: var(--primary-color);
             box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
         }
+
+        /* Partial Acceptances and Rejected Requests Styles */
+        .partial-requests-grid, .rejected-requests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .partial-request-card, .rejected-request-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .partial-request-card:hover, .rejected-request-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .partial-request-card .card-header, .rejected-request-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .stock-details, .warehouse-details {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .detail-group .label {
+            color: #666;
+            font-size: 0.875rem;
+        }
+        
+        .detail-group .value {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .detail-group.highlight .value {
+            color: #55c759;
+            font-weight: 600;
+        }
+        
+        .warehouse-details h4, .stock-details h4 {
+            margin-bottom: 0.75rem;
+            color: #444;
+            font-size: 1rem;
+        }
+        
+        .action-buttons {
+            padding: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-direction: column;
+        }
+        
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            color: #aaa;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+        
+        .empty-state p {
+            color: #777;
+            margin-bottom: 1.5rem;
+        }
+        
+        .warehouse-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .warehouse-info h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .warehouse-info p {
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+        
+        .warehouse-actions {
+            flex-shrink: 0;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 2rem;
+            color: #777;
+        }
     </style>
     {% block style %}{% endblock %}
 </head>
