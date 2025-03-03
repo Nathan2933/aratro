@@ -11,17 +11,17 @@
 
 <div class="dashboard-stats">
     <div class="stat-card">
-        <i class="fas fa-box fa-2x mb-3"></i>
+        <i class="fas fa-box"></i>
         <h3>{{ warehouse.available_space|round(2) }}</h3>
         <p>Available Space (tons)</p>
     </div>
     <div class="stat-card">
-        <i class="fas fa-warehouse fa-2x mb-3"></i>
+        <i class="fas fa-warehouse"></i>
         <h3>{{ (warehouse.capacity - warehouse.available_space)|round(2) }}</h3>
         <p>Occupied Space (tons)</p>
     </div>
     <div class="stat-card">
-        <i class="fas fa-clock fa-2x mb-3"></i>
+        <i class="fas fa-clock"></i>
         <h3>{{ stocks|length }}</h3>
         <p>Active Stocks</p>
     </div>
@@ -126,12 +126,12 @@
                         </td>
                         <td>
                             {% if request.status == 'pending' %}
-                            <button class="btn btn-sm btn-primary" onclick="openResponseModal({{ request.id }})">
+                            <button class="btn btn-sm btn-primary response-btn" data-request-id="{{ request.id }}">
                                 <i class="fas fa-reply"></i>
                                 Respond
                             </button>
                             {% else %}
-                            <button class="btn btn-sm btn-outline" onclick="viewRequestDetails({{ request.id }})">
+                            <button class="btn btn-sm btn-outline view-btn" data-request-id="{{ request.id }}">
                                 <i class="fas fa-eye"></i>
                                 View
                             </button>
@@ -445,8 +445,8 @@ let currentStockType = null;
 let stockRequests = [];
 
 // Initialize warehouse data
-window.warehouse = {
-    available_space: {{ warehouse.available_space|float }},
+const warehouseData = {
+    availableSpace: {{ warehouse.available_space|float }},
     capacity: {{ warehouse.capacity|float }}
 };
 
@@ -1147,9 +1147,9 @@ function openResponseModal(requestId) {
     document.getElementById('farmerName').textContent = farmerName;
     document.getElementById('stockType').textContent = stockType;
     document.getElementById('requestedQuantity').textContent = `${quantity} tons`;
-    document.getElementById('availableSpace').textContent = `${window.warehouse.available_space} tons`;
+    document.getElementById('availableSpace').textContent = `${warehouseData.availableSpace} tons`;
     
-    const spacePercentage = (window.warehouse.available_space / window.warehouse.capacity) * 100;
+    const spacePercentage = (warehouseData.availableSpace / warehouseData.capacity) * 100;
     document.getElementById('spaceIndicator').style.width = `${spacePercentage}%`;
     document.getElementById('spacePercentage').textContent = `${spacePercentage.toFixed(1)}%`;
     
@@ -1279,6 +1279,22 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     initializeStorageChart();
+
+    // Add event listeners for response buttons
+    document.querySelectorAll('.response-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const requestId = this.dataset.requestId;
+            openResponseModal(requestId);
+        });
+    });
+
+    // Add event listeners for view buttons
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const requestId = this.dataset.requestId;
+            viewRequestDetails(requestId);
+        });
+    });
 });
 
 // Request management functions
@@ -1311,9 +1327,9 @@ function validateQuantity(input) {
     const approvedQuantity = parseFloat(input.value);
     const warning = document.getElementById('quantityWarning');
     
-    if (approvedQuantity > window.warehouse.available_space) {
+    if (approvedQuantity > warehouseData.availableSpace) {
         warning.style.display = 'block';
-        warning.textContent = `Warning: Approved quantity exceeds available space (${window.warehouse.available_space} tons)`;
+        warning.textContent = `Warning: Approved quantity exceeds available space (${warehouseData.availableSpace} tons)`;
     } else {
         warning.style.display = 'none';
     }
@@ -1337,7 +1353,7 @@ function approveRequest() {
         return;
     }
     
-    if (parseFloat(quantity) > window.warehouse.available_space) {
+    if (parseFloat(quantity) > warehouseData.availableSpace) {
         showAlert('Approved quantity exceeds available space', 'error');
         return;
     }
@@ -1410,22 +1426,62 @@ function showAlert(message, type = 'info') {
     // You can implement this based on your alert system
     alert(message);
 }
+
+function viewRequestDetails(requestId) {
+    // Implement view request details functionality
+    showAlert('View request details functionality coming soon', 'info');
+}
 </script>
 
 <style>
 .dashboard-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
 .stat-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 0.5rem;
+    background: linear-gradient(135deg, #55c759 0%, #3da042 100%);
+    border-radius: 12px;
     padding: 1.5rem;
     text-align: center;
+    box-shadow: 0 4px 6px rgba(45, 107, 69, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid #d7e6d7;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(45, 107, 69, 0.15);
+}
+
+.stat-card i {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s ease;
+}
+
+.stat-card i.fa-box,
+.stat-card i.fa-warehouse,
+.stat-card i.fa-clock {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-card h3 {
+    font-size: 2.25rem;
+    color: #ffffff;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.1);
+}
+
+.stat-card p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.1rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
 }
 
 .badge {

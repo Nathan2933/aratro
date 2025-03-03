@@ -274,24 +274,28 @@ def check_user_account():
 def farmer_home():
     if current_user.role != 'farmer':
         flash('Access denied: You must be a farmer to view this page', 'error')
-        return redirect(url_for('main.dashboard'))
-    
+        return redirect(url_for('auth.login'))
+
     farmer = Farmer.query.filter_by(user_id=current_user.id).first()
-    
-    # Try to get requests using new schema
+    if not farmer:
+        flash('Farmer profile not found', 'error')
+        return redirect(url_for('auth.login'))
+
+    # Get farmer's requests
     try:
-        requests = StockRequest.query.filter_by(farmer_id=farmer.id).all()
+        requests = StockRequest.query.filter_by(from_id=farmer.id).all()
     except Exception as e:
-        # If new schema fails, fall back to old schema
-        try:
-            requests = StockRequest.query.filter_by(to_id=farmer.id).all()
-        except:
-            # If both fail, just use an empty list
-            requests = []
-    
-    warehouses = Warehouse.query.all()
-    
-    return render_template('farmer_dashboard_new.html', farmer=farmer, requests=requests, warehouses=warehouses)
+        requests = []
+        flash('Error loading requests', 'error')
+
+    # Get nearby warehouses
+    try:
+        warehouses = Warehouse.query.all()  # For now, showing all warehouses
+    except Exception as e:
+        warehouses = []
+        flash('Error loading warehouses', 'error')
+
+    return render_template('farmer_dashboard.html', farmer=farmer, requests=requests, warehouses=warehouses)
 
 @farmer_dashboard.route('/create_request')
 @login_required

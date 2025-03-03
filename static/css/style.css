@@ -1,42 +1,42 @@
 :root {
-    /* Primary Colors - More subtle blue */
-    --primary-color: #4285f4;
-    --primary-dark: #3367d6;
-    --primary-light: #8ab4f8;
+    /* Primary Colors - Refined light green shades */
+    --primary-color: #55c759;
+    --primary-dark: #3da042;
+    --primary-light: #7ed681;
     
-    /* Secondary Colors - Softer teal */
-    --secondary-color: #34a0a4;
-    --secondary-dark: #2a8387;
-    --secondary-light: #5fbec1;
+    /* Secondary Colors - Elegant darker green */
+    --secondary-color: #358856;
+    --secondary-dark: #246b3d;
+    --secondary-light: #4a9d6a;
     
-    /* Accent Colors - More muted */
-    --accent-1: #f6bd60;
-    --accent-2: #84a59d;
-    --accent-3: #4d908e;
+    /* Accent Colors - Fresh complementary greens */
+    --accent-1: #92d275;
+    --accent-2: #6ab04c;
+    --accent-3: #437c2d;
     
-    /* Background Colors - Softer whites */
-    --background-color: #f9fafb;
-    --surface-color: #ffffff;
-    --surface-hover: #f3f4f6;
+    /* Background Colors - Softer green theme */
+    --background-color: #e8f5e9;
+    --surface-color: #f1f8f1;
+    --surface-hover: #e1efe1;
     
-    /* Text Colors - Softer contrast */
-    --text-primary: #1f2937;
-    --text-secondary: #6b7280;
-    --text-light: #9ca3af;
+    /* Text Colors - Rich green contrasts */
+    --text-primary: #2c4a2d;
+    --text-secondary: #456946;
+    --text-light: #588559;
     
-    /* Status Colors - Less saturated */
-    --success-color: #34d399;
-    --error-color: #f87171;
-    --error-color-rgb: 248, 113, 113;
-    --warning-color: #fbbf24;
-    --info-color: #60a5fa;
+    /* Status Colors - Harmonized with green */
+    --success-color: #55c759;
+    --error-color: #e57373;
+    --error-color-rgb: 229, 115, 115;
+    --warning-color: #ffd54f;
+    --info-color: #4db6ac;
     
     /* Border & Shadow */
-    --border-color: #e5e7eb;
+    --border-color: #d7e6d7;
     --border-radius: 0.375rem;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.03);
-    --shadow-lg: 0 10px 15px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.02);
+    --shadow-sm: 0 1px 2px rgba(53, 136, 86, 0.1);
+    --shadow-md: 0 4px 6px rgba(53, 136, 86, 0.15);
+    --shadow-lg: 0 10px 15px rgba(53, 136, 86, 0.2);
     
     /* Spacing */
     --spacing-xs: 0.25rem;
@@ -96,7 +96,7 @@ h2 {
 
 /* Navbar Styles */
 .navbar {
-    background-color: var(--surface-color);
+    background-color: #2d6b45;
     padding: 0.75rem var(--spacing-lg);
     display: flex;
     justify-content: space-between;
@@ -106,8 +106,8 @@ h2 {
     left: 0;
     right: 0;
     z-index: 1000;
-    box-shadow: var(--shadow-sm);
-    border-bottom: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+    border-bottom: 1px solid #1d5934;
     transition: all 0.3s ease;
 }
 
@@ -117,7 +117,7 @@ h2 {
 }
 
 .brand-link {
-    color: var(--primary-color);
+    color: #e8f5e9;
     text-decoration: none;
     font-size: 1.25rem;
     font-weight: 700;
@@ -128,7 +128,7 @@ h2 {
 }
 
 .brand-link:hover {
-    color: var(--primary-dark);
+    color: #7ed681;
 }
 
 .brand-link i {
@@ -148,7 +148,7 @@ h2 {
 }
 
 .nav-link {
-    color: var(--text-primary);
+    color: #e8f5e9;
     text-decoration: none;
     padding: var(--spacing-sm) var(--spacing-md);
     border-radius: var(--border-radius);
@@ -162,13 +162,13 @@ h2 {
 }
 
 .nav-link:hover {
-    background-color: var(--surface-hover);
-    color: var(--primary-color);
+    background-color: #3d815c;
+    color: #e8f5e9;
 }
 
 .nav-link.active {
-    color: var(--primary-color);
-    background-color: rgba(66, 133, 244, 0.08);
+    color: #e8f5e9;
+    background-color: #3d815c;
 }
 
 .nav-link i {
@@ -184,7 +184,7 @@ h2 {
 .user-menu-btn {
     background: none;
     border: none;
-    color: var(--text-primary);
+    color: #e8f5e9;
     padding: var(--spacing-sm) var(--spacing-md);
     cursor: pointer;
     display: flex;
@@ -203,8 +203,8 @@ h2 {
 
 .user-menu-btn:hover, 
 .user-menu-btn:focus {
-    background-color: var(--surface-hover);
-    color: var(--primary-color);
+    background-color: #4a9d6a;
+    color: #e8f5e9;
     outline: none;
 }
 
@@ -307,10 +307,11 @@ h2 {
 .dashboard-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
+/* Base stat card styles */
 .stat-card {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
     color: white;
@@ -325,20 +326,41 @@ h2 {
     align-items: center;
     min-height: 150px;
     opacity: 0.9;
+    border: none;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+    opacity: 1;
+}
+
+.stat-card i {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: white;
+    opacity: 0.9;
 }
 
 .stat-card h3 {
-    font-size: 1.8rem;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
+    font-size: 2.25rem;
+    font-weight: 700;
+    color: white;
+    margin: 0.5rem 0;
+    line-height: 1;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .stat-card p {
-    font-size: 1rem;
-    opacity: 0.9;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.9);
     margin: 0;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
+/* Stat card variations */
 .stat-card:nth-child(2) {
     background: linear-gradient(135deg, var(--secondary-color), var(--secondary-dark));
 }
@@ -347,10 +369,17 @@ h2 {
     background: linear-gradient(135deg, var(--accent-2), var(--accent-3));
 }
 
-.stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lg);
-    opacity: 1;
+.stat-card:nth-child(4) {
+    background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+}
+
+/* Remove farmer dashboard specific styles since we're using the global gradient design */
+.farmer-dashboard .stat-card::after,
+.farmer-dashboard .stat-card:nth-child(1)::after,
+.farmer-dashboard .stat-card:nth-child(2)::after,
+.farmer-dashboard .stat-card:nth-child(3)::after,
+.farmer-dashboard .stat-card:nth-child(4)::after {
+    display: none;
 }
 
 /* Forms */
