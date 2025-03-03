@@ -1,6 +1,6 @@
 # Supply Chain Management System
 
-A Flask-based web application that connects farmers, warehouse managers, and ration shop managers in a streamlined supply chain system..
+A Flask-based web application that connects farmers, warehouse managers, and ration shop managers in a streamlined supply chain system.
 
 ## Project Structure
 ```
