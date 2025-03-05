@@ -97,6 +97,7 @@
                     Warehouse
                 </a>
             </div>
+            <p class="mt-3">Are you a ration shop owner? <a href="{{ url_for('auth.ration_login') }}" class="ration-login-link">Login here</a></p>
         </div>
     </div>
 </div>
@@ -221,6 +222,18 @@
     background-color: #55c759;
     color: white;
     border-color: #55c759;
+}
+
+.ration-login-link {
+    color: #55c759;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.ration-login-link:hover {
+    color: #3da042;
+    text-decoration: underline;
 }
 
 .form-control:focus {

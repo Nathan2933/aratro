@@ -100,3 +100,38 @@ class Notification(db.Model):
     
     def __repr__(self):
         return f'<Notification {self.id}: {self.title}>'
+
+class Admin(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(256), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_login = db.Column(db.DateTime)
+    role = 'admin'  # Add a static role attribute
+    
+    def get_id(self):
+        return f"admin_{self.id}"
+    
+    def __repr__(self):
+        return f'<Admin {self.email}>'
+
+class RationShop(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    shop_id = db.Column(db.String(50), unique=True, nullable=True)  # Added to match database schema
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Will be set after approval
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    location = db.Column(db.String(200), nullable=False)
+    aadhar_number = db.Column(db.String(12), unique=True, nullable=False)  # Exactly 12 digits
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    unique_id = db.Column(db.String(20), unique=True, nullable=True)  # Will be set by admin after approval
+    temp_password = db.Column(db.String(100), nullable=True)  # Temporary password set by admin
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    approved_at = db.Column(db.DateTime, nullable=True)
+    admin_notes = db.Column(db.Text, nullable=True)
+    
+    # Relationship with User
+    user = db.relationship('User', backref='ration_shop', lazy=True, uselist=False)
+    
+    def __repr__(self):
+        return f'<RationShop {self.name}>'

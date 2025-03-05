@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Register Ration Shop{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-card">
+        <div class="register-header">
+            <div class="main-icon">
+                <i class="fas fa-store"></i>
+            </div>
+            <h2>Ration Shop Registration</h2>
+            <p class="text-muted">Register your ration shop for approval</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form id="registrationForm" method="POST" action="{{ url_for('auth.ration_register') }}" class="register-form">
+            {{ form.hidden_tag() }}
+            
+            <div class="form-group">
+                <label for="name">Shop Name</label>
+                <input type="text" id="name" name="name" class="form-control" required>
+                <div class="invalid-feedback">Please enter your shop name</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-control" required>
+                <div class="invalid-feedback">Please enter a valid email address</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="location">Shop Location</label>
+                <input type="text" id="location" name="location" class="form-control" required>
+                <div class="invalid-feedback">Please enter your shop location</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="aadhar_number">Aadhar Number</label>
+                <input type="text" id="aadhar_number" name="aadhar_number" class="form-control" pattern="[0-9]{12}" required>
+                <div class="invalid-feedback">Please enter a valid 12-digit Aadhar number</div>
+                <small class="form-text text-muted">Enter your 12-digit Aadhar number without spaces</small>
+            </div>
+            
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-primary btn-block">Register Ration Shop</button>
+            </div>
+            
+            <div class="text-center mt-3">
+                <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="login-link">Login here</a></p>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .register-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 80px);
+        padding: 2rem 1rem;
+        background-color: var(--bg-light);
+    }
+    
+    .register-card {
+        width: 100%;
+        max-width: 500px;
+        background-color: var(--bg-white);
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .register-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .register-header .main-icon {
+        width: 70px;
+        height: 70px;
+        background-color: var(--primary-light);
+        color: var(--primary);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        font-size: 1.8rem;
+    }
+    
+    .register-header h2 {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .register-header p {
+        color: var(--text-secondary);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        background-color: var(--bg-white);
+        color: var(--text-primary);
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px var(--primary-light);
+        outline: none;
+    }
+    
+    .form-control.is-invalid {
+        border-color: var(--danger);
+    }
+    
+    .invalid-feedback {
+        display: none;
+        color: var(--danger);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .form-control.is-invalid + .invalid-feedback {
+        display: block;
+    }
+    
+    .form-text {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .btn {
+        display: inline-block;
+        font-weight: 500;
+        text-align: center;
+        vertical-align: middle;
+        cursor: pointer;
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+        border-radius: 6px;
+        transition: all 0.2s;
+        border: none;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-dark);
+    }
+    
+    .btn-block {
+        display: block;
+        width: 100%;
+    }
+    
+    .alert {
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: 6px;
+        font-size: 0.95rem;
+    }
+    
+    .alert-success {
+        background-color: var(--success-light);
+        color: var(--success);
+        border: 1px solid var(--success);
+    }
+    
+    .alert-error {
+        background-color: var(--danger-light);
+        color: var(--danger);
+        border: 1px solid var(--danger);
+    }
+    
+    .login-link {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .login-link:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registrationForm');
+        
+        form.addEventListener('submit', function(event) {
+            let isValid = true;
+            
+            // Validate name
+            const nameInput = document.getElementById('name');
+            if (!nameInput.value.trim()) {
+                nameInput.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                nameInput.classList.remove('is-invalid');
+            }
+            
+            // Validate email
+            const emailInput = document.getElementById('email');
+            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailPattern.test(emailInput.value.trim())) {
+                emailInput.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                emailInput.classList.remove('is-invalid');
+            }
+            
+            // Validate location
+            const locationInput = document.getElementById('location');
+            if (!locationInput.value.trim()) {
+                locationInput.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                locationInput.classList.remove('is-invalid');
+            }
+            
+            // Validate Aadhar number
+            const aadharInput = document.getElementById('aadhar_number');
+            const aadharPattern = /^[0-9]{12}$/;
+            if (!aadharPattern.test(aadharInput.value.trim())) {
+                aadharInput.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                aadharInput.classList.remove('is-invalid');
+            }
+            
+            if (!isValid) {
+                event.preventDefault();
+            }
+        });
+        
+        // Real-time validation
+        const inputs = form.querySelectorAll('.form-control');
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                if (this.id === 'email') {
+                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailPattern.test(this.value.trim())) {
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                    }
+                } else if (this.id === 'aadhar_number') {
+                    const aadharPattern = /^[0-9]{12}$/;
+                    if (!aadharPattern.test(this.value.trim())) {
+                        this.classList.add('is-invalid');
+                    } else {
+                        this.classList.remove('is-invalid');
+                    }
+                } else if (!this.value.trim()) {
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %} 

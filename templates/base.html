@@ -466,6 +466,11 @@
                 <i class="fas fa-boxes"></i>
                 Manage Stock
             </a>
+            {% elif current_user.role == 'admin' %}
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
+                <i class="fas fa-cogs"></i>
+                Admin Panel
+            </a>
             {% endif %}
         </div>
 
@@ -478,6 +483,8 @@
                         {{ user_warehouse.manager_name }}
                     {% elif current_user.role == 'farmer' and user_farmer %}
                         {{ user_farmer.name }}
+                    {% elif current_user.role == 'admin' %}
+                        Administrator
                     {% else %}
                         {{ current_user.role|replace('_', ' ')|title }}
                     {% endif %}
@@ -506,6 +513,10 @@
             <a href="{{ url_for('auth.login') }}" class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}">
                 <i class="fas fa-sign-in-alt"></i>
                 Login
+            </a>
+            <a href="{{ url_for('auth.ration_login') }}" class="nav-link {% if request.endpoint == 'auth.ration_login' %}active{% endif %}">
+                <i class="fas fa-store"></i>
+                Ration Shop
             </a>
             <a href="{{ url_for('auth.register') }}" class="nav-link {% if request.endpoint == 'auth.register' %}active{% endif %}">
                 <i class="fas fa-user-plus"></i>

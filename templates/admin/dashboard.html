@@ -1,0 +1,149 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block admin_content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-subtitle">Welcome back, {{ admin_user.email }}</p>
+    </div>
+    <div>
+        <span class="admin-badge admin-badge-primary">
+            <i class="bi bi-person-badge me-1"></i>
+            Admin
+        </span>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Statistics Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6">
+        <div class="stats-card stats-card-primary">
+            <div class="stats-icon stats-icon-primary">
+                <i class="bi bi-person"></i>
+            </div>
+            <div class="stats-content">
+                <h3 class="stats-value">{{ farmer_count }}</h3>
+                <p class="stats-label">Registered Farmers</p>
+                <a href="{{ url_for('admin.farmers') }}" class="stats-link">
+                    View Details <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="stats-card stats-card-success">
+            <div class="stats-icon stats-icon-success">
+                <i class="bi bi-building"></i>
+            </div>
+            <div class="stats-content">
+                <h3 class="stats-value">{{ warehouse_count }}</h3>
+                <p class="stats-label">Warehouses</p>
+                <a href="{{ url_for('admin.warehouses') }}" class="stats-link">
+                    View Details <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="stats-card stats-card-warning">
+            <div class="stats-icon stats-icon-warning">
+                <i class="bi bi-box"></i>
+            </div>
+            <div class="stats-content">
+                <h3 class="stats-value">{{ stock_count }}</h3>
+                <p class="stats-label">Total Stocks</p>
+                <a href="{{ url_for('admin.stocks') }}" class="stats-link">
+                    View Details <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6">
+        <div class="stats-card stats-card-danger">
+            <div class="stats-icon stats-icon-danger">
+                <i class="bi bi-list-check"></i>
+            </div>
+            <div class="stats-content">
+                <h3 class="stats-value">{{ pending_requests }}</h3>
+                <p class="stats-label">Pending Requests</p>
+                <a href="{{ url_for('admin.requests') }}" class="stats-link">
+                    View Details <i class="bi bi-chevron-right ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Information -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-info-circle me-2"></i>
+            System Information
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <h6 class="fw-bold text-secondary mb-2">Admin Email</h6>
+                    <p class="mb-0">{{ admin_user.email }}</p>
+                </div>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-secondary mb-2">Last Login</h6>
+                    <p class="mb-0">{{ admin_user.last_login.strftime('%Y-%m-%d %H:%M:%S') if admin_user.last_login else 'First login' }}</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <h6 class="fw-bold text-secondary mb-2">Account Created</h6>
+                    <p class="mb-0">{{ admin_user.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                </div>
+                <div class="mb-4">
+                    <h6 class="fw-bold text-secondary mb-2">System Status</h6>
+                    <p class="mb-0">
+                        <span class="admin-badge admin-badge-success">
+                            <i class="bi bi-check-circle me-1"></i>
+                            Online
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-activity me-2"></i>
+            Recent Activity
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        <div class="d-flex align-items-center justify-content-center py-4">
+            <div class="text-center text-muted">
+                <i class="bi bi-calendar-check fs-1 mb-3"></i>
+                <p>No recent activity to display</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

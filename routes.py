@@ -1,14 +1,18 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, session
 from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification
+from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop
 import re
 from datetime import datetime
+from functools import wraps
+from email_utils import send_credentials_email, send_rejection_email, send_password_reset_email
+import uuid
 
 auth = Blueprint('auth', __name__)
 main = Blueprint('main', __name__)
 farmer_dashboard = Blueprint('farmer_dashboard', __name__, url_prefix='/farmer')
 warehouse_dashboard = Blueprint('warehouse_dashboard', __name__, url_prefix='/warehouse')
+admin = Blueprint('admin', __name__, url_prefix='/admin')
 
 @auth.before_request
 def before_request():
@@ -18,16 +22,21 @@ def before_request():
 
 @auth.route('/register')
 def register():
-    # If user is logged in, redirect to dashboard
+    # If user is logged in, show a warning but still allow access to the page
     if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+        flash('You are already logged in. If you want to create a new account, please log out first.', 'warning')
     return render_template('register.html')
 
 @auth.route('/farmer/register', methods=['GET', 'POST'])
 def farmer_register():
-    # If user is logged in, redirect to dashboard
-    if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+    # If user is logged in and trying to submit the form, prevent registration
+    if current_user.is_authenticated and request.method == 'POST':
+        flash('You are already logged in. Please log out first to create a new account.', 'warning')
+        return redirect(url_for('auth.farmer_register'))
+    
+    # For GET requests, show a warning but allow viewing the page
+    if current_user.is_authenticated and request.method == 'GET':
+        flash('You are already logged in. If you want to create a new account, please log out first.', 'warning')
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -107,9 +116,14 @@ def farmer_register():
 
 @auth.route('/warehouse/register', methods=['GET', 'POST'])
 def warehouse_register():
-    # If user is logged in, redirect to dashboard
-    if current_user.is_authenticated:
-        return redirect(url_for('main.dashboard'))
+    # If user is logged in and trying to submit the form, prevent registration
+    if current_user.is_authenticated and request.method == 'POST':
+        flash('You are already logged in. Please log out first to create a new account.', 'warning')
+        return redirect(url_for('auth.warehouse_register'))
+    
+    # For GET requests, show a warning but allow viewing the page
+    if current_user.is_authenticated and request.method == 'GET':
+        flash('You are already logged in. If you want to create a new account, please log out first.', 'warning')
 
     if request.method == 'POST':
         print("Form Data:", request.form)  # Debug print
@@ -212,7 +226,8 @@ def login():
         # Map selected role to database role
         role_mapping = {
             'farmer': 'farmer',
-            'warehouse': 'warehouse_manager'
+            'warehouse': 'warehouse_manager',
+            'ration': 'ration_manager'
         }
         
         # Check if the selected role matches the user's actual role
@@ -227,8 +242,11 @@ def login():
         try:
             login_user(user, remember=remember)
             
-            # Redirect to dashboard
-            return redirect(url_for('main.dashboard'))
+            # Redirect to appropriate dashboard based on role
+            if user.role == 'ration_manager':
+                return redirect(url_for('main.ration_dashboard'))
+            else:
+                return redirect(url_for('main.dashboard'))
         except Exception as e:
             flash('An error occurred during login. Please try again.', 'error')
             return redirect(url_for('auth.login'))
@@ -281,9 +299,15 @@ def farmer_home():
         requests = []
         flash('Error loading requests', 'error')
 
-    # Get nearby warehouses
+    # Get nearby warehouses and calculate their actual available space
     try:
         warehouses = Warehouse.query.all()  # For now, showing all warehouses
+        for warehouse in warehouses:
+            total_allocated = db.session.query(db.func.sum(Stock.quantity))\
+                .filter(Stock.warehouse_id == warehouse.id)\
+                .filter(Stock.status == 'stored')\
+                .scalar() or 0
+            warehouse.available_space = warehouse.capacity - total_allocated
     except Exception as e:
         warehouses = []
         flash('Error loading warehouses', 'error')
@@ -366,13 +390,17 @@ def create_request_page():
             except Exception as e:
                 db.session.rollback()
                 return jsonify({'success': False, 'message': str(e)})
-        
-        # Handle regular form submission
-        warehouses = Warehouse.query.all()
-        return render_template('create_request.html', warehouses=warehouses)
     
     # Handle GET request
     warehouses = Warehouse.query.all()
+    # Calculate actual available space for each warehouse
+    for warehouse in warehouses:
+        total_allocated = db.session.query(db.func.sum(Stock.quantity))\
+            .filter(Stock.warehouse_id == warehouse.id)\
+            .filter(Stock.status == 'stored')\
+            .scalar() or 0
+        warehouse.available_space = warehouse.capacity - total_allocated
+    
     return render_template('create_request.html', warehouses=warehouses)
 
 @farmer_dashboard.route('/view_requests')
@@ -962,6 +990,10 @@ def dashboard():
         return redirect(url_for('farmer_dashboard.farmer_home'))
     elif current_user.role == 'warehouse_manager':
         return redirect(url_for('warehouse_dashboard.warehouse_home'))
+    elif current_user.role == 'admin':
+        return redirect(url_for('admin.dashboard'))
+    elif current_user.role == 'ration_manager':
+        return redirect(url_for('main.ration_dashboard'))
     else:
         flash('Unknown user role', 'error')
         return redirect(url_for('main.index'))
@@ -974,8 +1006,521 @@ def dashboard():
 def inject_user_data():
     data = {}
     if current_user.is_authenticated:
-        if current_user.role == 'warehouse_manager':
-            data['user_warehouse'] = Warehouse.query.filter_by(user_id=current_user.id).first()
-        elif current_user.role == 'farmer':
-            data['user_farmer'] = Farmer.query.filter_by(user_id=current_user.id).first()
+        # Skip admin users since they don't have associated entities
+        if hasattr(current_user, 'role'):  # Check if the user has a role attribute
+            if current_user.role == 'warehouse_manager':
+                data['user_warehouse'] = Warehouse.query.filter_by(user_id=current_user.id).first()
+            elif current_user.role == 'farmer':
+                data['user_farmer'] = Farmer.query.filter_by(user_id=current_user.id).first()
+            elif current_user.role == 'ration_manager':
+                # Add ration shop data if needed
+                pass
     return data
+
+# Admin routes
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        print(f"Admin required check for user: {current_user}")
+        if not current_user.is_authenticated:
+            print("User not authenticated")
+            flash('You need to be logged in as an admin to view this page.', 'error')
+            return redirect(url_for('admin.login'))
+        
+        # Check if the current user ID has the admin prefix
+        user_id = current_user.get_id()
+        print(f"User ID: {user_id}")
+        if not user_id.startswith('admin_'):
+            print(f"User {user_id} is not an admin (no admin prefix)")
+            flash('You do not have permission to access this page.', 'error')
+            return redirect(url_for('admin.login'))
+        
+        # Extract admin ID and get the admin user
+        admin_id = int(user_id.split('_')[1])
+        admin = Admin.query.get(admin_id)
+        print(f"Admin access granted for user: {admin.email}")
+        
+        return f(*args, **kwargs)
+    return decorated_function
+
+@admin.route('/login', methods=['GET', 'POST'])
+def login():
+    print("Admin login route accessed")
+    # If admin is already logged in, redirect to admin dashboard
+    if current_user.is_authenticated:
+        admin = Admin.query.get(current_user.id)
+        print(f"Current user: {current_user.id}, Is admin: {admin is not None}")
+        if admin:
+            return redirect(url_for('admin.dashboard'))
+        else:
+            # If a regular user is trying to access admin, log them out first
+            logout_user()
+            flash('Please log in with admin credentials.', 'warning')
+        
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        print(f"Login attempt with email: {email}")
+        
+        if not email or not password:
+            flash('Please enter both email and password', 'error')
+            return redirect(url_for('admin.login'))
+        
+        admin_user = Admin.query.filter_by(email=email).first()
+        print(f"Admin user found: {admin_user is not None}")
+        
+        if not admin_user:
+            # Use a generic error message to prevent email enumeration
+            flash('Invalid credentials', 'error')
+            return redirect(url_for('admin.login'))
+        
+        if not check_password_hash(admin_user.password_hash, password):
+            flash('Invalid credentials', 'error')
+            return redirect(url_for('admin.login'))
+        
+        # Update last login time
+        admin_user.last_login = datetime.utcnow()
+        db.session.commit()
+        
+        # Log in the admin
+        login_user(admin_user)
+        print(f"Admin logged in successfully: {admin_user.id}")
+        flash('Logged in successfully!', 'success')
+        return redirect(url_for('admin.dashboard'))
+    
+    return render_template('admin/login.html')
+
+@admin.route('/logout')
+@login_required
+def logout():
+    # Clear all session data
+    session.clear()
+    logout_user()
+    flash('You have been logged out successfully.', 'success')
+    return redirect(url_for('admin.login'))
+
+@admin.route('/')
+@admin_required
+def dashboard():
+    print(f"Admin dashboard accessed by user: {current_user.id}")
+    # Get the admin object
+    admin_user = Admin.query.get(current_user.id)
+    
+    # Count statistics for the dashboard
+    farmer_count = Farmer.query.count()
+    warehouse_count = Warehouse.query.count()
+    stock_count = Stock.query.count()
+    pending_requests = StockRequest.query.filter_by(status='pending').count()
+    
+    print(f"Dashboard stats: farmers={farmer_count}, warehouses={warehouse_count}, stocks={stock_count}, pending={pending_requests}")
+    
+    return render_template('admin/dashboard.html', 
+                          admin_user=admin_user,
+                          farmer_count=farmer_count,
+                          warehouse_count=warehouse_count,
+                          stock_count=stock_count,
+                          pending_requests=pending_requests)
+
+@admin.route('/farmers')
+@admin_required
+def farmers():
+    farmers = Farmer.query.all()
+    return render_template('admin/farmers.html', farmers=farmers)
+
+@admin.route('/warehouses')
+@admin_required
+def warehouses():
+    warehouses = Warehouse.query.all()
+    return render_template('admin/warehouses.html', warehouses=warehouses)
+
+@admin.route('/stocks')
+@admin_required
+def stocks():
+    stocks = Stock.query.all()
+    return render_template('admin/stocks.html', stocks=stocks)
+
+@admin.route('/requests')
+@admin_required
+def requests():
+    stock_requests = StockRequest.query.all()
+    return render_template('admin/requests.html', requests=stock_requests)
+
+# Context processor for admin blueprint
+@admin.context_processor
+def inject_admin_data():
+    admin_data = {'current_user': current_user}
+    if current_user.is_authenticated:
+        admin_user = Admin.query.get(current_user.id)
+        if admin_user:
+            admin_data['admin_user'] = admin_user
+    return admin_data
+
+@auth.route('/ration/register', methods=['GET', 'POST'])
+def ration_register():
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+        
+    # Create a simple form object for CSRF protection
+    class SimpleForm:
+        def hidden_tag(self):
+            return ''
+    
+    form = SimpleForm()
+        
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        location = request.form.get('location')
+        aadhar_number = request.form.get('aadhar_number')
+        
+        # Validate form data
+        if not name or not email or not location or not aadhar_number:
+            flash('All fields are required', 'error')
+            return redirect(url_for('auth.ration_register'))
+            
+        # Check if Aadhar is already registered
+        existing_shop = RationShop.query.filter_by(aadhar_number=aadhar_number).first()
+        if existing_shop:
+            flash('Aadhar number already registered', 'error')
+            return redirect(url_for('auth.ration_register'))
+            
+        # Create new ration shop registration
+        shop_id = str(uuid.uuid4())[:8].upper()  # Generate a unique shop ID
+        
+        new_shop = RationShop(
+            shop_id=shop_id,  # Add the shop_id field
+            user_id=None,  # Explicitly set user_id to None
+            name=name,
+            email=email,
+            location=location,
+            aadhar_number=aadhar_number,
+            status='pending'
+        )
+        
+        try:
+            db.session.add(new_shop)
+            db.session.commit()
+            flash('Registration successful! Your application is pending approval by an administrator.', 'success')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'An error occurred during registration: {str(e)}', 'error')
+            return redirect(url_for('auth.ration_register'))
+    
+    return render_template('ration_register.html', form=form)
+
+# Ration shop routes
+@main.route('/ration/dashboard')
+@login_required
+def ration_dashboard():
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        flash('You need to be logged in as a ration shop manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        flash('Ration shop not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get statistics (placeholder for now)
+    stats = {
+        'customers': 0,
+        'inventory_items': 0,
+        'transactions': 0,
+        'pending_requests': 0
+    }
+    
+    # Get notifications (placeholder for now)
+    notifications = []
+    
+    return render_template('ration/dashboard.html', shop=shop, stats=stats, notifications=notifications)
+
+# Admin routes for ration shops
+@admin.route('/ration-shops')
+@admin_required
+def ration_shops():
+    ration_shops = RationShop.query.all()
+    return render_template('admin/ration_shops.html', ration_shops=ration_shops)
+
+# Route to approve ration shop
+@admin.route('/approve-ration-shop', methods=['POST'])
+@admin_required
+def approve_ration_shop():
+    # Handle both form data and JSON data
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+    
+    shop_id = data.get('shop_id')
+    unique_id = data.get('unique_id')
+    password = data.get('password')
+    
+    if not all([shop_id, unique_id, password]):
+        if request.is_json:
+            return jsonify({'success': False, 'message': 'Missing required fields'})
+        else:
+            flash('Missing required fields', 'error')
+            return redirect(url_for('admin.ration_shops'))
+    
+    try:
+        # Get the ration shop
+        shop = RationShop.query.get(shop_id)
+        if not shop:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Ration shop not found'})
+            else:
+                flash('Ration shop not found', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Check if shop is already approved or rejected
+        if shop.status != 'pending':
+            if request.is_json:
+                return jsonify({'success': False, 'message': f'Ration shop is already {shop.status}'})
+            else:
+                flash(f'Ration shop is already {shop.status}', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Check if unique ID is already in use
+        existing_shop = RationShop.query.filter_by(unique_id=unique_id).first()
+        if existing_shop and existing_shop.id != int(shop_id):
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Unique ID is already in use'})
+            else:
+                flash('Unique ID is already in use', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Create a new user for the ration shop
+        # Use the unique_id as the phone_number since it's required and unique
+        user = User(
+            phone_number=unique_id,  # Using unique_id as phone_number
+            password_hash=generate_password_hash(password),
+            role='ration_shop'
+        )
+        db.session.add(user)
+        db.session.flush()  # Flush to get the user ID
+        
+        # Update the ration shop
+        shop.status = 'approved'
+        shop.unique_id = unique_id
+        shop.temp_password = password  # Store the temporary password (consider encrypting this in production)
+        shop.user_id = user.id
+        shop.approved_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        # Optionally, send an email to the shop owner with their credentials
+        try:
+            send_credentials_email(shop.email, unique_id, password)
+        except Exception as e:
+            # Log the error but continue with the approval process
+            print(f"Error sending email: {str(e)}")
+        
+        if request.is_json:
+            return jsonify({'success': True})
+        else:
+            flash('Ration shop approved successfully!', 'success')
+            return redirect(url_for('admin.ration_shops'))
+        
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'message': str(e)})
+        else:
+            flash(f'Error: {str(e)}', 'error')
+            return redirect(url_for('admin.ration_shops'))
+
+# Route to reject ration shop
+@admin.route('/reject-ration-shop', methods=['POST'])
+@admin_required
+def reject_ration_shop():
+    # Handle both form data and JSON data
+    if request.is_json:
+        data = request.get_json()
+    else:
+        data = request.form
+    
+    shop_id = data.get('shop_id')
+    reason = data.get('reason', '')
+    
+    if not shop_id:
+        if request.is_json:
+            return jsonify({'success': False, 'message': 'Shop ID is required'})
+        else:
+            flash('Shop ID is required', 'error')
+            return redirect(url_for('admin.ration_shops'))
+    
+    try:
+        # Get the ration shop
+        shop = RationShop.query.get(shop_id)
+        if not shop:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Ration shop not found'})
+            else:
+                flash('Ration shop not found', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Check if shop is already approved or rejected
+        if shop.status != 'pending':
+            if request.is_json:
+                return jsonify({'success': False, 'message': f'Ration shop is already {shop.status}'})
+            else:
+                flash(f'Ration shop is already {shop.status}', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Update the ration shop
+        shop.status = 'rejected'
+        shop.rejection_reason = reason
+        shop.rejected_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        # Optionally, send an email to the shop owner with the rejection reason
+        try:
+            send_rejection_email(shop.email, reason)
+        except Exception as e:
+            # Log the error but continue with the rejection process
+            print(f"Error sending email: {str(e)}")
+        
+        if request.is_json:
+            return jsonify({'success': True})
+        else:
+            flash('Ration shop rejected successfully!', 'success')
+            return redirect(url_for('admin.ration_shops'))
+        
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'message': str(e)})
+        else:
+            flash(f'Error: {str(e)}', 'error')
+            return redirect(url_for('admin.ration_shops'))
+
+# Route to get ration shop credentials
+@admin.route('/get-ration-shop-credentials/<int:shop_id>')
+@admin_required
+def get_ration_shop_credentials(shop_id):
+    try:
+        # Get the ration shop
+        shop = RationShop.query.get(shop_id)
+        if not shop:
+            return jsonify({'success': False, 'message': 'Ration shop not found'})
+        
+        # Check if shop is approved
+        if shop.status != 'approved':
+            return jsonify({'success': False, 'message': 'Ration shop is not approved'})
+        
+        # Get the user associated with the shop
+        user = User.query.get(shop.user_id) if shop.user_id else None
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found for this ration shop'})
+        
+        # Return the credentials
+        return jsonify({
+            'success': True,
+            'shop_name': shop.name,
+            'unique_id': shop.unique_id,
+            'password': shop.temp_password  # Note: In a production environment, you might want to handle this differently
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+# Route to reset ration shop password
+@admin.route('/reset-ration-shop-password', methods=['POST'])
+@admin_required
+def reset_ration_shop_password():
+    if not request.is_json:
+        return jsonify({'success': False, 'message': 'Invalid request format'})
+    
+    data = request.get_json()
+    shop_id = data.get('shop_id')
+    new_password = data.get('new_password')
+    
+    if not all([shop_id, new_password]):
+        return jsonify({'success': False, 'message': 'Missing required fields'})
+    
+    try:
+        # Get the ration shop
+        shop = RationShop.query.get(shop_id)
+        if not shop:
+            return jsonify({'success': False, 'message': 'Ration shop not found'})
+        
+        # Check if shop is approved
+        if shop.status != 'approved':
+            return jsonify({'success': False, 'message': 'Ration shop is not approved'})
+        
+        # Get the user associated with the shop
+        user = User.query.get(shop.user_id) if shop.user_id else None
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found for this ration shop'})
+        
+        # Update the password
+        user.password_hash = generate_password_hash(new_password)
+        shop.temp_password = new_password  # Store the new temporary password
+        
+        db.session.commit()
+        
+        # Optionally, send an email to the shop owner with the new password
+        try:
+            send_password_reset_email(shop.email, shop.unique_id, new_password)
+        except Exception as e:
+            # Log the error but continue with the password reset process
+            print(f"Error sending email: {str(e)}")
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
+
+@auth.route('/ration/login', methods=['GET', 'POST'])
+def ration_login():
+    # If user is already logged in, redirect to dashboard
+    if current_user.is_authenticated:
+        return redirect(url_for('main.index'))
+    
+    # Create a simple form object for CSRF protection
+    class SimpleForm:
+        def hidden_tag(self):
+            return ''
+    
+    form = SimpleForm()
+    
+    if request.method == 'POST':
+        unique_id = request.form.get('unique_id')
+        password = request.form.get('password')
+        remember = True if request.form.get('remember') else False
+        
+        # Validate form data
+        if not unique_id or not password:
+            flash('Please fill in all fields', 'error')
+            return render_template('ration/login.html', form=form)
+        
+        # Find the ration shop by unique ID
+        ration_shop = RationShop.query.filter_by(unique_id=unique_id, status='approved').first()
+        
+        if not ration_shop:
+            flash('Ration shop not found or not approved yet', 'error')
+            return render_template('ration/login.html', form=form)
+        
+        # Get the associated user
+        user = User.query.get(ration_shop.user_id)
+        
+        if not user:
+            flash('User account not found', 'error')
+            return render_template('ration/login.html', form=form)
+        
+        # Check password
+        if check_password_hash(user.password_hash, password):
+            # Log in the user
+            login_user(user, remember=remember)
+            flash('Login successful!', 'success')
+            return redirect(url_for('main.ration_dashboard'))
+        else:
+            flash('Invalid password', 'error')
+            return render_template('ration/login.html', form=form)
+    
+    return render_template('ration/login.html', form=form)

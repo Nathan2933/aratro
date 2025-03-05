@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+
+{% block title %}Ration Shop Dashboard{% endblock %}
+
+{% block styles %}
+<style>
+/* Dashboard Stats - New Design */
+.dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+/* Using higher specificity to override global styles */
+.dashboard-stats .stat-card {
+    background: white !important;
+    border-radius: 16px !important;
+    padding: 2rem !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    transition: all 0.3s ease !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    position: relative !important;
+    border: 2px solid #e0e0e0 !important;
+    background-image: none !important;
+}
+
+.dashboard-stats .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #55c759, #3da042);
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+}
+
+.dashboard-stats .stat-card:hover {
+    transform: translateY(-5px) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
+}
+
+.dashboard-stats .stat-card i {
+    font-size: 2.5rem !important;
+    margin-bottom: 1rem !important;
+    background: linear-gradient(135deg, #55c759, #3da042);
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.dashboard-stats .stat-card h3 {
+    font-size: 2.5rem !important;
+    font-weight: 700 !important;
+    color: #2d6b45 !important;
+    margin: 0.5rem 0 !important;
+    line-height: 1 !important;
+}
+
+.dashboard-stats .stat-card p {
+    font-size: 1rem !important;
+    color: #666 !important;
+    margin: 0 !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 1px !important;
+}
+
+.dashboard-stats .stat-card:nth-child(1)::after {
+    background: linear-gradient(90deg, #55c759, #3da042) !important;
+}
+
+.dashboard-stats .stat-card:nth-child(2)::after {
+    background: linear-gradient(90deg, #358856, #246b3d) !important;
+}
+
+.dashboard-stats .stat-card:nth-child(3)::after {
+    background: linear-gradient(90deg, #6ab04c, #437c2d) !important;
+}
+
+.dashboard-stats .stat-card:nth-child(4)::after {
+    background: linear-gradient(90deg, #92d275, #6ab04c) !important;
+}
+
+/* Status list styles */
+.status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.status-item {
+    background: var(--surface-color);
+    border-radius: 8px;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+}
+
+.status-dot.warning { background-color: var(--warning-color); }
+.status-dot.success { background-color: var(--success-color); }
+.status-dot.error { background-color: var(--error-color); }
+
+.status-label {
+    font-weight: 500;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.status-count {
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--background-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+}
+
+.status-details {
+    margin-top: 0.5rem;
+    padding-left: 1.75rem;
+}
+
+.text-muted {
+    color: var(--text-secondary);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ration-dashboard">
+    <div class="flex justify-between items-center mb-4">
+        <h1>Ration Shop Dashboard</h1>
+        <a href="#" class="btn btn-primary">
+            <i class="fas fa-plus"></i>
+            New Stock Request
+        </a>
+    </div>
+
+    <div class="dashboard-stats">
+        <div class="stat-card">
+            <i class="fas fa-users"></i>
+            <h3>{{ stats.customers|default(0) }}</h3>
+            <p>Registered Customers</p>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-box"></i>
+            <h3>{{ stats.inventory_items|default(0) }}</h3>
+            <p>Inventory Items</p>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-exchange-alt"></i>
+            <h3>{{ stats.transactions|default(0) }}</h3>
+            <p>Transactions</p>
+        </div>
+        <div class="stat-card">
+            <i class="fas fa-clipboard-list"></i>
+            <h3>{{ stats.pending_requests|default(0) }}</h3>
+            <p>Pending Requests</p>
+        </div>
+    </div>
+
+    <div class="flex gap-4 mt-6">
+        <div class="card" style="flex: 2;">
+            <div class="flex justify-between items-center mb-3">
+                <h2>Inventory Status Overview</h2>
+                <div class="flex gap-2">
+                    <select id="timeFilter" class="form-select">
+                        <option value="all">All Time</option>
+                        <option value="week">Last Week</option>
+                        <option value="month">Last Month</option>
+                        <option value="year">Last Year</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4">
+                <div class="status-list">
+                    <div class="status-item">
+                        <div class="flex items-center">
+                            <span class="status-dot warning"></span>
+                            <span class="status-label">Low Stock Items</span>
+                            <span class="status-count">{{ stats.low_stock|default(0) }}</span>
+                        </div>
+                        <div class="status-details">
+                            <span class="text-sm text-muted">Items that need to be restocked soon</span>
+                        </div>
+                    </div>
+                    
+                    <div class="status-item">
+                        <div class="flex items-center">
+                            <span class="status-dot success"></span>
+                            <span class="status-label">Available Items</span>
+                            <span class="status-count">{{ stats.available_items|default(0) }}</span>
+                        </div>
+                        <div class="status-details">
+                            <span class="text-sm text-muted">Items with sufficient stock</span>
+                        </div>
+                    </div>
+                    
+                    <div class="status-item">
+                        <div class="flex items-center">
+                            <span class="status-dot error"></span>
+                            <span class="status-label">Out of Stock</span>
+                            <span class="status-count">{{ stats.out_of_stock|default(0) }}</span>
+                        </div>
+                        <div class="status-details">
+                            <span class="text-sm text-muted">Items that need immediate attention</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="flex: 1;">
+            <div class="quick-actions">
+                <h2>Quick Actions</h2>
+                <div class="action-buttons">
+                    <a href="#" class="btn btn-primary">
+                        <i class="fas fa-plus"></i>
+                        Create New Request
+                    </a>
+                    <a href="#" class="btn btn-outline">
+                        <i class="fas fa-list"></i>
+                        View All Inventory
+                    </a>
+                    <a href="#" class="btn btn-outline">
+                        <i class="fas fa-users"></i>
+                        Manage Customers
+                    </a>
+                    <a href="#" class="btn btn-outline">
+                        <i class="fas fa-exchange-alt"></i>
+                        New Transaction
+                    </a>
+                    <button class="btn btn-outline" onclick="exportReports()">
+                        <i class="fas fa-download"></i>
+                        Export Reports
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex gap-4 mt-6">
+        <div class="card dashboard-option-card" onclick="window.location.href='#'">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-plus-circle fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">New Transaction</h2>
+                <p class="mb-4">Create a new customer transaction</p>
+                <a href="#" class="btn btn-primary w-full">
+                    <i class="fas fa-plus"></i>
+                    New Transaction
+                </a>
+            </div>
+        </div>
+
+        <div class="card dashboard-option-card">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-box fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">Manage Inventory</h2>
+                <p class="mb-4">View and update your inventory items</p>
+                <a href="#" class="btn btn-primary w-full">
+                    <i class="fas fa-eye"></i>
+                    View Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="card dashboard-option-card">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-users fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">Customer Management</h2>
+                <p class="mb-4">Manage your registered customers</p>
+                <a href="#" class="btn btn-primary w-full">
+                    <i class="fas fa-eye"></i>
+                    View Customers
+                </a>
+            </div>
+        </div>
+        
+        <div class="card dashboard-option-card">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-chart-bar fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">Reports</h2>
+                <p class="mb-4">View and export transaction reports</p>
+                <a href="#" class="btn btn-primary w-full">
+                    <i class="fas fa-eye"></i>
+                    View Reports
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effect to cards
+    const cards = document.querySelectorAll('.dashboard-option-card');
+    cards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.boxShadow = '0 10px 20px rgba(45, 107, 69, 0.1)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+            this.style.boxShadow = '0 4px 6px rgba(45, 107, 69, 0.1)';
+        });
+    });
+
+    function exportReports() {
+        alert('Exporting reports...');
+        // Add export functionality here
+    }
+});
+</script>
+{% endblock %}

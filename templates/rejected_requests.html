@@ -10,7 +10,7 @@
                 Back to Dashboard
             </a>
         </div>
-        <p class="text-muted">Review rejected requests and find alternative warehouses</p>
+        <p class="text-muted">Review rejected requests and try again with different warehouses</p>
     </div>
 
     <div class="card">
@@ -76,14 +76,10 @@
                         </div>
 
                         <div class="action-buttons">
-                            <a href="{{ url_for('farmer_dashboard.request_details', request_id=request.id) }}" class="btn btn-primary view-request">
-                                <i class="fas fa-eye"></i>
-                                View Details
+                            <a href="{{ url_for('farmer_dashboard.create_request_page', stock_type=request.stock.type, quantity=request.stock.requested_quantity) }}" class="btn btn-primary">
+                                <i class="fas fa-sync"></i>
+                                Request Again
                             </a>
-                            <button class="btn btn-outline find-alternatives" data-stock-type="{{ request.stock.type }}" data-quantity="{{ request.stock.requested_quantity }}">
-                                <i class="fas fa-search"></i>
-                                Find Alternative Warehouses
-                            </button>
                         </div>
                     </div>
                     {% endfor %}
@@ -101,28 +97,6 @@
                     </a>
                 </div>
             {% endif %}
-        </div>
-    </div>
-
-    <!-- Alternative Warehouses Modal -->
-    <div class="modal fade" id="alternativeWarehousesModal" tabindex="-1" role="dialog" aria-labelledby="alternativeWarehousesModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="alternativeWarehousesModalLabel">Alternative Warehouses</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div id="alternativeWarehousesList" class="warehouse-list">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -283,35 +257,14 @@ h4 {
     margin-bottom: 2rem;
 }
 
-.warehouse-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
-}
-
-.warehouse-option {
-    background: white;
-    padding: 1rem;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    transition: all 0.3s ease;
-}
-
-.warehouse-option:hover {
-    border-color: #55c759;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.warehouse-name {
-    color: #2d6b45;
-    font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-.warehouse-detail {
-    font-size: 0.875rem;
-    color: #666;
+@media (max-width: 768px) {
+    .rejected-requests-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .container {
+        padding: 1rem;
+    }
 }
 </style>
 
@@ -334,64 +287,6 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 card.style.display = 'none';
             }
-        });
-    });
-
-    // Find alternative warehouses functionality
-    const findAlternativesButtons = document.querySelectorAll('.find-alternatives');
-    const alternativeWarehousesModal = document.getElementById('alternativeWarehousesModal');
-    const alternativeWarehousesList = document.getElementById('alternativeWarehousesList');
-
-    // Convert warehouse data to JSON-serializable format
-    const warehousesData = [
-        {% for warehouse in warehouses %}
-        {
-            "id": {{ warehouse.id }},
-            "name": "{{ warehouse.name }}",
-            "location": "{{ warehouse.location }}",
-            "available_space": {{ warehouse.available_space }},
-            "capacity": {{ warehouse.capacity }}
-        }{% if not loop.last %},{% endif %}
-        {% endfor %}
-    ];
-
-    findAlternativesButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const stockType = this.dataset.stockType;
-            const quantity = parseFloat(this.dataset.quantity);
-
-            // Filter available warehouses based on stock type and quantity
-            const availableWarehouses = warehousesData.filter(warehouse => {
-                return warehouse.available_space >= quantity;
-            });
-
-            // Update modal content
-            alternativeWarehousesList.innerHTML = '';
-            if (availableWarehouses.length > 0) {
-                availableWarehouses.forEach(warehouse => {
-                    const warehouseElement = document.createElement('div');
-                    warehouseElement.className = 'warehouse-option';
-                    warehouseElement.innerHTML = `
-                        <div class="warehouse-name">${warehouse.name}</div>
-                        <div class="warehouse-detail">Location: ${warehouse.location}</div>
-                        <div class="warehouse-detail">Available Space: ${warehouse.available_space} tons</div>
-                        <a href="{{ url_for('farmer_dashboard.create_request_page') }}?warehouse_id=${warehouse.id}&stock_type=${encodeURIComponent(stockType)}&quantity=${quantity}" 
-                           class="btn btn-primary btn-sm mt-2">
-                            Create Request
-                        </a>
-                    `;
-                    alternativeWarehousesList.appendChild(warehouseElement);
-                });
-            } else {
-                alternativeWarehousesList.innerHTML = `
-                    <div class="empty-state">
-                        <p>No alternative warehouses found with sufficient space.</p>
-                    </div>
-                `;
-            }
-
-            // Show modal
-            $(alternativeWarehousesModal).modal('show');
         });
     });
 });

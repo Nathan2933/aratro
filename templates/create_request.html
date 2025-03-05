@@ -427,6 +427,31 @@ document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const warehouseIdParam = urlParams.get('warehouse_id');
     const warehouseRequestIdParam = urlParams.get('warehouse_request_id');
+    const stockTypeParam = urlParams.get('stock_type');
+    const quantityParam = urlParams.get('quantity');
+    
+    // Pre-fill stock type if provided
+    if (stockTypeParam) {
+        const stockTypeSelect = document.getElementById('stockType');
+        const stockTypeOption = Array.from(stockTypeSelect.options).find(option => option.value === stockTypeParam);
+        
+        if (stockTypeOption) {
+            stockTypeOption.selected = true;
+        } else {
+            // If stock type is not in predefined list, select "Other" and fill in the custom field
+            const otherOption = Array.from(stockTypeSelect.options).find(option => option.value === 'Other');
+            if (otherOption) {
+                otherOption.selected = true;
+                document.getElementById('otherStockTypeGroup').style.display = 'block';
+                document.getElementById('otherStockType').value = stockTypeParam;
+            }
+        }
+    }
+    
+    // Pre-fill quantity if provided
+    if (quantityParam) {
+        document.getElementById('quantity').value = quantityParam;
+    }
     
     if (warehouseIdParam) {
         console.log("Found warehouse_id in URL:", warehouseIdParam);

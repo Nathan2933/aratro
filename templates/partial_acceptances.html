@@ -85,14 +85,10 @@
                         </div>
 
                         <div class="action-buttons">
-                            <button class="btn btn-primary request-remaining" data-request-id="{{ request.id }}" data-remaining="{{ request.stock.requested_quantity - request.stock.quantity }}">
+                            <a href="{{ url_for('farmer_dashboard.create_request_page', warehouse_id=request.warehouse.id, stock_type=request.stock.type, quantity=request.stock.requested_quantity - request.stock.quantity) }}" class="btn btn-primary request-remaining">
                                 <i class="fas fa-plus-circle"></i>
                                 Request Remaining Quantity
-                            </button>
-                            <button class="btn btn-outline find-alternatives" data-stock-type="{{ request.stock.type }}" data-quantity="{{ request.stock.requested_quantity - request.stock.quantity }}">
-                                <i class="fas fa-search"></i>
-                                Find Alternative Warehouses
-                            </button>
+                            </a>
                         </div>
                     </div>
                     {% endfor %}
@@ -110,28 +106,6 @@
                     </a>
                 </div>
             {% endif %}
-        </div>
-    </div>
-
-    <!-- Alternative Warehouses Modal -->
-    <div class="modal fade" id="alternativeWarehousesModal" tabindex="-1" role="dialog" aria-labelledby="alternativeWarehousesModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="alternativeWarehousesModalLabel">Alternative Warehouses</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div id="alternativeWarehousesList" class="warehouse-list">
-                        <!-- Will be populated by JavaScript -->
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -316,85 +290,26 @@ h4 {
 }
 </style>
 
-{% block scripts %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Search functionality
-        const searchInput = document.getElementById('partialRequestSearchInput');
-        const requestCards = document.querySelectorAll('.partial-request-card');
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('partialRequestSearchInput');
+    const requestCards = document.querySelectorAll('.partial-request-card');
+    
+    searchInput.addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
         
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
+        requestCards.forEach(card => {
+            const stockType = card.querySelector('.stock-details .value').textContent.toLowerCase();
+            const warehouseName = card.querySelector('.warehouse-details .value').textContent.toLowerCase();
             
-            requestCards.forEach(card => {
-                const stockType = card.querySelector('.stock-details .value').textContent.toLowerCase();
-                const warehouseName = card.querySelector('.warehouse-details .value').textContent.toLowerCase();
-                
-                if (stockType.includes(searchTerm) || warehouseName.includes(searchTerm)) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
-            });
-        });
-        
-        // Request remaining quantity
-        const requestRemainingButtons = document.querySelectorAll('.request-remaining');
-        requestRemainingButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const requestId = this.getAttribute('data-request-id');
-                const remainingQuantity = this.getAttribute('data-remaining');
-                
-                // Show confirmation dialog
-                if (confirm(`Do you want to request the remaining ${remainingQuantity} tons?`)) {
-                    // Submit request for remaining quantity
-                    window.location.href = `/create_request?request_id=${requestId}&remaining=${remainingQuantity}`;
-                }
-            });
-        });
-        
-        // Find alternative warehouses
-        const findAlternativesButtons = document.querySelectorAll('.find-alternatives');
-        findAlternativesButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const stockType = this.getAttribute('data-stock-type');
-                const quantity = this.getAttribute('data-quantity');
-                
-                // Display warehouses in modal
-                const warehousesList = document.getElementById('alternativeWarehousesList');
-                warehousesList.innerHTML = '';
-                
-                // Get warehouses from server-rendered data
-                let hasWarehouses = false;
-                
-                {% for warehouse in warehouses %}
-                const warehouseItem = document.createElement('div');
-                warehouseItem.className = 'warehouse-item';
-                warehouseItem.innerHTML = `
-                    <div class="warehouse-info">
-                        <h4>{{ warehouse.name }}</h4>
-                        <p><i class="fas fa-map-marker-alt"></i> {{ warehouse.location }}</p>
-                        <p><i class="fas fa-phone"></i> {{ warehouse.contact_number }}</p>
-                    </div>
-                    <div class="warehouse-actions">
-                        <a href="/create_request?warehouse_id={{ warehouse.id }}&stock_type=${stockType}&quantity=${quantity}" class="btn btn-primary">
-                            <i class="fas fa-plus"></i> Create Request
-                        </a>
-                    </div>
-                `;
-                warehousesList.appendChild(warehouseItem);
-                hasWarehouses = true;
-                {% endfor %}
-                
-                if (!hasWarehouses) {
-                    warehousesList.innerHTML = '<div class="empty-message">No alternative warehouses found.</div>';
-                }
-                
-                // Show modal
-                $('#alternativeWarehousesModal').modal('show');
-            });
+            if (stockType.includes(searchTerm) || warehouseName.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
         });
     });
+});
 </script>
-{% endblock %}
 {% endblock %} 

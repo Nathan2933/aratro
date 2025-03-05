@@ -1,12 +1,13 @@
 from flask import Flask, session
 from flask_login import LoginManager
 from flask_migrate import Migrate
-from models import db, User
-from routes import auth, main, farmer_dashboard, warehouse_dashboard
+from models import db, User, Admin
+from routes import auth, main, farmer_dashboard, warehouse_dashboard, admin as admin_blueprint
 import os
-from datetime import timedelta
+from datetime import timedelta, datetime
 import requests
 from flask import jsonify
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 # Security configurations
@@ -40,9 +41,46 @@ login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
 login_manager.session_protection = 'strong'  # Enable strong session protection
 
+# Define custom Jinja2 filters
+@app.template_filter('timeago')
+def timeago_filter(date):
+    """Format a date as a human-readable time ago string."""
+    if not date:
+        return ''
+    
+    now = datetime.now()
+    diff = now - date
+    
+    seconds = diff.total_seconds()
+    minutes = seconds / 60
+    hours = minutes / 60
+    days = hours / 24
+    
+    if seconds < 60:
+        return 'just now'
+    elif minutes < 60:
+        return f'{int(minutes)} minute{"s" if int(minutes) > 1 else ""} ago'
+    elif hours < 24:
+        return f'{int(hours)} hour{"s" if int(hours) > 1 else ""} ago'
+    elif days < 7:
+        return f'{int(days)} day{"s" if int(days) > 1 else ""} ago'
+    else:
+        return date.strftime('%Y-%m-%d')
+
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    try:
+        # Check if the user_id has a prefix
+        if user_id.startswith('admin_'):
+            # Extract the actual ID
+            admin_id = int(user_id.split('_')[1])
+            return Admin.query.get(admin_id)
+        else:
+            # Regular user
+            return User.query.get(int(user_id))
+    except Exception as e:
+        print(f"Error loading user: {e}")
+        return None
 
 # Session management
 @app.before_request
@@ -54,6 +92,7 @@ app.register_blueprint(auth)
 app.register_blueprint(main)
 app.register_blueprint(farmer_dashboard)
 app.register_blueprint(warehouse_dashboard)
+app.register_blueprint(admin_blueprint)
 
 @app.route('/test_maps_api')
 def test_maps_api():
@@ -74,9 +113,31 @@ def test_maps_api():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f"Connection Error: {str(e)}"})
 
-# Create database
+# Create database and admin user
 with app.app_context():
     db.create_all()
+    
+    # Create admin user if it doesn't exist
+    admin_email = 'admin@aratro.com'
+    admin_password = 'Admin@123456'  # This should be changed in production
+    
+    admin = Admin.query.filter_by(email=admin_email).first()
+    print(f"Checking for admin user: {admin_email}")
+    if not admin:
+        print("Admin user not found, creating new admin user")
+        admin = Admin(
+            email=admin_email,
+            password_hash=generate_password_hash(admin_password)
+        )
+        db.session.add(admin)
+        db.session.commit()
+        print(f"Admin user created successfully with ID: {admin.id}")
+    else:
+        print(f"Admin user already exists with ID: {admin.id}")
+        # Update password if needed
+        admin.password_hash = generate_password_hash(admin_password)
+        db.session.commit()
+        print("Admin password updated")
 
 if __name__ == '__main__':
     app.run(debug=True)  # Run without HTTPS in development

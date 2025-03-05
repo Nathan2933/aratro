@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Ration Shop Login{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <i class="fas fa-store main-icon"></i>
+            <h2>Ration Shop Login</h2>
+            <p>Access your ration shop dashboard</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" id="loginForm" class="needs-validation" novalidate>
+            {{ form.hidden_tag() }}
+            <div class="mb-3">
+                <label for="unique_id" class="form-label">
+                    <i class="fas fa-id-card"></i>
+                    Unique ID
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       id="unique_id" 
+                       name="unique_id" 
+                       required 
+                       placeholder="Enter your unique ID">
+                <div class="invalid-feedback">Please enter your unique ID</div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+                <div class="password-input">
+                    <input type="password" 
+                           class="form-control" 
+                           id="password" 
+                           name="password" 
+                           required
+                           placeholder="Enter your password">
+                    <button type="button" class="password-toggle" onclick="togglePassword()">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <div class="invalid-feedback">Please enter your password</div>
+                </div>
+            </div>
+
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                <label class="form-check-label" for="remember">Remember me</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mb-3" id="loginBtn">
+                <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                <span class="btn-text">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    Login
+                </span>
+            </button>
+        </form>
+
+        <div class="text-center mt-3">
+            <p>Don't have an account? <a href="{{ url_for('auth.ration_register') }}" class="register-link">Register here</a></p>
+            <p class="mt-2"><a href="{{ url_for('auth.login') }}" class="other-login-link">Login as Farmer or Warehouse Manager</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .auth-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: calc(100vh - 4rem);
+        padding: 20px;
+        background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+        position: fixed;
+        top: 4rem;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        overflow-y: auto;
+        z-index: 1;
+    }
+
+    .auth-card {
+        background: #f1f8f1;
+        border-radius: 16px;
+        box-shadow: 0 8px 16px rgba(53, 136, 86, 0.15);
+        padding: 40px;
+        width: 100%;
+        max-width: 450px;
+        transition: all 0.3s ease;
+        margin: 20px auto;
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .auth-header .main-icon {
+        font-size: 3rem;
+        color: #55c759;
+        margin-bottom: 15px;
+        animation: bounce 2s infinite;
+    }
+    
+    .auth-header h2 {
+        color: #2d6b45;
+        margin-bottom: 0.5rem;
+        font-size: 1.75rem;
+        font-weight: 600;
+    }
+    
+    .auth-header p {
+        color: #456946;
+        font-size: 1rem;
+    }
+
+    .password-input {
+        position: relative;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: #456946;
+        cursor: pointer;
+        padding: 5px;
+        transition: color 0.3s ease;
+    }
+
+    .password-toggle:hover {
+        color: #55c759;
+    }
+
+    .form-control:focus {
+        border-color: #55c759;
+        box-shadow: 0 0 0 0.25rem rgba(85, 199, 89, 0.25);
+    }
+
+    .btn-primary {
+        background-color: #55c759;
+        border-color: #55c759;
+    }
+
+    .btn-primary:hover {
+        background-color: #3da042;
+        border-color: #3da042;
+    }
+
+    .form-check-input:checked {
+        background-color: #55c759;
+        border-color: #55c759;
+    }
+    
+    .register-link, .other-login-link {
+        color: #55c759;
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+    }
+    
+    .register-link:hover, .other-login-link:hover {
+        color: #3da042;
+        text-decoration: underline;
+    }
+    
+    .other-login-link {
+        font-size: 0.9rem;
+        color: #456946;
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-15px);
+        }
+        60% {
+            transform: translateY(-7px);
+        }
+    }
+
+    /* Loading state styles */
+    .btn-primary:disabled {
+        cursor: not-allowed;
+    }
+
+    .spinner-border {
+        margin-right: 8px;
+    }
+
+    /* Error shake animation */
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+        20%, 40%, 60%, 80% { transform: translateX(5px); }
+    }
+
+    .shake {
+        animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    // Password toggle
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const toggleButton = document.querySelector('.password-toggle i');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleButton.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            toggleButton.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    }
+
+    // Form validation and submission
+    const uniqueIdInput = document.getElementById('unique_id');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const spinner = loginBtn.querySelector('.spinner-border');
+    const btnText = loginBtn.querySelector('.btn-text');
+    const loginForm = document.getElementById('loginForm');
+
+    function validateInput(input) {
+        if (input.checkValidity()) {
+            input.classList.remove('is-invalid');
+            input.classList.add('is-valid');
+        } else {
+            input.classList.remove('is-valid');
+            input.classList.add('is-invalid');
+        }
+    }
+
+    uniqueIdInput.addEventListener('input', function() {
+        validateInput(this);
+    });
+
+    passwordInput.addEventListener('input', function() {
+        validateInput(this);
+    });
+
+    loginForm.addEventListener('submit', function(e) {
+        if (!loginForm.checkValidity()) {
+            e.preventDefault();
+            Array.from(loginForm.elements).forEach(input => {
+                validateInput(input);
+            });
+            
+            // Add shake animation to form on invalid submission
+            loginForm.classList.add('shake');
+            setTimeout(() => loginForm.classList.remove('shake'), 600);
+        } else {
+            // Show loading state
+            loginBtn.disabled = true;
+            spinner.classList.remove('d-none');
+            btnText.textContent = 'Logging in...';
+        }
+        loginForm.classList.add('was-validated');
+    });
+
+    // Handle flash messages auto-hide
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                alert.classList.add('fade');
+                setTimeout(() => alert.remove(), 150);
+            }, 5000);
+        });
+    });
+</script>
+{% endblock %} 

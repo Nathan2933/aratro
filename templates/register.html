@@ -21,10 +21,17 @@
                 <h3>Warehouse Manager</h3>
                 <p>Register to manage warehouse operations and storage</p>
             </a>
+            
+            <a href="{{ url_for('auth.ration_register') }}" class="role-card">
+                <i class="fas fa-store"></i>
+                <h3>Ration Shop</h3>
+                <p>Register your ration shop for approval and distribution management</p>
+            </a>
         </div>
 
         <div class="auth-footer">
             <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+            <p class="mt-2">Ration shop owner? <a href="{{ url_for('auth.ration_login') }}">Login to your ration shop</a></p>
         </div>
     </div>
 </div>
