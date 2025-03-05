@@ -8,7 +8,7 @@
         <div class="register-header">
             <i class="fas fa-store main-icon"></i>
             <h2>Ration Shop Registration</h2>
-            <p class="text-muted">Register your ration shop for approval</p>
+            <p class="text-muted">Register to manage ration shop operations</p>
         </div>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
@@ -25,65 +25,68 @@
         <form id="registrationForm" method="POST" action="{{ url_for('auth.ration_register') }}" class="register-form">
             {{ form.hidden_tag() }}
             
-            <div class="form-section">
-                <div class="form-group mb-4">
-                    <label for="name" class="form-label">
-                        <i class="fas fa-store me-2"></i>
-                        Shop Name
-                    </label>
-                    <input type="text" class="form-control" id="name" name="name" required
-                        placeholder="Enter your shop name">
-                </div>
-
-                <div class="form-group mb-4">
-                    <label for="email" class="form-label">
-                        <i class="fas fa-envelope me-2"></i>
-                        Email Address
-                    </label>
-                    <input type="email" class="form-control" id="email" name="email" required
-                        placeholder="Enter your email address">
-                </div>
-                
-                <div class="form-group mb-4">
-                    <label for="aadhar_number" class="form-label">
-                        <i class="fas fa-id-card me-2"></i>
-                        Aadhar Card Number
-                    </label>
-                    <input type="text" class="form-control" id="aadhar_number" name="aadhar_number" required
-                        pattern="[0-9]{12}" maxlength="12"
-                        placeholder="Enter 12-digit Aadhar number"
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                    <div class="form-text">Enter 12 digits without spaces</div>
-                </div>
-            </div>
-
-            <div class="form-section">
-                <div class="form-group mb-4">
-                    <label for="location" class="form-label">
-                        <i class="fas fa-map-marker-alt me-2"></i>
-                        Location
-                    </label>
-                    <input type="text" class="form-control" id="location" name="location" required
-                        placeholder="Search for a location or click on the map">
-                    <button type="button" class="btn btn-outline-primary mt-2" id="getCurrentLocation">
-                        <i class="fas fa-location-dot me-2"></i>
-                        Current Location
-                    </button>
-                    <div id="map-container" class="mt-2 mb-2">
-                        <div id="map" style="height: 300px; width: 100%; border-radius: 6px; border: 1px solid #d7e6d7;"></div>
+            <div class="form-row">
+                <div class="form-section">
+                    <div class="form-group mb-3">
+                        <label for="name" class="form-label">
+                            <i class="fas fa-store me-2"></i>
+                            Shop Name
+                        </label>
+                        <input type="text" class="form-control" id="name" name="name" required
+                            placeholder="Enter your shop name">
                     </div>
-                    <div class="form-text">Click on the map to set your shop location or drag the marker to adjust</div>
-                    <input type="hidden" id="latitude" name="latitude">
-                    <input type="hidden" id="longitude" name="longitude">
+
+                    <div class="form-group mb-3">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope me-2"></i>
+                            Email Address
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email" required
+                            placeholder="Enter your email address">
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="aadhar_number" class="form-label">
+                            <i class="fas fa-id-card me-2"></i>
+                            Aadhar Card Number
+                        </label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="aadhar_number" name="aadhar_number" required
+                                pattern="[0-9]{12}" maxlength="12"
+                                placeholder="Enter 12-digit Aadhar number"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+                        <div class="form-text">Enter 12 digits without spaces</div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group mb-3">
+                        <label for="location" class="form-label">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            Location
+                        </label>
+                        <div class="input-group mb-2">
+                            <input type="text" class="form-control" id="location" name="location" 
+                                placeholder="Search for a location" required>
+                            <button type="button" class="btn btn-outline-primary" id="getCurrentLocation">
+                                <i class="fas fa-location-dot me-2"></i>
+                                Current
+                            </button>
+                        </div>
+                        <div id="map" class="map-container mb-2"></div>
+                        <input type="hidden" id="latitude" name="latitude">
+                        <input type="hidden" id="longitude" name="longitude">
+                    </div>
                 </div>
             </div>
-            
-            <button type="submit" class="btn btn-primary w-100 py-2 mt-4">
+
+            <button type="submit" class="btn btn-primary w-100 py-2 mt-3">
                 <i class="fas fa-user-plus me-2"></i>
-                Register Ration Shop
+                Register as Ration Shop Manager
             </button>
             
-            <div class="text-center mt-4">
+            <div class="text-center mt-2">
                 <p class="mb-0">Already have an account? 
                     <a href="{{ url_for('auth.login') }}" class="login-link">Login here</a>
                 </p>
@@ -91,87 +94,98 @@
         </form>
     </div>
 </div>
-{% endblock %}
 
-{% block styles %}
-{{ super() }}
 <style>
 .register-container {
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    min-height: calc(100vh - 4rem);
-    padding: 1rem;
+    align-items: center;
+    height: calc(100vh - 4rem);
+    padding: 0.5rem;
     background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
     position: fixed;
     top: 4rem;
     left: 0;
     right: 0;
     bottom: 0;
-    overflow-y: auto;
     z-index: 1;
+    overflow: hidden;
 }
 
 .register-card {
     background: #f1f8f1;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(53, 136, 86, 0.1);
-    padding: 1.5rem;
+    padding: 1rem;
     width: 100%;
-    max-width: 500px;
-    margin: 1rem auto;
+    max-width: 900px;
+    max-height: 95vh;
+    margin: 0 auto;
     transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .register-header {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .register-header .main-icon {
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: #55c759;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     display: block;
 }
 
 .register-header h2 {
     color: #2d6b45;
     margin-bottom: 0.25rem;
-    font-size: 1.75rem;
+    font-size: 1.5rem;
 }
 
 .register-header p {
     color: #456946;
-    font-size: 1rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .form-section {
     background: #e1efe1;
     border-radius: 8px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
+    padding: 0.75rem;
+    flex: 1;
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .form-label {
     color: #2d6b45;
     font-weight: 500;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
     line-height: 1;
+    font-size: 0.9rem;
 }
 
 .form-label i {
-    font-size: 1rem;
+    font-size: 0.9rem;
     width: 1.25rem;
     text-align: center;
     transform: rotate(0deg);
+}
+
+.form-label i.fa-phone {
+    transform: scaleX(-1);
 }
 
 .form-label i.fas {
@@ -182,8 +196,8 @@
     background-color: #ffffff;
     border: 1px solid #d7e6d7;
     color: #2d6b45;
-    padding: 0.625rem 0.875rem;
-    font-size: 0.95rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
     border-radius: 6px;
 }
 
@@ -196,21 +210,55 @@
     background-color: #e1efe1;
     border-color: #d7e6d7;
     color: #456946;
-    padding: 0.625rem 0.875rem;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+}
+
+.input-group {
+    display: flex;
+    align-items: stretch;
+}
+
+.input-group .form-control {
+    flex: 1 1 auto;
+    width: 1%;
+}
+
+.password-input {
+    position: relative;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #456946;
+    cursor: pointer;
+    padding: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.password-toggle:hover {
+    color: #55c759;
 }
 
 .form-text {
     color: #456946;
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
 }
 
 .btn-primary {
     background-color: #55c759;
     border-color: #55c759;
     color: white;
-    padding: 0.75rem 1.25rem;
-    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
     transition: all 0.3s ease;
 }
@@ -225,6 +273,8 @@
     color: #55c759;
     border-color: #55c759;
     background-color: transparent;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
 }
 
 .btn-outline-primary:hover {
@@ -244,10 +294,20 @@
     text-decoration: underline;
 }
 
+.map-container {
+    height: 180px;
+    width: 100%;
+    border: 2px solid #d7e6d7;
+    border-radius: 6px;
+    overflow: hidden;
+    margin: 0.25rem 0;
+}
+
 /* Alert styles */
 .alert {
     border-radius: 8px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
+    padding: 0.5rem 1rem;
 }
 
 .alert-danger {
@@ -261,62 +321,82 @@
     border-color: #d7e6d7;
     color: #2d6b45;
 }
-</style>
-{% endblock %}
 
-{% block scripts %}
-{{ super() }}
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .register-card {
+        max-width: 95%;
+        padding: 0.75rem;
+    }
+    
+    .map-container {
+        height: 150px;
+    }
+}
+</style>
+
 <script>
 // Form validation
 document.getElementById('registrationForm').addEventListener('submit', function(e) {
     const nameInput = document.getElementById('name');
     const emailInput = document.getElementById('email');
-    const locationInput = document.getElementById('location');
-    const latitudeInput = document.getElementById('latitude');
-    const longitudeInput = document.getElementById('longitude');
     const aadharInput = document.getElementById('aadhar_number');
-    
+    const latitude = document.getElementById('latitude').value;
+    const longitude = document.getElementById('longitude').value;
+
     let isValid = true;
     
     // Validate name
     if (!nameInput.value.trim()) {
-        nameInput.classList.add('is-invalid');
         isValid = false;
-    } else {
-        nameInput.classList.remove('is-invalid');
+        alert('Please enter a shop name');
+        return;
     }
     
     // Validate email
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailPattern.test(emailInput.value.trim())) {
-        emailInput.classList.add('is-invalid');
         isValid = false;
-    } else {
-        emailInput.classList.remove('is-invalid');
-    }
-    
-    // Validate location
-    if (!locationInput.value.trim() || !latitudeInput.value || !longitudeInput.value) {
-        locationInput.classList.add('is-invalid');
-        isValid = false;
-        alert('Please select a location on the map');
-    } else {
-        locationInput.classList.remove('is-invalid');
+        alert('Please enter a valid email address');
+        return;
     }
     
     // Validate Aadhar number
     const aadharPattern = /^[0-9]{12}$/;
     if (!aadharPattern.test(aadharInput.value.trim())) {
-        aadharInput.classList.add('is-invalid');
         isValid = false;
-    } else {
-        aadharInput.classList.remove('is-invalid');
+        alert('Please enter a valid 12-digit Aadhar number');
+        return;
+    }
+
+    if (!latitude || !longitude) {
+        e.preventDefault();
+        alert('Please select a location on the map');
+        return;
     }
     
     if (!isValid) {
         e.preventDefault();
     }
 });
+
+function togglePassword(button) {
+    const input = button.parentElement.querySelector('input');
+    const icon = button.querySelector('i');
+    
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.classList.replace('fa-eye', 'fa-eye-slash');
+    } else {
+        input.type = 'password';
+        icon.classList.replace('fa-eye-slash', 'fa-eye');
+    }
+}
 
 // Initialize Google Maps
 let map;
@@ -338,15 +418,23 @@ function initMap() {
         map = new google.maps.Map(mapElement, {
             zoom: 5,
             center: defaultLocation,
-            mapTypeControl: true,
-            streetViewControl: true,
-            fullscreenControl: true
+            styles: [
+                {
+                    featureType: "all",
+                    elementType: "geometry",
+                    stylers: [{ color: "#e8f5e9" }]
+                },
+                {
+                    featureType: "water",
+                    elementType: "geometry",
+                    stylers: [{ color: "#c8e6c9" }]
+                }
+            ]
         });
 
         marker = new google.maps.Marker({
             map: map,
             draggable: true,
-            animation: google.maps.Animation.DROP,
             icon: {
                 path: google.maps.SymbolPath.CIRCLE,
                 scale: 10,
@@ -376,7 +464,6 @@ function initMap() {
             }
 
             marker.setPosition(place.geometry.location);
-            marker.setVisible(true);
             updateLocationFields(place);
         });
 
@@ -387,30 +474,8 @@ function initMap() {
 
         map.addListener('click', function(e) {
             marker.setPosition(e.latLng);
-            marker.setVisible(true);
             reverseGeocode(e.latLng);
         });
-
-        // Try to get user's location on page load
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    const pos = {
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude
-                    };
-                    map.setCenter(pos);
-                    map.setZoom(15);
-                    marker.setPosition(pos);
-                    marker.setVisible(true);
-                    reverseGeocode(pos);
-                },
-                function(error) {
-                    console.log("Error getting initial location:", error);
-                    // Continue with default location
-                }
-            );
-        }
 
         mapInitialized = true;
         console.log("Google Maps initialized successfully");
@@ -419,12 +484,12 @@ function initMap() {
         const mapContainer = document.getElementById('map');
         if (mapContainer) {
             mapContainer.innerHTML = `
-                <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8d7da; color: #721c24; padding: 20px; text-align: center;">
+                <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8f9fa; color: #721c24; padding: 20px; text-align: center;">
                     <div style="font-size: 48px; margin-bottom: 20px;">
-                        <i class="fas fa-exclamation-triangle"></i>
+                        <i class="fas fa-exclamation-circle"></i>
                     </div>
-                    <h3>Google Maps API Error</h3>
-                    <p>The page didn't load Google Maps correctly. Please try refreshing the page.</p>
+                    <h3>Oops! Something went wrong.</h3>
+                    <p>The page didn't load Google Maps correctly. See the JavaScript console for technical details.</p>
                 </div>
             `;
         }
@@ -435,7 +500,6 @@ function updateLocationFields(place) {
     document.getElementById('latitude').value = place.geometry.location.lat();
     document.getElementById('longitude').value = place.geometry.location.lng();
     document.getElementById('location').value = place.formatted_address;
-    console.log("Location updated:", place.formatted_address);
 }
 
 function reverseGeocode(latLng) {
@@ -445,13 +509,8 @@ function reverseGeocode(latLng) {
             document.getElementById('location').value = results[0].formatted_address;
             document.getElementById('latitude').value = latLng.lat();
             document.getElementById('longitude').value = latLng.lng();
-            console.log("Reverse geocoded address:", results[0].formatted_address);
         } else {
             console.error("Geocoder failed due to: " + status);
-            // Still save the coordinates even if geocoding fails
-            document.getElementById('latitude').value = latLng.lat();
-            document.getElementById('longitude').value = latLng.lng();
-            document.getElementById('location').value = `Lat: ${latLng.lat().toFixed(6)}, Lng: ${latLng.lng().toFixed(6)}`;
         }
     });
 }
@@ -473,7 +532,6 @@ document.getElementById('getCurrentLocation').addEventListener('click', function
                 map.setCenter(pos);
                 map.setZoom(17);
                 marker.setPosition(pos);
-                marker.setVisible(true);
                 reverseGeocode(pos);
             },
             function(error) {
@@ -513,17 +571,6 @@ function gm_authFailure() {
         `;
     }
 }
-
-// Global error handler for Google Maps
-window.gm_authFailure = gm_authFailure;
-
-// Make sure the map is initialized when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // If Google Maps API is already loaded, initialize the map
-    if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
-        initMap();
-    }
-});
 </script>
 
 <!-- Load Google Maps API with error handling -->

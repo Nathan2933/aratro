@@ -671,8 +671,8 @@ def warehouse_home():
     notifications = Notification.query.filter_by(user_id=current_user.id, read=False).all()
     
     return render_template('warehouse_dashboard.html',
-                          warehouse=warehouse,
-                          pending_requests=pending_requests,
+                         warehouse=warehouse,
+                         pending_requests=pending_requests,
                           approved_requests=approved_requests,
                           ration_pending_requests=ration_pending_requests,
                           ration_approved_requests=ration_approved_requests,
@@ -1134,66 +1134,6 @@ def approve_ration_shop():
             flash(f'Error: {str(e)}', 'error')
             return redirect(url_for('admin.ration_shops'))
 
-@admin.route('/reject-ration-shop', methods=['POST'])
-@admin_required
-def reject_ration_shop():
-    data = request.json if request.is_json else request.form
-    
-    shop_id = data.get('shop_id')
-    reason = data.get('reason', '')
-    
-    if not shop_id:
-        if request.is_json:
-            return jsonify({'success': False, 'message': 'Shop ID is required'})
-        else:
-            flash('Shop ID is required', 'error')
-            return redirect(url_for('admin.ration_shops'))
-    
-    try:
-        # Get the ration shop
-        shop = RationShop.query.get(shop_id)
-        if not shop:
-            if request.is_json:
-                return jsonify({'success': False, 'message': 'Ration shop not found'})
-            else:
-                flash('Ration shop not found', 'error')
-                return redirect(url_for('admin.ration_shops'))
-        
-        # Check if shop is already approved or rejected
-        if shop.status != 'pending':
-            if request.is_json:
-                return jsonify({'success': False, 'message': f'Ration shop is already {shop.status}'})
-            else:
-                flash(f'Ration shop is already {shop.status}', 'error')
-                return redirect(url_for('admin.ration_shops'))
-        
-        # Update the ration shop
-        shop.status = 'rejected'
-        shop.admin_notes = reason
-        
-        db.session.commit()
-        
-        # Optionally, send an email to the shop owner with the rejection reason
-        try:
-            send_rejection_email(shop.email, reason)
-        except Exception as e:
-            # Log the error but continue with the rejection process
-            print(f"Error sending email: {str(e)}")
-        
-        if request.is_json:
-            return jsonify({'success': True, 'message': 'Ration shop rejected successfully'})
-        else:
-            flash('Ration shop rejected successfully!', 'success')
-            return redirect(url_for('admin.ration_shops'))
-        
-    except Exception as e:
-        db.session.rollback()
-        if request.is_json:
-            return jsonify({'success': False, 'message': str(e)})
-        else:
-            flash(f'Error: {str(e)}', 'error')
-            return redirect(url_for('admin.ration_shops'))
-
 @admin.context_processor
 def inject_admin_data():
     admin_data = {'current_user': current_user}
@@ -1371,6 +1311,81 @@ def ration_dashboard():
                           total_count=total_requests,
                           default_warehouse=default_warehouse,
                           warehouse_stock=warehouse_stock)
+
+@main.route('/ration/available_stock')
+@login_required
+def ration_available_stock():
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        flash('You need to be logged in as a ration shop manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        flash('Ration shop not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get all warehouses for viewing stock
+    warehouses = Warehouse.query.all()
+    
+    # Get default warehouse (first one or None if no warehouses)
+    default_warehouse = warehouses[0] if warehouses else None
+    warehouse_stock = []
+    
+    if default_warehouse:
+        warehouse_stock = Stock.query.filter_by(
+            warehouse_id=default_warehouse.id,
+            status='stored'
+        ).all()
+    
+    return render_template('ration/available_stock.html', 
+                          shop=shop,
+                          warehouses=warehouses,
+                          default_warehouse=default_warehouse,
+                          warehouse_stock=warehouse_stock)
+
+@main.route('/ration/request_stock')
+@login_required
+def ration_request_stock():
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        flash('You need to be logged in as a ration shop manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        flash('Ration shop not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get all warehouses for making requests
+    warehouses = Warehouse.query.all()
+    
+    return render_template('ration/request_stock.html', 
+                          shop=shop,
+                          warehouses=warehouses)
+
+@main.route('/ration/stock_requests')
+@login_required
+def ration_stock_requests():
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        flash('You need to be logged in as a ration shop manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        flash('Ration shop not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get all stock requests made by this ration shop
+    stock_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id).order_by(RationStockRequest.request_date.desc()).all()
+    
+    return render_template('ration/stock_requests.html', 
+                          shop=shop,
+                          stock_requests=stock_requests)
 
 @main.route('/ration/get_warehouse_stock/<int:warehouse_id>')
 @login_required

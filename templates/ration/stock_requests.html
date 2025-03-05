@@ -1,0 +1,622 @@
+{% extends "base.html" %}
+
+{% block title %}Your Stock Requests{% endblock %}
+
+{% block styles %}
+<style>
+:root {
+    --primary: #2d6b45;
+    --primary-light: #55c759;
+    --primary-dark: #1a4d2e;
+    --secondary: #f8f9fa;
+    --accent: #ffc107;
+    --text-dark: #343a40;
+    --text-light: #6c757d;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 16px rgba(0,0,0,0.1);
+    --transition: all 0.3s ease;
+    --border-radius: 10px;
+}
+
+/* Page layout */
+.main-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.page-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding-bottom: 1rem;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.page-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100px;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.page-header h1 {
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    transition: var(--transition);
+}
+
+.page-header p {
+    color: var(--text-light);
+    font-size: 1.1rem;
+}
+
+.card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    transition: var(--transition);
+    border: 1px solid rgba(0,0,0,0.03);
+    overflow: hidden;
+    position: relative;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary);
+    opacity: 0.7;
+}
+
+.card h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: var(--primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    padding-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+}
+
+.card h2::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+/* Table styles */
+.table-container {
+    overflow-x: auto;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.table-container:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table th, .table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.table th {
+    background-color: var(--secondary);
+    font-weight: 600;
+    color: var(--text-dark);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table tr {
+    transition: var(--transition);
+}
+
+.table tr:hover td {
+    background-color: rgba(0,0,0,0.01);
+}
+
+.table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Button styles */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.btn:active::after {
+    animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(20, 20);
+        opacity: 0;
+    }
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(45, 107, 69, 0.2);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.btn-secondary {
+    background-color: var(--secondary);
+    color: var(--text-dark);
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+.btn-secondary:hover {
+    background-color: #e2e6ea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+.btn-danger {
+    background-color: var(--danger);
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
+}
+
+/* Status badges */
+.badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.badge::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.badge-warning {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #d39e00;
+}
+
+.badge-warning::before {
+    background-color: #d39e00;
+}
+
+.badge-success {
+    background-color: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+}
+
+.badge-success::before {
+    background-color: #28a745;
+}
+
+.badge-danger {
+    background-color: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+}
+
+.badge-danger::before {
+    background-color: #dc3545;
+}
+
+.badge-secondary {
+    background-color: rgba(108, 117, 125, 0.15);
+    color: #6c757d;
+}
+
+.badge-secondary::before {
+    background-color: #6c757d;
+}
+
+/* Alert styles */
+.alert {
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    animation: slideIn 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-success {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border-left-color: #28a745;
+}
+
+.alert-error {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border-left-color: #dc3545;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Filter controls */
+.filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.filter-btn {
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    background-color: var(--secondary);
+    color: var(--text-dark);
+    border: 1px solid rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.filter-btn:hover {
+    background-color: #e2e6ea;
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 1rem;
+    }
+    
+    .card {
+        padding: 1rem;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .page-header > div:last-child {
+        margin-top: 1rem;
+    }
+    
+    .filter-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1>Your Stock Requests</h1>
+            <p>View and manage your stock requests</p>
+        </div>
+        <div>
+            <a href="{{ url_for('main.ration_dashboard') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+            <a href="{{ url_for('main.ration_request_stock') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> New Request
+            </a>
+        </div>
+    </div>
+
+    <!-- Alerts container for displaying messages -->
+    <div id="alerts-container"></div>
+
+    <!-- Filter Controls -->
+    <div class="card">
+        <h2>Filter Requests</h2>
+        <div class="filter-controls">
+            <button class="filter-btn active" data-filter="all">All Requests</button>
+            <button class="filter-btn" data-filter="pending">Pending</button>
+            <button class="filter-btn" data-filter="approved">Approved</button>
+            <button class="filter-btn" data-filter="rejected">Rejected</button>
+            <button class="filter-btn" data-filter="canceled">Canceled</button>
+        </div>
+    </div>
+
+    <!-- Requests Table -->
+    <div class="card">
+        <h2>Stock Requests</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Warehouse</th>
+                        <th>Stock Type</th>
+                        <th>Quantity</th>
+                        <th>Request Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in stock_requests %}
+                    <tr class="request-row" data-status="{{ request.status }}">
+                        <td>{{ request.warehouse.name }}</td>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if request.status == 'pending' %}
+                            <span class="badge badge-warning">Pending</span>
+                            {% elif request.status == 'approved' %}
+                            <span class="badge badge-success">Approved</span>
+                            {% elif request.status == 'rejected' %}
+                            <span class="badge badge-danger">Rejected</span>
+                            {% elif request.status == 'canceled' %}
+                            <span class="badge badge-secondary">Canceled</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if request.status == 'pending' %}
+                            <button class="btn btn-sm btn-danger" onclick="cancelRequest('{{ request.id }}')">Cancel</button>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not stock_requests %}
+                    <tr>
+                        <td colspan="6" class="text-center">No stock requests found.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Include SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to show alerts
+    window.showAlert = function(message, type) {
+        const alertsContainer = document.getElementById('alerts-container');
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        alertsContainer.appendChild(alertDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    };
+    
+    // Handle filter buttons
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const requestRows = document.querySelectorAll('.request-row');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Get filter value
+            const filter = this.getAttribute('data-filter');
+            
+            // Filter rows
+            requestRows.forEach(row => {
+                if (filter === 'all' || row.getAttribute('data-status') === filter) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+    
+    // Check if there's a filter parameter in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterParam = urlParams.get('filter');
+    
+    if (filterParam) {
+        // Find the button with the matching filter
+        const filterButton = document.querySelector(`.filter-btn[data-filter="${filterParam}"]`);
+        if (filterButton) {
+            // Trigger a click on the button
+            filterButton.click();
+        }
+    }
+});
+
+// Function to cancel a request
+function cancelRequest(requestId) {
+    if (confirm('Are you sure you want to cancel this request?')) {
+        // Show loading state
+        const btn = event.target;
+        const originalBtnText = btn.textContent;
+        btn.textContent = 'Canceling...';
+        btn.disabled = true;
+        
+        fetch("{{ url_for('main.ration_cancel_request', request_id=0) }}".replace('0', requestId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Reset button state
+            btn.textContent = originalBtnText;
+            btn.disabled = false;
+            
+            if (data.success) {
+                // Show success message
+                showAlert('Request canceled successfully', 'success');
+                
+                // Update the row status
+                const row = btn.closest('.request-row');
+                row.setAttribute('data-status', 'canceled');
+                
+                // Update the status badge
+                const statusCell = row.querySelector('td:nth-child(5)');
+                statusCell.innerHTML = '<span class="badge badge-secondary">Canceled</span>';
+                
+                // Remove the cancel button
+                btn.remove();
+                
+                // If a filter is active, check if the row should be hidden
+                const activeFilter = document.querySelector('.filter-btn.active').getAttribute('data-filter');
+                if (activeFilter !== 'all' && activeFilter !== 'canceled') {
+                    row.style.display = 'none';
+                }
+            } else {
+                // Show error message
+                showAlert(data.message || 'Failed to cancel request', 'error');
+            }
+        })
+        .catch(error => {
+            // Reset button state
+            btn.textContent = originalBtnText;
+            btn.disabled = false;
+            
+            console.error('Error:', error);
+            showAlert('An unexpected error occurred', 'error');
+        });
+    }
+}
+</script>
+{% endblock %} 

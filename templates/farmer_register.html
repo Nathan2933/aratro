@@ -10,97 +10,99 @@
         </div>
 
         <form method="POST" class="register-form" onsubmit="return validateForm()">
-            <div class="form-section">
-                <div class="form-group mb-4">
-                    <label for="name" class="form-label">
-                        <i class="fas fa-user me-2"></i>
-                        Full Name
-                    </label>
-                    <input type="text" id="name" name="name" class="form-control" required 
-                        placeholder="Enter your full name">
-                </div>
+            <div class="form-row">
+                <div class="form-section">
+                    <div class="form-group mb-3">
+                        <label for="name" class="form-label">
+                            <i class="fas fa-user me-2"></i>
+                            Full Name
+                        </label>
+                        <input type="text" id="name" name="name" class="form-control" required 
+                            placeholder="Enter your full name">
+                    </div>
 
-                <div class="form-group mb-4">
-                    <label for="address" class="form-label">
-                        <i class="fas fa-map-marker-alt me-2"></i>
-                        Address
-                    </label>
-                    <textarea id="address" name="address" class="form-control" required 
-                        placeholder="Enter your full address" rows="3"></textarea>
-                </div>
+                    <div class="form-group mb-3">
+                        <label for="address" class="form-label">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            Address
+                        </label>
+                        <textarea id="address" name="address" class="form-control" required 
+                            placeholder="Enter your full address" rows="2"></textarea>
+                    </div>
 
-                <div class="form-group mb-4">
-                    <label for="aadharNumber" class="form-label">
-                        <i class="fas fa-id-card me-2"></i>
-                        Aadhar Card Number
-                    </label>
-                    <input type="text" id="aadharNumber" name="aadharNumber" class="form-control" required 
-                        pattern="[0-9]{12}" maxlength="12"
-                        placeholder="Enter 12-digit Aadhar number"
-                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-                    <div class="form-text">Enter 12 digits without spaces</div>
-                </div>
-
-                <div class="form-group mb-4">
-                    <label for="phoneNumber" class="form-label">
-                        <i class="fas fa-phone me-2"></i>
-                        Phone Number
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text">+91</span>
-                        <input type="tel" id="phoneNumber" name="phoneNumber" class="form-control" required 
-                            pattern="[0-9]{10}" maxlength="10"
-                            placeholder="Enter 10-digit phone number"
+                    <div class="form-group mb-3">
+                        <label for="aadharNumber" class="form-label">
+                            <i class="fas fa-id-card me-2"></i>
+                            Aadhar Card Number
+                        </label>
+                        <input type="text" id="aadharNumber" name="aadharNumber" class="form-control" required 
+                            pattern="[0-9]{12}" maxlength="12"
+                            placeholder="Enter 12-digit Aadhar number"
                             oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        <div class="form-text">Enter 12 digits without spaces</div>
                     </div>
-                    <div class="form-text">Enter 10 digits without spaces</div>
+
+                    <div class="form-group mb-3">
+                        <label for="phoneNumber" class="form-label">
+                            <i class="fas fa-phone me-2"></i>
+                            Phone Number
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="width: 50px; justify-content: center;">+91</span>
+                            <input type="tel" id="phoneNumber" name="phoneNumber" class="form-control" required 
+                                pattern="[0-9]{10}" maxlength="10"
+                                placeholder="Enter 10-digit phone number"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                        </div>
+                        <div class="form-text">Enter 10 digits without spaces</div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-group mb-3">
+                        <label for="password" class="form-label">
+                            <i class="fas fa-lock me-2"></i>
+                            Password
+                        </label>
+                        <div class="password-input">
+                            <input type="password" id="password" name="password" class="form-control" required 
+                                placeholder="Create a strong password"
+                                minlength="8">
+                            <button type="button" class="password-toggle" onclick="togglePassword(this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">Minimum 8 characters</div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="confirmPassword" class="form-label">
+                            <i class="fas fa-lock me-2"></i>
+                            Confirm Password
+                        </label>
+                        <div class="password-input">
+                            <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" required 
+                                placeholder="Confirm your password"
+                                minlength="8">
+                            <button type="button" class="password-toggle" onclick="togglePassword(this)">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div class="form-section">
-                <div class="form-group mb-4">
-                    <label for="password" class="form-label">
-                        <i class="fas fa-lock me-2"></i>
-                        Password
-                    </label>
-                    <div class="password-input">
-                        <input type="password" id="password" name="password" class="form-control" required 
-                            placeholder="Create a strong password"
-                            minlength="8">
-                        <button type="button" class="password-toggle" onclick="togglePassword(this)">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                    <div class="form-text">Minimum 8 characters</div>
-                </div>
-
-                <div class="form-group mb-4">
-                    <label for="confirmPassword" class="form-label">
-                        <i class="fas fa-lock me-2"></i>
-                        Confirm Password
-                    </label>
-                    <div class="password-input">
-                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" required 
-                            placeholder="Confirm your password"
-                            minlength="8">
-                        <button type="button" class="password-toggle" onclick="togglePassword(this)">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100 py-2 mt-4">
+            <button type="submit" class="btn btn-primary w-100 py-2 mt-3">
                 <i class="fas fa-user-plus me-2"></i>
                 Register as Farmer
             </button>
-        </form>
 
-        <div class="text-center mt-4">
-            <p class="mb-0">Already have an account? 
-                <a href="{{ url_for('auth.login') }}" class="login-link">Login here</a>
-            </p>
-        </div>
+            <div class="text-center mt-2">
+                <p class="mb-0">Already have an account? 
+                    <a href="{{ url_for('auth.login') }}" class="login-link">Login here</a>
+                </p>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -108,95 +110,100 @@
 .register-container {
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    min-height: calc(100vh - 4rem);
-    padding: 1rem;
+    align-items: center;
+    height: calc(100vh - 4rem);
+    padding: 0.5rem;
     background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
     position: fixed;
     top: 4rem;
     left: 0;
     right: 0;
     bottom: 0;
-    overflow-y: auto;
     z-index: 1;
+    overflow: hidden;
 }
 
 .register-card {
     background: #f1f8f1;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(53, 136, 86, 0.1);
-    padding: 1.5rem;
+    padding: 1rem;
     width: 100%;
-    max-width: 500px;
-    margin: 1rem auto;
+    max-width: 900px;
+    max-height: 95vh;
+    margin: 0 auto;
     transition: all 0.3s ease;
+    overflow: hidden;
 }
 
 .register-header {
     text-align: center;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .register-header .main-icon {
-    font-size: 2.5rem;
+    font-size: 2rem;
     color: #55c759;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
     display: block;
 }
 
 .register-header h2 {
     color: #2d6b45;
     margin-bottom: 0.25rem;
-    font-size: 1.75rem;
+    font-size: 1.5rem;
 }
 
 .register-header p {
     color: #456946;
-    font-size: 1rem;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .form-section {
     background: #e1efe1;
     border-radius: 8px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
+    padding: 0.75rem;
+    flex: 1;
 }
 
 .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .form-label {
     color: #2d6b45;
     font-weight: 500;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
     line-height: 1;
+    font-size: 0.9rem;
 }
 
 .form-label i {
-    font-size: 1rem;
+    font-size: 0.9rem;
     width: 1.25rem;
     text-align: center;
-    transform: rotate(0deg);
 }
 
 .form-label i.fa-phone {
     transform: scaleX(-1);
 }
 
-.form-label i.fas {
-    flex-shrink: 0;
-}
-
 .form-control {
     background-color: #ffffff;
     border: 1px solid #d7e6d7;
     color: #2d6b45;
-    padding: 0.625rem 0.875rem;
-    font-size: 0.95rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.9rem;
     border-radius: 6px;
 }
 
@@ -209,7 +216,18 @@
     background-color: #e1efe1;
     border-color: #d7e6d7;
     color: #456946;
-    padding: 0.625rem 0.875rem;
+    padding: 0.5rem 0.75rem;
+    font-weight: 500;
+}
+
+.input-group {
+    display: flex;
+    align-items: stretch;
+}
+
+.input-group .form-control {
+    flex: 1 1 auto;
+    width: 1%;
 }
 
 .password-input {
@@ -237,16 +255,16 @@
 
 .form-text {
     color: #456946;
-    font-size: 0.875rem;
-    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
 }
 
 .btn-primary {
     background-color: #55c759;
     border-color: #55c759;
     color: white;
-    padding: 0.75rem 1.25rem;
-    font-size: 1rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
     font-weight: 500;
     transition: all 0.3s ease;
 }
@@ -267,6 +285,19 @@
     color: #3da042;
     text-decoration: underline;
 }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .form-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .register-card {
+        max-width: 95%;
+        padding: 0.75rem;
+    }
+}
 </style>
 
 <script>
@@ -278,6 +309,7 @@ function validateForm() {
         alert('Passwords do not match!');
         return false;
     }
+    
     return true;
 }
 

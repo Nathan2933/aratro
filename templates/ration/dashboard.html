@@ -4,101 +4,234 @@
 
 {% block styles %}
 <style>
+:root {
+    --primary: #2d6b45;
+    --primary-light: #55c759;
+    --primary-dark: #1a4d2e;
+    --secondary: #f8f9fa;
+    --accent: #ffc107;
+    --text-dark: #343a40;
+    --text-light: #6c757d;
+    --success: #28a745;
+    --danger: #dc3545;
+    --warning: #ffc107;
+    --info: #17a2b8;
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 8px rgba(0,0,0,0.1);
+    --shadow-lg: 0 8px 16px rgba(0,0,0,0.1);
+    --transition: all 0.3s ease;
+    --border-radius: 10px;
+}
+
 /* Dashboard layout */
 .main-container {
     padding: 2rem;
     max-width: 1400px;
     margin: 0 auto;
+    opacity: 0;
+    transform: translateY(10px);
+    animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .dashboard-header {
     margin-bottom: 2rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
     padding-bottom: 1rem;
+    position: relative;
+}
+
+.dashboard-header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    width: 100px;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 1.5px;
 }
 
 .dashboard-header h1 {
     margin-bottom: 0.5rem;
-    color: #2d6b45;
+    color: var(--primary);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    transition: var(--transition);
+}
+
+.dashboard-header p {
+    color: var(--text-light);
+    font-size: 1.1rem;
 }
 
 .card {
     background: white;
-    border-radius: 10px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
     padding: 1.5rem;
     margin-bottom: 2rem;
+    transition: var(--transition);
+    border: 1px solid rgba(0,0,0,0.03);
+    overflow: hidden;
+    position: relative;
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: var(--primary);
+    opacity: 0.7;
 }
 
 .card h2 {
     margin-top: 0;
     margin-bottom: 1.5rem;
-    color: #2d6b45;
+    color: var(--primary);
     font-size: 1.5rem;
-    border-bottom: 1px solid #eee;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
     padding-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+}
+
+.card h2::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--primary);
+    border-radius: 50%;
+    margin-right: 10px;
 }
 
 /* Storage stats */
 .storage-stats {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .stat-item {
-    text-align: center;
-    padding: 1rem;
-    background: #f9f9f9;
-    border-radius: 8px;
+    padding: 0.5rem 0.75rem;
+    background: var(--secondary);
+    border-radius: var(--border-radius);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.03);
+}
+
+.stat-item:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+}
+
+.stat-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: var(--primary-light);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s ease;
+}
+
+.stat-item:hover::after {
+    transform: scaleX(1);
 }
 
 .stat-item h3 {
-    margin-top: 0;
-    font-size: 1rem;
-    color: #666;
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    font-weight: 500;
+    display: inline-block;
 }
 
 .stat-item p {
-    margin-bottom: 0;
-    font-size: 1.5rem;
+    margin: 0;
+    font-size: 1.1rem;
     font-weight: 600;
-    color: #2d6b45;
+    color: var(--primary);
+    transition: var(--transition);
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+.stat-item:hover p {
+    color: var(--primary-dark);
 }
 
 /* Storage chart */
 .storage-chart-container {
-    height: 250px;
+    height: 180px;
+    position: relative;
+    margin-top: 0.5rem;
+    animation: fadeIn 0.8s ease;
 }
 
 /* Tabs */
 .tabs {
     display: flex;
     margin-bottom: 1.5rem;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+    position: relative;
+}
+
+.tabs::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    height: 1px;
+    width: 100%;
+    background: rgba(0,0,0,0.05);
 }
 
 .tab {
     padding: 0.75rem 1.5rem;
     cursor: pointer;
     font-weight: 500;
-    color: #666;
+    color: var(--text-light);
     border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
+    transition: var(--transition);
+    position: relative;
+    z-index: 1;
 }
 
 .tab:hover {
-    color: #2d6b45;
+    color: var(--primary);
 }
 
 .tab.active {
-    color: #2d6b45;
-    border-bottom-color: #2d6b45;
+    color: var(--primary);
+    border-bottom-color: var(--primary);
 }
 
 .tab-content {
     display: none;
+    animation: fadeIn 0.5s ease;
 }
 
 .tab-content.active {
@@ -108,27 +241,46 @@
 /* Table styles */
 .table-container {
     overflow-x: auto;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.table-container:hover {
+    box-shadow: var(--shadow-md);
 }
 
 .table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
 }
 
 .table th, .table td {
-    padding: 0.75rem 1rem;
+    padding: 1rem;
     text-align: left;
-    border-bottom: 1px solid #eee;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
 .table th {
-    background-color: #f9f9f9;
+    background-color: var(--secondary);
     font-weight: 600;
-    color: #333;
+    color: var(--text-dark);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.table tr:hover {
-    background-color: #f5f5f5;
+.table tr {
+    transition: var(--transition);
+}
+
+.table tr:hover td {
+    background-color: rgba(0,0,0,0.01);
+}
+
+.table tr:last-child td {
+    border-bottom: none;
 }
 
 /* Form styles */
@@ -136,73 +288,164 @@
     margin-bottom: 1.5rem;
 }
 
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
 .form-control {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
     font-size: 1rem;
+    transition: var(--transition);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(45, 107, 69, 0.1);
+}
+
+.form-text {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin-top: 0.25rem;
 }
 
 .btn {
     padding: 0.75rem 1.5rem;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+.btn:active::after {
+    animation: ripple 0.6s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(20, 20);
+        opacity: 0;
+    }
 }
 
 .btn-primary {
-    background-color: #2d6b45;
+    background-color: var(--primary);
     color: white;
 }
 
 .btn-primary:hover {
-    background-color: #235536;
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(45, 107, 69, 0.2);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+    box-shadow: none;
 }
 
 .btn-sm {
-    padding: 0.25rem 0.5rem;
+    padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
 }
 
 .btn-danger {
-    background-color: #e53935;
+    background-color: var(--danger);
     color: white;
 }
 
 .btn-danger:hover {
-    background-color: #c62828;
+    background-color: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
 }
 
 /* Status badges */
 .badge {
-    padding: 0.25rem 0.75rem;
+    padding: 0.35rem 0.75rem;
     border-radius: 50px;
     font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.badge::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 6px;
 }
 
 .badge-warning {
-    background-color: #ffeaa7;
-    color: #d35400;
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #d39e00;
+}
+
+.badge-warning::before {
+    background-color: #d39e00;
 }
 
 .badge-success {
-    background-color: #d4f5d4;
-    color: #27ae60;
+    background-color: rgba(40, 167, 69, 0.15);
+    color: #28a745;
+}
+
+.badge-success::before {
+    background-color: #28a745;
 }
 
 .badge-danger {
-    background-color: #ffebee;
-    color: #e53935;
+    background-color: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+}
+
+.badge-danger::before {
+    background-color: #dc3545;
 }
 
 .badge-secondary {
-    background-color: #e0e0e0;
-    color: #555;
+    background-color: rgba(108, 117, 125, 0.15);
+    color: #6c757d;
+}
+
+.badge-secondary::before {
+    background-color: #6c757d;
 }
 
 /* Warehouse stock section */
@@ -212,275 +455,554 @@
 
 .warehouse-selector {
     margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.warehouse-selector select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%232d6b45' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 16px 12px;
+    padding-right: 2.5rem;
 }
 
 .warehouse-info {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 1rem;
-    padding: 1rem;
-    background: #f9f9f9;
-    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    background: var(--secondary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+    border: 1px solid rgba(0,0,0,0.03);
+    position: relative;
+    overflow: hidden;
+}
+
+.warehouse-info::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(45, 107, 69, 0.05) 0%, rgba(45, 107, 69, 0) 100%);
+    z-index: 0;
+}
+
+.warehouse-info:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
 }
 
 .warehouse-info-item {
     text-align: center;
+    position: relative;
+    z-index: 1;
 }
 
 .warehouse-info-item h4 {
     margin: 0;
     font-size: 0.875rem;
-    color: #666;
+    color: var(--text-light);
+    font-weight: 500;
+    margin-bottom: 0.5rem;
 }
 
 .warehouse-info-item p {
-    margin: 0.5rem 0 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: #2d6b45;
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    transition: var(--transition);
+}
+
+.warehouse-info:hover .warehouse-info-item p {
+    transform: scale(1.05);
+}
+
+/* Map styles */
+.map-container {
+    height: 400px;
+    width: 100%;
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: var(--transition);
+    position: relative;
+}
+
+.map-container:hover {
+    box-shadow: var(--shadow-lg);
+}
+
+.map-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
+    border-radius: var(--border-radius);
+}
+
+.warehouse-marker {
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.warehouse-marker:hover {
+    transform: scale(1.2);
+}
+
+.warehouse-marker-selected {
+    border: 3px solid var(--primary);
+    border-radius: 50%;
+    box-shadow: 0 0 0 2px white, 0 0 10px rgba(0,0,0,0.3);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(45, 107, 69, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(45, 107, 69, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(45, 107, 69, 0);
+    }
 }
 
 /* Alert styles */
 .alert {
-    padding: 1rem;
+    padding: 1rem 1.25rem;
     margin-bottom: 1rem;
-    border-radius: 4px;
+    border-radius: var(--border-radius);
     display: flex;
     align-items: center;
     justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+    animation: slideIn 0.3s ease;
+    border-left: 4px solid transparent;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .alert-success {
-    background-color: #d4f5d4;
-    color: #27ae60;
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+    border-left-color: #28a745;
 }
 
 .alert-error {
-    background-color: #ffebee;
-    color: #e53935;
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+    border-left-color: #dc3545;
 }
 
 .text-center {
     text-align: center;
 }
 
-/* Add map styles */
-.map-container {
-    height: 400px;
+/* Loading animations */
+.loading {
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    border: 1px solid #d7e6d7;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: var(--border-radius);
 }
 
-.warehouse-marker {
-    cursor: pointer;
-}
-
-.warehouse-marker-selected {
-    border: 3px solid #2d6b45;
+.loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border: 3px solid rgba(45, 107, 69, 0.1);
+    border-top-color: var(--primary);
     border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 11;
+}
+
+@keyframes spin {
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
+}
+
+/* Info window styles for map */
+.info-window {
+    padding: 0.5rem;
+    max-width: 250px;
+}
+
+.info-window h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+    color: var(--primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.info-window p {
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.info-window ul {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+    font-size: 0.875rem;
+}
+
+.info-window .btn {
+    margin-top: 0.5rem;
+    width: 100%;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .main-container {
+        padding: 1rem;
+    }
+    
+    .card {
+        padding: 1rem;
+    }
+    
+    .storage-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+    
+    .stat-item {
+        padding: 0.4rem 0.6rem;
+    }
+    
+    .stat-item h3 {
+        font-size: 0.75rem;
+    }
+    
+    .stat-item p {
+        font-size: 1rem;
+        margin-left: 0.3rem;
+    }
+    
+    .storage-chart-container {
+        height: 160px;
+    }
+    
+    .tabs {
+        flex-wrap: wrap;
+    }
+    
+    .tab {
+        padding: 0.5rem 1rem;
+    }
+    
+    .warehouse-info {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .map-container {
+        height: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    .storage-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Navigation cards */
+.nav-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.nav-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem;
+    transition: var(--transition);
+    border: 1px solid rgba(0,0,0,0.03);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    text-decoration: none;
+    color: var(--text-dark);
+}
+
+.nav-card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-5px);
+}
+
+.nav-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--primary);
+    opacity: 0.7;
+}
+
+.nav-card-icon {
+    font-size: 2.5rem;
+    color: var(--primary);
+    margin-bottom: 1rem;
+}
+
+.nav-card h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.nav-card p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+/* Dashboard option cards */
+.dashboard-option-card {
+    flex: 1;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-option-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.text-xl {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.py-6 {
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.px-4 {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+.w-full {
+    width: 100%;
+}
+
+/* Flex utilities */
+.flex {
+    display: flex;
+}
+
+.gap-4 {
+    gap: 1rem;
+}
+
+.mt-6 {
+    margin-top: 1.5rem;
+}
+
+.mb-3 {
+    margin-bottom: 0.75rem;
+}
+
+.mb-4 {
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .flex {
+        flex-direction: column;
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="main-container">
-    <!-- Dashboard Header -->
     <div class="dashboard-header">
         <h1>Ration Shop Dashboard</h1>
-        <p>Welcome back, {{ shop.name }}</p>
+        <p>Welcome back, {{ current_user.username }}! Here's an overview of your ration shop.</p>
     </div>
 
-    <!-- Alerts container for displaying messages -->
-    <div id="alerts-container"></div>
+    <!-- Navigation Cards -->
+    
+    
+    <!-- Dashboard option cards -->
+    <div class="flex gap-4 mt-6">
+        <div class="card dashboard-option-card">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-warehouse fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">Available Stock</h2>
+                <p class="mb-4">View and manage warehouse stock levels</p>
+                <a href="{{ url_for('main.ration_available_stock') }}" class="btn btn-primary w-full">
+                    <i class="fas fa-eye"></i>
+                    View Available Stock
+                </a>
+            </div>
+        </div>
 
-    <!-- Stats Overview Section -->
+        <div class="card dashboard-option-card">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-shopping-cart fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">Request Stock</h2>
+                <p class="mb-4">Request stock from available warehouses</p>
+                <a href="{{ url_for('main.ration_request_stock') }}" class="btn btn-primary w-full">
+                    <i class="fas fa-plus"></i>
+                    Request Stock
+                </a>
+            </div>
+        </div>
+        
+        <div class="card dashboard-option-card">
+            <div class="card-content text-center py-6 px-4">
+                <i class="fas fa-clipboard-list fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <h2 class="text-xl mb-3">Your Requests</h2>
+                <p class="mb-4">View and manage your stock requests</p>
+                <a href="{{ url_for('main.ration_stock_requests') }}" class="btn btn-primary w-full">
+                    <i class="fas fa-eye"></i>
+                    View Requests
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Section -->
     <div class="card">
         <h2>Overview</h2>
-        <div class="storage-stats">
-            <div class="stat-item">
-                <h3>Total Requests</h3>
-                <p>{{ total_count }}</p>
-            </div>
-            <div class="stat-item">
-                <h3>Pending</h3>
-                <p>{{ pending_count }}</p>
-            </div>
-            <div class="stat-item">
-                <h3>Approved</h3>
-                <p>{{ approved_count }}</p>
-        </div>
-            <div class="stat-item">
-                <h3>Rejected</h3>
-                <p>{{ rejected_count }}</p>
-        </div>
-        </div>
-        <div class="storage-chart-container">
-            <canvas id="requestsChart"></canvas>
-        </div>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs">
-        <div class="tab active" data-tab="warehouse-stock">Warehouse Stock</div>
-        <div class="tab" data-tab="make-request">Make Stock Request</div>
-        <div class="tab" data-tab="view-requests">View Requests</div>
-    </div>
-    
-    <!-- Warehouse Stock Tab -->
-    <div class="tab-content active" id="warehouse-stock">
-        <div class="card">
-            <h2>Available Stock in Warehouses</h2>
-            <div class="warehouse-selector">
-                <div class="form-group">
-                    <label for="warehouse_selector">Select Warehouse:</label>
-                    <select class="form-control" id="warehouse_selector">
-                        {% for warehouse in warehouses %}
-                        <option value="{{ warehouse.id }}" {% if default_warehouse and warehouse.id == default_warehouse.id %}selected{% endif %}>
-                            {{ warehouse.name }} ({{ warehouse.location }})
-                        </option>
-                        {% endfor %}
-                    </select>
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+            <div class="storage-stats" style="flex: 1; min-width: 250px;">
+                <div class="stat-item">
+                    <h3>Total Requests: {{ total_count }}</h3>
+                
                 </div>
-            </div>
+                <div class="stat-item">
+                    <h3>Pending: {{ pending_count }}</h3>
             
-            <div id="warehouse-details">
-                {% if default_warehouse %}
-                <div class="warehouse-info">
-                    <div class="warehouse-info-item">
-                        <h4>Total Capacity</h4>
-                        <p id="warehouse-capacity">{{ default_warehouse.capacity }} tons</p>
-                    </div>
-                    <div class="warehouse-info-item">
-                        <h4>Allocated Space</h4>
-                        <p id="warehouse-allocated">Loading...</p>
-                    </div>
-                    <div class="warehouse-info-item">
-                        <h4>Available Space</h4>
-                        <p id="warehouse-available">Loading...</p>
-                    </div>
                 </div>
-                {% endif %}
-        </div>
-
-            <div class="table-container">
-                <table class="table" id="warehouse-stock-table">
-                    <thead>
-                        <tr>
-                            <th>Stock Type</th>
-                            <th>Quantity (tons)</th>
-                            <th>Farmer</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="warehouse-stock-body">
-                        <tr>
-                            <td colspan="4" class="text-center">Loading stock data...</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="stat-item">
+                    <h3>Approved: {{ approved_count }}</h3>
+            
+                </div>
+                <div class="stat-item">
+                    <h3>Rejected: {{ rejected_count }}</h3>
+                
+                </div>
+            </div>
+            <div class="storage-chart-container" style="flex: 1; min-width: 250px;">
+                <canvas id="requestsChart"></canvas>
             </div>
         </div>
     </div>
 
-    <!-- Make Request Tab -->
-    <div class="tab-content" id="make-request">
-        <div class="card">
-            <h2>Request Stock from Warehouse</h2>
-            
-            <!-- Map Container -->
-            <div class="form-group">
-                <label>Select Warehouse on Map:</label>
-                <div id="warehouse-map" class="map-container" style="height: 400px; width: 100%; margin-bottom: 20px;"></div>
-                <div class="form-text">Click on a warehouse marker to select it</div>
-            </div>
-            
-            <form id="stockRequestForm">
-                <div class="form-group">
-                    <label for="warehouse_id">Selected Warehouse:</label>
-                    <select class="form-control" id="warehouse_id" name="warehouse_id" required>
-                        <option value="">-- Select Warehouse --</option>
-                        {% for warehouse in warehouses %}
-                        <option value="{{ warehouse.id }}" data-lat="{{ warehouse.latitude }}" data-lng="{{ warehouse.longitude }}">{{ warehouse.name }} ({{ warehouse.location }})</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="stock_type">Available Stock Types:</label>
-                    <select class="form-control" id="stock_type" name="stock_type" required>
-                        <option value="">-- Select Warehouse First --</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="quantity">Quantity (tons):</label>
-                    <input type="number" class="form-control" id="quantity" name="quantity" min="0.1" step="0.1" required>
-                    <div id="max-quantity-info" class="form-text">Maximum available: <span id="max-quantity">0</span> tons</div>
-                </div>
-                <div class="form-group">
-                    <label for="notes">Notes (optional):</label>
-                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary">Submit Request</button>
-            </form>
+    <!-- Recent Activity Section -->
+    <div class="card">
+        <h2>Recent Activity</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Warehouse</th>
+                        <th>Stock Type</th>
+                        <th>Quantity</th>
+                        <th>Request Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in stock_requests %}
+                    <tr>
+                        <td>{{ request.warehouse.name }}</td>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                        <td>
+                            {% if request.status == 'pending' %}
+                            <span class="badge badge-warning">Pending</span>
+                            {% elif request.status == 'approved' %}
+                            <span class="badge badge-success">Approved</span>
+                            {% elif request.status == 'rejected' %}
+                            <span class="badge badge-danger">Rejected</span>
+                            {% elif request.status == 'canceled' %}
+                            <span class="badge badge-secondary">Canceled</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not stock_requests %}
+                    <tr>
+                        <td colspan="5" class="text-center">No recent activity found.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
         </div>
-    </div>
-        
-    <!-- View Requests Tab -->
-    <div class="tab-content" id="view-requests">
-        <div class="card">
-            <h2>Your Stock Requests</h2>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Warehouse</th>
-                            <th>Stock Type</th>
-                            <th>Quantity</th>
-                            <th>Request Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for request in stock_requests %}
-                        <tr>
-                            <td>{{ request.warehouse.name }}</td>
-                            <td>{{ request.stock_type }}</td>
-                            <td>{{ request.quantity }} tons</td>
-                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
-                            <td>
-                                {% if request.status == 'pending' %}
-                                <span class="badge badge-warning">Pending</span>
-                                {% elif request.status == 'approved' %}
-                                <span class="badge badge-success">Approved</span>
-                                {% elif request.status == 'rejected' %}
-                                <span class="badge badge-danger">Rejected</span>
-                                {% elif request.status == 'canceled' %}
-                                <span class="badge badge-secondary">Canceled</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if request.status == 'pending' %}
-                                <button class="btn btn-sm btn-danger" onclick="cancelRequest('{{ request.id }}')">Cancel</button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% if not stock_requests %}
-                        <tr>
-                            <td colspan="6" class="text-center">No stock requests found.</td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
+        <div class="text-center" style="margin-top: 1rem;">
+            <a href="{{ url_for('main.ration_stock_requests') }}" class="btn btn-secondary">View All Requests</a>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+{{ super() }}
 <!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <!-- Include SweetAlert2 -->
@@ -495,33 +1017,10 @@ let selectedWarehouseId = null;
 let warehouseStockData = {};
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Tab switching
-    const tabs = document.querySelectorAll('.tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-    
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            const tabId = tab.getAttribute('data-tab');
-            
-            // Remove active class from all tabs and contents
-            tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-            
-            // Add active class to clicked tab and corresponding content
-            tab.classList.add('active');
-            document.getElementById(tabId).classList.add('active');
-            
-            // If switching to make-request tab, resize the map
-            if (tabId === 'make-request' && map) {
-                google.maps.event.trigger(map, 'resize');
-            }
-        });
-    });
-    
     // Requests chart
     const requestsCtx = document.getElementById('requestsChart').getContext('2d');
     const requestsChart = new Chart(requestsCtx, {
-        type: 'pie',
+        type: 'doughnut',
         data: {
             labels: ['Pending', 'Approved', 'Rejected'],
             datasets: [{
@@ -542,9 +1041,31 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            cutout: '70%',
             plugins: {
                 legend: {
-                    position: 'bottom'
+                    position: 'right',
+                    labels: {
+                        boxWidth: 10,
+                        padding: 8,
+                        font: {
+                            size: 10
+                        }
+                    }
+                },
+                tooltip: {
+                    displayColors: false,
+                    titleFont: {
+                        size: 10
+                    },
+                    bodyFont: {
+                        size: 10
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.raw;
+                        }
+                    }
                 }
             }
         }
@@ -612,18 +1133,20 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Function to request stock directly from the warehouse stock tab
     window.requestStock = function(stockId, stockType) {
-        // Pre-fill the stock request form and switch to the make-request tab
+        // Pre-fill the stock request form
         document.getElementById('warehouse_id').value = warehouseSelector.value;
         updateStockTypeOptions(warehouseSelector.value);
         document.getElementById('stock_type').value = stockType;
         document.getElementById('quantity').focus();
         
-        // Switch to make-request tab
-        tabs.forEach(t => t.classList.remove('active'));
-        tabContents.forEach(c => c.classList.remove('active'));
-        
-        document.querySelector('[data-tab="make-request"]').classList.add('active');
-        document.getElementById('make-request').classList.add('active');
+        // Scroll to the make request section
+        const makeRequestHeading = Array.from(document.querySelectorAll('h2')).find(h => h.textContent === 'Request Stock from Warehouse');
+        if (makeRequestHeading) {
+            makeRequestHeading.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start' 
+            });
+        }
         
         // Update the map to show the selected warehouse
         selectWarehouseOnMap(warehouseSelector.value);
@@ -789,6 +1312,34 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Add hover effect and click functionality to cards
+    const cards = document.querySelectorAll('.dashboard-option-card');
+    cards.forEach(card => {
+        // Find the link inside the card
+        const link = card.querySelector('a.btn');
+        if (link) {
+            const href = link.getAttribute('href');
+            
+            // Make the entire card clickable
+            card.addEventListener('click', function(e) {
+                if (!e.target.closest('a.btn')) {
+                    window.location.href = href;
+                }
+            });
+            
+            // Add hover effect
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+                this.style.boxShadow = '0 10px 20px rgba(45, 107, 69, 0.1)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = '';
+                this.style.boxShadow = '';
+            });
+        }
+    });
 });
 
 // Function to cancel a request
