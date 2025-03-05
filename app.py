@@ -9,6 +9,7 @@ import requests
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
 import logging
+import argparse
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, 
@@ -24,7 +25,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', 'sqlite:///supply_chain.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyBN9xaw0Vida_n03yQpXL0dGawEqPUS3Jg')
+app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyCRhQb3mjxdmiYnS3K1NihMxYOO5NULF48')
 
 # Email configuration
 # For Gmail:
@@ -170,4 +171,10 @@ with app.app_context():
         print("Admin password updated")
 
 if __name__ == '__main__':
-    app.run(debug=True)  # Run without HTTPS in development
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(description='Run the Aratro Flask application')
+    parser.add_argument('--port', type=int, default=5000, help='Port to run the application on')
+    args = parser.parse_args()
+    
+    # Run the application on the specified port
+    app.run(debug=True, port=args.port)  # Run without HTTPS in development

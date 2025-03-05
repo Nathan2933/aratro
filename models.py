@@ -122,6 +122,8 @@ class RationShop(db.Model):
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), nullable=False)
     location = db.Column(db.String(200), nullable=False)
+    latitude = db.Column(db.Float, nullable=True)  # Latitude for map location
+    longitude = db.Column(db.Float, nullable=True)  # Longitude for map location
     aadhar_number = db.Column(db.String(12), unique=True, nullable=False)  # Exactly 12 digits
     status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
     unique_id = db.Column(db.String(20), unique=True, nullable=True)  # Will be set by admin after approval

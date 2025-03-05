@@ -1172,10 +1172,12 @@ def ration_register():
         name = request.form.get('name')
         email = request.form.get('email')
         location = request.form.get('location')
+        latitude = request.form.get('latitude')
+        longitude = request.form.get('longitude')
         aadhar_number = request.form.get('aadhar_number')
         
         # Validate form data
-        if not name or not email or not location or not aadhar_number:
+        if not name or not email or not location or not aadhar_number or not latitude or not longitude:
             flash('All fields are required', 'error')
             return redirect(url_for('auth.ration_register'))
             
@@ -1194,6 +1196,8 @@ def ration_register():
             name=name,
             email=email,
             location=location,
+            latitude=float(latitude),
+            longitude=float(longitude),
             aadhar_number=aadhar_number,
             status='pending'
         )
@@ -1208,7 +1212,7 @@ def ration_register():
             flash(f'An error occurred during registration: {str(e)}', 'error')
             return redirect(url_for('auth.ration_register'))
     
-    return render_template('ration_register.html', form=form)
+    return render_template('ration_register.html', form=form, maps_api_key=current_app.config['GOOGLE_MAPS_API_KEY'])
 
 # Ration shop routes
 @main.route('/ration/dashboard')
@@ -1566,3 +1570,9 @@ def ration_login():
             return render_template('ration/login.html', form=form)
     
     return render_template('ration/login.html', form=form)
+
+@auth.route('/test-maps-api')
+def test_maps_api():
+    """Test route to verify Google Maps API key"""
+    api_key = current_app.config['GOOGLE_MAPS_API_KEY']
+    return render_template('test_maps.html', maps_api_key=api_key)

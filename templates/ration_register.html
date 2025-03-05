@@ -6,57 +6,87 @@
 <div class="register-container">
     <div class="register-card">
         <div class="register-header">
-            <div class="main-icon">
-                <i class="fas fa-store"></i>
-            </div>
+            <i class="fas fa-store main-icon"></i>
             <h2>Ration Shop Registration</h2>
             <p class="text-muted">Register your ration shop for approval</p>
         </div>
-
+        
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">
+                    <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show" role="alert">
                         {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
-
+        
         <form id="registrationForm" method="POST" action="{{ url_for('auth.ration_register') }}" class="register-form">
             {{ form.hidden_tag() }}
             
-            <div class="form-group">
-                <label for="name">Shop Name</label>
-                <input type="text" id="name" name="name" class="form-control" required>
-                <div class="invalid-feedback">Please enter your shop name</div>
+            <div class="form-section">
+                <div class="form-group mb-4">
+                    <label for="name" class="form-label">
+                        <i class="fas fa-store me-2"></i>
+                        Shop Name
+                    </label>
+                    <input type="text" class="form-control" id="name" name="name" required
+                        placeholder="Enter your shop name">
+                </div>
+
+                <div class="form-group mb-4">
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope me-2"></i>
+                        Email Address
+                    </label>
+                    <input type="email" class="form-control" id="email" name="email" required
+                        placeholder="Enter your email address">
+                </div>
+                
+                <div class="form-group mb-4">
+                    <label for="aadhar_number" class="form-label">
+                        <i class="fas fa-id-card me-2"></i>
+                        Aadhar Card Number
+                    </label>
+                    <input type="text" class="form-control" id="aadhar_number" name="aadhar_number" required
+                        pattern="[0-9]{12}" maxlength="12"
+                        placeholder="Enter 12-digit Aadhar number"
+                        oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+                    <div class="form-text">Enter 12 digits without spaces</div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <div class="form-group mb-4">
+                    <label for="location" class="form-label">
+                        <i class="fas fa-map-marker-alt me-2"></i>
+                        Location
+                    </label>
+                    <input type="text" class="form-control" id="location" name="location" required
+                        placeholder="Search for a location or click on the map">
+                    <button type="button" class="btn btn-outline-primary mt-2" id="getCurrentLocation">
+                        <i class="fas fa-location-dot me-2"></i>
+                        Current Location
+                    </button>
+                    <div id="map-container" class="mt-2 mb-2">
+                        <div id="map" style="height: 300px; width: 100%; border-radius: 6px; border: 1px solid #d7e6d7;"></div>
+                    </div>
+                    <div class="form-text">Click on the map to set your shop location or drag the marker to adjust</div>
+                    <input type="hidden" id="latitude" name="latitude">
+                    <input type="hidden" id="longitude" name="longitude">
+                </div>
             </div>
             
-            <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" class="form-control" required>
-                <div class="invalid-feedback">Please enter a valid email address</div>
-            </div>
+            <button type="submit" class="btn btn-primary w-100 py-2 mt-4">
+                <i class="fas fa-user-plus me-2"></i>
+                Register Ration Shop
+            </button>
             
-            <div class="form-group">
-                <label for="location">Shop Location</label>
-                <input type="text" id="location" name="location" class="form-control" required>
-                <div class="invalid-feedback">Please enter your shop location</div>
-            </div>
-            
-            <div class="form-group">
-                <label for="aadhar_number">Aadhar Number</label>
-                <input type="text" id="aadhar_number" name="aadhar_number" class="form-control" pattern="[0-9]{12}" required>
-                <div class="invalid-feedback">Please enter a valid 12-digit Aadhar number</div>
-                <small class="form-text text-muted">Enter your 12-digit Aadhar number without spaces</small>
-            </div>
-            
-            <div class="form-group mt-4">
-                <button type="submit" class="btn btn-primary btn-block">Register Ration Shop</button>
-            </div>
-            
-            <div class="text-center mt-3">
-                <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="login-link">Login here</a></p>
+            <div class="text-center mt-4">
+                <p class="mb-0">Already have an account? 
+                    <a href="{{ url_for('auth.login') }}" class="login-link">Login here</a>
+                </p>
             </div>
         </form>
     </div>
@@ -66,236 +96,436 @@
 {% block styles %}
 {{ super() }}
 <style>
-    .register-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        min-height: calc(100vh - 80px);
-        padding: 2rem 1rem;
-        background-color: var(--bg-light);
-    }
-    
-    .register-card {
-        width: 100%;
-        max-width: 500px;
-        background-color: var(--bg-white);
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-        padding: 2rem;
-        margin-bottom: 2rem;
-    }
-    
-    .register-header {
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-    
-    .register-header .main-icon {
-        width: 70px;
-        height: 70px;
-        background-color: var(--primary-light);
-        color: var(--primary);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 1rem;
-        font-size: 1.8rem;
-    }
-    
-    .register-header h2 {
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-    
-    .register-header p {
-        color: var(--text-secondary);
-    }
-    
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-    
-    .form-control {
-        width: 100%;
-        padding: 0.75rem 1rem;
-        font-size: 1rem;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background-color: var(--bg-white);
-        color: var(--text-primary);
-        transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    
-    .form-control:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px var(--primary-light);
-        outline: none;
-    }
-    
-    .form-control.is-invalid {
-        border-color: var(--danger);
-    }
-    
-    .invalid-feedback {
-        display: none;
-        color: var(--danger);
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
-    
-    .form-control.is-invalid + .invalid-feedback {
-        display: block;
-    }
-    
-    .form-text {
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
-    
-    .btn {
-        display: inline-block;
-        font-weight: 500;
-        text-align: center;
-        vertical-align: middle;
-        cursor: pointer;
-        padding: 0.75rem 1.5rem;
-        font-size: 1rem;
-        border-radius: 6px;
-        transition: all 0.2s;
-        border: none;
-    }
-    
-    .btn-primary {
-        background-color: var(--primary);
-        color: white;
-    }
-    
-    .btn-primary:hover {
-        background-color: var(--primary-dark);
-    }
-    
-    .btn-block {
-        display: block;
-        width: 100%;
-    }
-    
-    .alert {
-        padding: 1rem;
-        margin-bottom: 1.5rem;
-        border-radius: 6px;
-        font-size: 0.95rem;
-    }
-    
-    .alert-success {
-        background-color: var(--success-light);
-        color: var(--success);
-        border: 1px solid var(--success);
-    }
-    
-    .alert-error {
-        background-color: var(--danger-light);
-        color: var(--danger);
-        border: 1px solid var(--danger);
-    }
-    
-    .login-link {
-        color: var(--primary);
-        text-decoration: none;
-        font-weight: 500;
-    }
-    
-    .login-link:hover {
-        text-decoration: underline;
-    }
+.register-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: calc(100vh - 4rem);
+    padding: 1rem;
+    background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+    position: fixed;
+    top: 4rem;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow-y: auto;
+    z-index: 1;
+}
+
+.register-card {
+    background: #f1f8f1;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(53, 136, 86, 0.1);
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 500px;
+    margin: 1rem auto;
+    transition: all 0.3s ease;
+}
+
+.register-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.register-header .main-icon {
+    font-size: 2.5rem;
+    color: #55c759;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.register-header h2 {
+    color: #2d6b45;
+    margin-bottom: 0.25rem;
+    font-size: 1.75rem;
+}
+
+.register-header p {
+    color: #456946;
+    font-size: 1rem;
+}
+
+.form-section {
+    background: #e1efe1;
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-label {
+    color: #2d6b45;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    line-height: 1;
+}
+
+.form-label i {
+    font-size: 1rem;
+    width: 1.25rem;
+    text-align: center;
+    transform: rotate(0deg);
+}
+
+.form-label i.fas {
+    flex-shrink: 0;
+}
+
+.form-control {
+    background-color: #ffffff;
+    border: 1px solid #d7e6d7;
+    color: #2d6b45;
+    padding: 0.625rem 0.875rem;
+    font-size: 0.95rem;
+    border-radius: 6px;
+}
+
+.form-control:focus {
+    border-color: #55c759;
+    box-shadow: 0 0 0 0.25rem rgba(85, 199, 89, 0.25);
+}
+
+.input-group-text {
+    background-color: #e1efe1;
+    border-color: #d7e6d7;
+    color: #456946;
+    padding: 0.625rem 0.875rem;
+}
+
+.form-text {
+    color: #456946;
+    font-size: 0.875rem;
+    margin-top: 0.5rem;
+}
+
+.btn-primary {
+    background-color: #55c759;
+    border-color: #55c759;
+    color: white;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+    background-color: #3da042;
+    border-color: #3da042;
+    transform: translateY(-1px);
+}
+
+.btn-outline-primary {
+    color: #55c759;
+    border-color: #55c759;
+    background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+    background-color: #55c759;
+    border-color: #55c759;
+    color: white;
+}
+
+.login-link {
+    color: #55c759;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.login-link:hover {
+    color: #3da042;
+    text-decoration: underline;
+}
+
+/* Alert styles */
+.alert {
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.alert-danger {
+    background-color: #fde8e8;
+    border-color: #f8d7d7;
+    color: #dc2626;
+}
+
+.alert-success {
+    background-color: #e8f5e9;
+    border-color: #d7e6d7;
+    color: #2d6b45;
+}
 </style>
 {% endblock %}
 
 {% block scripts %}
 {{ super() }}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('registrationForm');
-        
-        form.addEventListener('submit', function(event) {
-            let isValid = true;
-            
-            // Validate name
-            const nameInput = document.getElementById('name');
-            if (!nameInput.value.trim()) {
-                nameInput.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                nameInput.classList.remove('is-invalid');
-            }
-            
-            // Validate email
-            const emailInput = document.getElementById('email');
-            const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!emailPattern.test(emailInput.value.trim())) {
-                emailInput.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                emailInput.classList.remove('is-invalid');
-            }
-            
-            // Validate location
-            const locationInput = document.getElementById('location');
-            if (!locationInput.value.trim()) {
-                locationInput.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                locationInput.classList.remove('is-invalid');
-            }
-            
-            // Validate Aadhar number
-            const aadharInput = document.getElementById('aadhar_number');
-            const aadharPattern = /^[0-9]{12}$/;
-            if (!aadharPattern.test(aadharInput.value.trim())) {
-                aadharInput.classList.add('is-invalid');
-                isValid = false;
-            } else {
-                aadharInput.classList.remove('is-invalid');
-            }
-            
-            if (!isValid) {
-                event.preventDefault();
+// Form validation
+document.getElementById('registrationForm').addEventListener('submit', function(e) {
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const locationInput = document.getElementById('location');
+    const latitudeInput = document.getElementById('latitude');
+    const longitudeInput = document.getElementById('longitude');
+    const aadharInput = document.getElementById('aadhar_number');
+    
+    let isValid = true;
+    
+    // Validate name
+    if (!nameInput.value.trim()) {
+        nameInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        nameInput.classList.remove('is-invalid');
+    }
+    
+    // Validate email
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(emailInput.value.trim())) {
+        emailInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        emailInput.classList.remove('is-invalid');
+    }
+    
+    // Validate location
+    if (!locationInput.value.trim() || !latitudeInput.value || !longitudeInput.value) {
+        locationInput.classList.add('is-invalid');
+        isValid = false;
+        alert('Please select a location on the map');
+    } else {
+        locationInput.classList.remove('is-invalid');
+    }
+    
+    // Validate Aadhar number
+    const aadharPattern = /^[0-9]{12}$/;
+    if (!aadharPattern.test(aadharInput.value.trim())) {
+        aadharInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        aadharInput.classList.remove('is-invalid');
+    }
+    
+    if (!isValid) {
+        e.preventDefault();
+    }
+});
+
+// Initialize Google Maps
+let map;
+let marker;
+let autocomplete;
+let mapInitialized = false;
+
+function initMap() {
+    try {
+        console.log("Initializing Google Maps...");
+        const defaultLocation = { lat: 20.5937, lng: 78.9629 }; // Center of India
+        const mapElement = document.getElementById('map');
+
+        if (!mapElement) {
+            console.error("Map container element not found");
+            return;
+        }
+
+        map = new google.maps.Map(mapElement, {
+            zoom: 5,
+            center: defaultLocation,
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true
+        });
+
+        marker = new google.maps.Marker({
+            map: map,
+            draggable: true,
+            animation: google.maps.Animation.DROP,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: "#55c759",
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2
             }
         });
-        
-        // Real-time validation
-        const inputs = form.querySelectorAll('.form-control');
-        inputs.forEach(input => {
-            input.addEventListener('blur', function() {
-                if (this.id === 'email') {
-                    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                    if (!emailPattern.test(this.value.trim())) {
-                        this.classList.add('is-invalid');
-                    } else {
-                        this.classList.remove('is-invalid');
-                    }
-                } else if (this.id === 'aadhar_number') {
-                    const aadharPattern = /^[0-9]{12}$/;
-                    if (!aadharPattern.test(this.value.trim())) {
-                        this.classList.add('is-invalid');
-                    } else {
-                        this.classList.remove('is-invalid');
-                    }
-                } else if (!this.value.trim()) {
-                    this.classList.add('is-invalid');
-                } else {
-                    this.classList.remove('is-invalid');
+
+        const input = document.getElementById('location');
+        autocomplete = new google.maps.places.Autocomplete(input);
+        autocomplete.bindTo('bounds', map);
+
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) {
+                console.error("Place has no geometry");
+                return;
+            }
+
+            if (place.geometry.viewport) {
+                map.fitBounds(place.geometry.viewport);
+            } else {
+                map.setCenter(place.geometry.location);
+                map.setZoom(17);
+            }
+
+            marker.setPosition(place.geometry.location);
+            marker.setVisible(true);
+            updateLocationFields(place);
+        });
+
+        marker.addListener('dragend', function() {
+            const position = marker.getPosition();
+            reverseGeocode(position);
+        });
+
+        map.addListener('click', function(e) {
+            marker.setPosition(e.latLng);
+            marker.setVisible(true);
+            reverseGeocode(e.latLng);
+        });
+
+        // Try to get user's location on page load
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const pos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    map.setCenter(pos);
+                    map.setZoom(15);
+                    marker.setPosition(pos);
+                    marker.setVisible(true);
+                    reverseGeocode(pos);
+                },
+                function(error) {
+                    console.log("Error getting initial location:", error);
+                    // Continue with default location
                 }
-            });
-        });
+            );
+        }
+
+        mapInitialized = true;
+        console.log("Google Maps initialized successfully");
+    } catch (error) {
+        console.error("Error initializing Google Maps:", error);
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.innerHTML = `
+                <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8d7da; color: #721c24; padding: 20px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <h3>Google Maps API Error</h3>
+                    <p>The page didn't load Google Maps correctly. Please try refreshing the page.</p>
+                </div>
+            `;
+        }
+    }
+}
+
+function updateLocationFields(place) {
+    document.getElementById('latitude').value = place.geometry.location.lat();
+    document.getElementById('longitude').value = place.geometry.location.lng();
+    document.getElementById('location').value = place.formatted_address;
+    console.log("Location updated:", place.formatted_address);
+}
+
+function reverseGeocode(latLng) {
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode({ location: latLng }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+            document.getElementById('location').value = results[0].formatted_address;
+            document.getElementById('latitude').value = latLng.lat();
+            document.getElementById('longitude').value = latLng.lng();
+            console.log("Reverse geocoded address:", results[0].formatted_address);
+        } else {
+            console.error("Geocoder failed due to: " + status);
+            // Still save the coordinates even if geocoding fails
+            document.getElementById('latitude').value = latLng.lat();
+            document.getElementById('longitude').value = latLng.lng();
+            document.getElementById('location').value = `Lat: ${latLng.lat().toFixed(6)}, Lng: ${latLng.lng().toFixed(6)}`;
+        }
     });
+}
+
+document.getElementById('getCurrentLocation').addEventListener('click', function() {
+    if (!mapInitialized) {
+        alert("Map is not yet initialized. Please try again in a moment.");
+        return;
+    }
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+
+                map.setCenter(pos);
+                map.setZoom(17);
+                marker.setPosition(pos);
+                marker.setVisible(true);
+                reverseGeocode(pos);
+            },
+            function(error) {
+                let message = 'Error getting your location: ';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message += 'Permission denied';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message += 'Position unavailable';
+                        break;
+                    case error.TIMEOUT:
+                        message += 'Timeout';
+                        break;
+                }
+                alert(message);
+            }
+        );
+    } else {
+        alert('Geolocation is not supported by this browser.');
+    }
+});
+
+// Handle Google Maps API loading error
+function gm_authFailure() {
+    console.error("Google Maps authentication error - invalid API key");
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+        mapContainer.innerHTML = `
+            <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8d7da; color: #721c24; padding: 20px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 20px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Google Maps API Error</h3>
+                <p>There was an authentication error with the Google Maps API. Please check your API key.</p>
+            </div>
+        `;
+    }
+}
+
+// Global error handler for Google Maps
+window.gm_authFailure = gm_authFailure;
+
+// Make sure the map is initialized when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // If Google Maps API is already loaded, initialize the map
+    if (typeof google !== 'undefined' && typeof google.maps !== 'undefined') {
+        initMap();
+    }
+});
 </script>
+
+<!-- Load Google Maps API with error handling -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&libraries=places&callback=initMap" async defer></script>
 {% endblock %} 

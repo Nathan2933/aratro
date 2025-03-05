@@ -389,68 +389,98 @@ function togglePassword(button) {
 let map;
 let marker;
 let autocomplete;
+let mapInitialized = false;
 
 function initMap() {
-    const defaultLocation = { lat: 20.5937, lng: 78.9629 }; // Center of India
+    try {
+        console.log("Initializing Google Maps...");
+        const defaultLocation = { lat: 20.5937, lng: 78.9629 }; // Center of India
+        const mapElement = document.getElementById('map');
 
-    map = new google.maps.Map(document.getElementById('map'), {
-        zoom: 5,
-        center: defaultLocation,
-        styles: [
-            {
-                featureType: "all",
-                elementType: "geometry",
-                stylers: [{ color: "#e8f5e9" }]
-            },
-            {
-                featureType: "water",
-                elementType: "geometry",
-                stylers: [{ color: "#c8e6c9" }]
+        if (!mapElement) {
+            console.error("Map container element not found");
+            return;
+        }
+
+        map = new google.maps.Map(mapElement, {
+            zoom: 5,
+            center: defaultLocation,
+            styles: [
+                {
+                    featureType: "all",
+                    elementType: "geometry",
+                    stylers: [{ color: "#e8f5e9" }]
+                },
+                {
+                    featureType: "water",
+                    elementType: "geometry",
+                    stylers: [{ color: "#c8e6c9" }]
+                }
+            ]
+        });
+
+        marker = new google.maps.Marker({
+            map: map,
+            draggable: true,
+            icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 10,
+                fillColor: "#55c759",
+                fillOpacity: 1,
+                strokeColor: "#ffffff",
+                strokeWeight: 2
             }
-        ]
-    });
+        });
 
-    marker = new google.maps.Marker({
-        map: map,
-        draggable: true,
-        icon: {
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 10,
-            fillColor: "#55c759",
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 2
+        const input = document.getElementById('location');
+        autocomplete = new google.maps.places.Autocomplete(input);
+        autocomplete.bindTo('bounds', map);
+
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            if (!place.geometry) {
+                console.error("Place has no geometry");
+                return;
+            }
+
+            if (place.geometry.viewport) {
+                map.fitBounds(place.geometry.viewport);
+            } else {
+                map.setCenter(place.geometry.location);
+                map.setZoom(17);
+            }
+
+            marker.setPosition(place.geometry.location);
+            updateLocationFields(place);
+        });
+
+        marker.addListener('dragend', function() {
+            const position = marker.getPosition();
+            reverseGeocode(position);
+        });
+
+        map.addListener('click', function(e) {
+            marker.setPosition(e.latLng);
+            reverseGeocode(e.latLng);
+        });
+
+        mapInitialized = true;
+        console.log("Google Maps initialized successfully");
+    } catch (error) {
+        console.error("Error initializing Google Maps:", error);
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.innerHTML = `
+                <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8f9fa; color: #721c24; padding: 20px; text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <h3>Oops! Something went wrong.</h3>
+                    <p>The page didn't load Google Maps correctly. See the JavaScript console for technical details.</p>
+                </div>
+            `;
         }
-    });
-
-    const input = document.getElementById('location');
-    autocomplete = new google.maps.places.Autocomplete(input);
-    autocomplete.bindTo('bounds', map);
-
-    autocomplete.addListener('place_changed', function() {
-        const place = autocomplete.getPlace();
-        if (!place.geometry) return;
-
-        if (place.geometry.viewport) {
-            map.fitBounds(place.geometry.viewport);
-        } else {
-            map.setCenter(place.geometry.location);
-            map.setZoom(17);
-        }
-
-        marker.setPosition(place.geometry.location);
-        updateLocationFields(place);
-    });
-
-    marker.addListener('dragend', function() {
-        const position = marker.getPosition();
-        reverseGeocode(position);
-    });
-
-    map.addListener('click', function(e) {
-        marker.setPosition(e.latLng);
-        reverseGeocode(e.latLng);
-    });
+    }
 }
 
 function updateLocationFields(place) {
@@ -466,11 +496,18 @@ function reverseGeocode(latLng) {
             document.getElementById('location').value = results[0].formatted_address;
             document.getElementById('latitude').value = latLng.lat();
             document.getElementById('longitude').value = latLng.lng();
+        } else {
+            console.error("Geocoder failed due to: " + status);
         }
     });
 }
 
 document.getElementById('getCurrentLocation').addEventListener('click', function() {
+    if (!mapInitialized) {
+        alert("Map is not yet initialized. Please try again in a moment.");
+        return;
+    }
+    
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             function(position) {
@@ -504,7 +541,25 @@ document.getElementById('getCurrentLocation').addEventListener('click', function
         alert('Geolocation is not supported by this browser.');
     }
 });
+
+// Handle Google Maps API loading error
+function gm_authFailure() {
+    console.error("Google Maps authentication error - invalid API key");
+    const mapContainer = document.getElementById('map');
+    if (mapContainer) {
+        mapContainer.innerHTML = `
+            <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8d7da; color: #721c24; padding: 20px; text-align: center;">
+                <div style="font-size: 48px; margin-bottom: 20px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Google Maps API Error</h3>
+                <p>There was an authentication error with the Google Maps API. Please check your API key.</p>
+            </div>
+        `;
+    }
+}
 </script>
 
+<!-- Load Google Maps API with error handling -->
 <script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&libraries=places&callback=initMap" async defer></script>
 {% endblock %}
