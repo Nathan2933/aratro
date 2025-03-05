@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, session
 from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop
+from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop, RationStockRequest
 import re
 from datetime import datetime
 from functools import wraps
@@ -645,79 +645,174 @@ def partial_acceptances():
 @warehouse_dashboard.route('/')
 @login_required
 def warehouse_home():
-    if current_user.role != 'warehouse_manager':
-        flash('Access denied', 'error')
-        return redirect(url_for('main.dashboard'))
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
     
+    # Get the warehouse data
     warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
     if not warehouse:
-        flash('Warehouse not found', 'error')
-        return redirect(url_for('main.dashboard'))
+        flash('Warehouse not found.', 'error')
+        return redirect(url_for('main.index'))
     
-    # Get total allocated space
-    total_allocated_space = db.session.query(db.func.sum(Stock.quantity))\
-        .filter(Stock.warehouse_id == warehouse.id)\
-        .filter(Stock.status == 'stored')\
-        .scalar() or 0
+    # Get all stock requests for this warehouse
+    pending_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='pending').all()
+    approved_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='approved').all()
     
-    # Get pending requests
-    pending_requests = StockRequest.query\
-        .join(Stock)\
-        .filter(Stock.warehouse_id == warehouse.id)\
-        .filter(StockRequest.status == 'pending')\
-        .order_by(StockRequest.created_at.desc())\
-        .all()
+    # Get all ration shop stock requests for this warehouse
+    ration_pending_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='pending').all()
+    ration_approved_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='approved').all()
     
-    # Get approved requests
-    approved_requests = StockRequest.query\
-        .join(Stock)\
-        .filter(Stock.warehouse_id == warehouse.id)\
-        .filter(StockRequest.status == 'approved')\
-        .order_by(StockRequest.created_at.desc())\
-        .all()
+    # Calculate total allocated space
+    total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
+    
+    # Get notifications
+    notifications = Notification.query.filter_by(user_id=current_user.id, read=False).all()
     
     return render_template('warehouse_dashboard.html',
-                         warehouse=warehouse,
-                         total_allocated_space=total_allocated_space,
-                         pending_requests=pending_requests,
-                         approved_requests=approved_requests)
+                          warehouse=warehouse,
+                          pending_requests=pending_requests,
+                          approved_requests=approved_requests,
+                          ration_pending_requests=ration_pending_requests,
+                          ration_approved_requests=ration_approved_requests,
+                          total_allocated_space=total_allocated_space,
+                          notifications=notifications)
+
+@warehouse_dashboard.route('/respond_to_ration_request', methods=['POST'])
+@login_required
+def respond_to_ration_request():
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        return jsonify({'success': False, 'message': 'Warehouse not found'}), 404
+
+    # Get form data
+    data = request.json if request.is_json else request.form
+    request_id = data.get('request_id')
+    action = data.get('action')
+    notes = data.get('notes', '')
+    
+    if not request_id or not action:
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+    
+    # Find the request
+    stock_request = RationStockRequest.query.get(request_id)
+    if not stock_request or stock_request.warehouse_id != warehouse.id:
+        return jsonify({'success': False, 'message': 'Request not found'}), 404
+
+    if stock_request.status != 'pending':
+        return jsonify({'success': False, 'message': 'Request has already been processed'}), 400
+
+    # Process the request based on action
+    if action == 'approve':
+        # Check if warehouse has enough stock of the requested type
+        available_stocks = Stock.query.filter_by(
+            warehouse_id=warehouse.id,
+            type=stock_request.stock_type,
+            status='stored'
+        ).order_by(Stock.created_at).all()
+        
+        total_available_quantity = sum(stock.quantity for stock in available_stocks)
+        
+        if total_available_quantity < stock_request.quantity:
+            return jsonify({
+                'success': False, 
+                'message': f'Not enough stock available. Available: {total_available_quantity} tons, Requested: {stock_request.quantity} tons'
+            }), 400
+        
+        # Approve the request
+        stock_request.status = 'approved'
+        stock_request.processed_date = datetime.utcnow()
+        stock_request.admin_notes = notes
+        
+        # Reduce stock from warehouse (FIFO - First In First Out)
+        remaining_quantity_to_reduce = stock_request.quantity
+        for stock in available_stocks:
+            if remaining_quantity_to_reduce <= 0:
+                break
+                
+            if stock.quantity <= remaining_quantity_to_reduce:
+                # Use entire stock
+                remaining_quantity_to_reduce -= stock.quantity
+                stock.quantity = 0
+                stock.status = 'transferred'  # Mark as transferred to ration shop
+            else:
+                # Use partial stock
+                stock.quantity -= remaining_quantity_to_reduce
+                remaining_quantity_to_reduce = 0
+        
+        # Create notification for ration shop
+        notification = Notification(
+            user_id=RationShop.query.get(stock_request.ration_shop_id).user_id,
+            title='Stock Request Approved',
+            message=f'Your request for {stock_request.quantity} tons of {stock_request.stock_type} has been approved by {warehouse.name}.',
+            type='ration_stock_request_approved'
+        )
+        db.session.add(notification)
+        
+    elif action == 'reject':
+        # Reject the request
+        stock_request.status = 'rejected'
+        stock_request.processed_date = datetime.utcnow()
+        stock_request.admin_notes = notes
+        
+        # Create notification for ration shop
+        notification = Notification(
+            user_id=RationShop.query.get(stock_request.ration_shop_id).user_id,
+            title='Stock Request Rejected',
+            message=f'Your request for {stock_request.quantity} tons of {stock_request.stock_type} has been rejected by {warehouse.name}.',
+            type='ration_stock_request_rejected'
+        )
+        db.session.add(notification)
+    else:
+        return jsonify({'success': False, 'message': 'Invalid action'}), 400
+    
+    try:
+        db.session.commit()
+        return jsonify({'success': True, 'message': f'Request {action}d successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error processing request: {str(e)}'}), 500
 
 @warehouse_dashboard.route('/respond_to_request', methods=['POST'])
 @login_required
 def respond_to_request():
-    if current_user.role != 'warehouse_manager':
-        return jsonify({'success': False, 'message': 'Access denied'})
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
     
+    # Get the warehouse data
     warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        return jsonify({'success': False, 'message': 'Warehouse not found'}), 404
     
     # Handle both form data and JSON data
-    if request.is_json:
-        data = request.get_json()
-        request_id = data.get('request_id')
-        approved_quantity = float(data.get('approved_quantity', 0))
-        notes = data.get('notes', '')
-        action = data.get('action')
-    else:
-        request_id = request.form.get('request_id')
-        approved_quantity = float(request.form.get('approved_quantity', 0))
-        notes = request.form.get('notes', '')
-        action = request.form.get('action')
+    data = request.json if request.is_json else request.form
+    request_id = data.get('request_id')
+    approved_quantity = float(data.get('approved_quantity', 0))
+    notes = data.get('notes', '')
+    action = data.get('action')
     
     if not request_id:
-        return jsonify({'success': False, 'message': 'Request ID is required'})
+        return jsonify({'success': False, 'message': 'Request ID is required'}), 400
     
     try:
         stock_request = StockRequest.query.get(request_id)
         if not stock_request or stock_request.to_id != warehouse.id:
-            return jsonify({'success': False, 'message': 'Request not found'})
+            return jsonify({'success': False, 'message': 'Request not found'}), 404
         
         if stock_request.status != 'pending':
-            return jsonify({'success': False, 'message': 'Request cannot be modified'})
+            return jsonify({'success': False, 'message': 'Request cannot be modified'}), 400
         
         if action == 'approve':
             # Validate the approved quantity
             if approved_quantity <= 0:
-                return jsonify({'success': False, 'message': 'Approved quantity must be greater than zero'})
+                return jsonify({'success': False, 'message': 'Approved quantity must be greater than zero'}), 400
             
             # Check if warehouse has enough remaining space
             total_allocated = sum([
@@ -733,7 +828,7 @@ def respond_to_request():
                 return jsonify({
                     'success': False, 
                     'message': f'Insufficient warehouse space. Only {remaining_space:.2f} tons available.'
-                })
+                }), 400
             
             # Update the stock with approved quantity
             stock_request.stock.quantity = approved_quantity
@@ -765,221 +860,18 @@ def respond_to_request():
             )
             db.session.add(notification)
         else:
-            return jsonify({'success': False, 'message': 'Invalid action'})
+            return jsonify({'success': False, 'message': 'Invalid action'}), 400
         
         # Update notes
         stock_request.admin_notes = notes
         
         db.session.commit()
-        return jsonify({'success': True})
+        return jsonify({'success': True, 'message': f'Request {action}d successfully'}), 200
         
     except Exception as e:
         db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({'success': False, 'message': str(e)}), 500
 
-@warehouse_dashboard.route('/reject_request', methods=['POST'])
-@login_required
-def reject_request():
-    if current_user.role != 'warehouse_manager':
-        return jsonify({'success': False, 'message': 'Access denied'})
-    
-    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
-    data = request.get_json()
-    request_id = data.get('request_id')
-    notes = data.get('notes', '')
-    
-    if not request_id:
-        return jsonify({'success': False, 'message': 'Request ID is required'})
-    
-    try:
-        stock_request = StockRequest.query.get(request_id)
-        if not stock_request or stock_request.to_id != warehouse.id:
-            return jsonify({'success': False, 'message': 'Request not found'})
-        
-        if stock_request.status != 'pending':
-            return jsonify({'success': False, 'message': 'Request cannot be modified'})
-        
-        # Update request status and stock status
-        stock_request.status = 'rejected'
-        stock_request.admin_notes = notes
-        stock_request.stock.status = 'rejected'  # Update stock status to rejected
-        
-        db.session.commit()
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)})
-
-@warehouse_dashboard.route('/create_request', methods=['POST'])
-@login_required
-def create_request():
-    if current_user.role != 'warehouse_manager':
-        return jsonify({'success': False, 'message': 'Access denied'})
-    
-    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
-    
-    stock_type = request.form.get('stock_type')
-    if stock_type == 'Other':
-        stock_type = request.form.get('other_stock_type')
-    
-    quantity = request.form.get('quantity')
-    price_per_ton = request.form.get('price_per_ton')
-    expiry_date = request.form.get('expiry_date')
-    description = request.form.get('description', '')
-    
-    if not all([stock_type, quantity, price_per_ton, expiry_date]):
-        return jsonify({'success': False, 'message': 'All required fields must be filled'})
-    
-    try:
-        quantity = float(quantity)
-        price_per_ton = float(price_per_ton)
-        expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d')
-        
-        if quantity <= 0 or price_per_ton <= 0:
-            return jsonify({'success': False, 'message': 'Quantity and price must be greater than zero'})
-        
-        if expiry_date <= datetime.now():
-            return jsonify({'success': False, 'message': 'Expiry date must be in the future'})
-        
-        # Create new warehouse request
-        new_request = WarehouseRequest(
-            warehouse_id=warehouse.id,
-            stock_type=stock_type,
-            quantity=quantity,
-            price_per_ton=price_per_ton,
-            description=description,
-            expiry_date=expiry_date
-        )
-        
-        db.session.add(new_request)
-        db.session.commit()
-        
-        return jsonify({'success': True})
-        
-    except ValueError:
-        return jsonify({'success': False, 'message': 'Invalid numeric values'})
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)})
-
-@warehouse_dashboard.route('/delete_request/<int:request_id>', methods=['POST'])
-@login_required
-def delete_request(request_id):
-    if current_user.role != 'warehouse_manager':
-        return jsonify({'success': False, 'message': 'Access denied'})
-    
-    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
-    
-    try:
-        request = WarehouseRequest.query.get(request_id)
-        if not request or request.warehouse_id != warehouse.id:
-            return jsonify({'success': False, 'message': 'Request not found'})
-        
-        if request.status != 'open':
-            return jsonify({'success': False, 'message': 'Only open requests can be deleted'})
-        
-        db.session.delete(request)
-        db.session.commit()
-        
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)})
-
-@warehouse_dashboard.route('/update_stock_distribution', methods=['POST'])
-@login_required
-def update_stock_distribution():
-    if current_user.role != 'warehouse_manager':
-        return jsonify({'success': False, 'message': 'Access denied'})
-    
-    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
-    data = request.get_json()
-    updates = data.get('updates', [])
-    
-    try:
-        for update in updates:
-            stock_type = update['type']
-            farmer_name = update['farmer']
-            new_quantity = float(update['quantity'])
-            return_to_farmer = update.get('return_to_farmer', False)
-            is_reallocation = update.get('is_reallocation', False)
-            from_farmer = update.get('from_farmer')
-            
-            # Get all stocks for this farmer and type
-            stocks = Stock.query.join(Farmer).filter(
-                Stock.warehouse_id == warehouse.id,
-                Stock.type == stock_type,
-                Stock.status == 'stored',
-                Farmer.name == farmer_name
-            ).all()
-            
-            if not stocks:
-                continue
-            
-            current_total = sum(stock.quantity for stock in stocks)
-            
-            if return_to_farmer:
-                # Return all stock to farmer
-                for stock in stocks:
-                    warehouse.available_space += stock.quantity
-                    stock.status = 'returned'
-                    stock.return_date = datetime.utcnow()
-                    
-                    # Create notification for farmer
-                    notification = Notification(
-                        user_id=stock.farmer.user_id,
-                        title='Stock Returned',
-                        message=f'{stock.quantity} tons of {stock.type} has been returned from {warehouse.name}',
-                        type='stock_return',
-                        created_at=datetime.utcnow()
-                    )
-                    db.session.add(notification)
-            else:
-                # Update stock quantities
-                if current_total == 0:
-                    continue
-                    
-                ratio = new_quantity / current_total
-                total_difference = current_total - new_quantity
-                
-                for stock in stocks:
-                    old_quantity = stock.quantity
-                    new_stock_quantity = stock.quantity * ratio
-                    
-                    quantity_difference = old_quantity - new_stock_quantity
-                    warehouse.available_space += quantity_difference
-                    
-                    stock.quantity = new_stock_quantity
-                    
-                    # Create notification for farmer if stock was reduced
-                    if quantity_difference > 0:
-                        notification_message = (
-                            f'{quantity_difference:.2f} tons of your {stock.type} storage has been '
-                            f'{"reallocated" if is_reallocation else "reduced"}'
-                        )
-                        
-                        if is_reallocation and from_farmer:
-                            notification_message += f' and transferred to {from_farmer}'
-                            
-                        notification = Notification(
-                            user_id=stock.farmer.user_id,
-                            title='Storage Update',
-                            message=notification_message,
-                            type='storage_update',
-                            created_at=datetime.utcnow()
-                        )
-                        db.session.add(notification)
-        
-        db.session.commit()
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)})
-
-# Main Routes
 @main.route('/')
 def index():
     return render_template('index.html')
@@ -1146,7 +1038,162 @@ def requests():
     stock_requests = StockRequest.query.all()
     return render_template('admin/requests.html', requests=stock_requests)
 
-# Context processor for admin blueprint
+@admin.route('/ration-shops')
+@admin_required
+def ration_shops():
+    ration_shops = RationShop.query.all()
+    return render_template('admin/ration_shops.html', ration_shops=ration_shops)
+
+@admin.route('/approve-ration-shop', methods=['POST'])
+@admin_required
+def approve_ration_shop():
+    data = request.json if request.is_json else request.form
+    
+    shop_id = data.get('shop_id')
+    unique_id = data.get('unique_id')
+    password = data.get('password')
+    
+    if not all([shop_id, unique_id, password]):
+        if request.is_json:
+            return jsonify({'success': False, 'message': 'Missing required fields'})
+        else:
+            flash('Missing required fields', 'error')
+            return redirect(url_for('admin.ration_shops'))
+    
+    try:
+        # Get the ration shop
+        shop = RationShop.query.get(shop_id)
+        if not shop:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Ration shop not found'})
+            else:
+                flash('Ration shop not found', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Check if shop is already approved or rejected
+        if shop.status != 'pending':
+            if request.is_json:
+                return jsonify({'success': False, 'message': f'Ration shop is already {shop.status}'})
+            else:
+                flash(f'Ration shop is already {shop.status}', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Check if unique ID is already in use
+        existing_shop = RationShop.query.filter_by(unique_id=unique_id).first()
+        if existing_shop and existing_shop.id != int(shop_id):
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Unique ID is already in use'})
+            else:
+                flash('Unique ID is already in use', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Create a new user for the ration shop
+        user = User(
+            phone_number=unique_id,  # Using unique_id as phone_number
+            password_hash=generate_password_hash(password),
+            role='ration_shop'
+        )
+        db.session.add(user)
+        db.session.flush()  # Flush to get the user ID
+        
+        # Update the ration shop
+        shop.status = 'approved'
+        shop.unique_id = unique_id
+        shop.temp_password = password  # Store the temporary password
+        shop.user_id = user.id
+        shop.approved_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        # Send an email to the shop owner with their credentials
+        email_sent = False
+        try:
+            email_sent = send_credentials_email(shop.email, shop.name, unique_id, password)
+        except Exception as e:
+            # Log the error but continue with the approval process
+            print(f"Error sending email: {str(e)}")
+        
+        if request.is_json:
+            return jsonify({
+                'success': True, 
+                'email_sent': email_sent,
+                'message': 'Ration shop approved successfully' + ('' if email_sent else ', but email could not be sent')
+            })
+        else:
+            if email_sent:
+                flash('Ration shop approved successfully and credentials email sent!', 'success')
+            else:
+                flash('Ration shop approved successfully, but credentials email could not be sent. Please check email settings.', 'warning')
+            return redirect(url_for('admin.ration_shops'))
+        
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'message': str(e)})
+        else:
+            flash(f'Error: {str(e)}', 'error')
+            return redirect(url_for('admin.ration_shops'))
+
+@admin.route('/reject-ration-shop', methods=['POST'])
+@admin_required
+def reject_ration_shop():
+    data = request.json if request.is_json else request.form
+    
+    shop_id = data.get('shop_id')
+    reason = data.get('reason', '')
+    
+    if not shop_id:
+        if request.is_json:
+            return jsonify({'success': False, 'message': 'Shop ID is required'})
+        else:
+            flash('Shop ID is required', 'error')
+            return redirect(url_for('admin.ration_shops'))
+    
+    try:
+        # Get the ration shop
+        shop = RationShop.query.get(shop_id)
+        if not shop:
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Ration shop not found'})
+            else:
+                flash('Ration shop not found', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Check if shop is already approved or rejected
+        if shop.status != 'pending':
+            if request.is_json:
+                return jsonify({'success': False, 'message': f'Ration shop is already {shop.status}'})
+            else:
+                flash(f'Ration shop is already {shop.status}', 'error')
+                return redirect(url_for('admin.ration_shops'))
+        
+        # Update the ration shop
+        shop.status = 'rejected'
+        shop.admin_notes = reason
+        
+        db.session.commit()
+        
+        # Optionally, send an email to the shop owner with the rejection reason
+        try:
+            send_rejection_email(shop.email, reason)
+        except Exception as e:
+            # Log the error but continue with the rejection process
+            print(f"Error sending email: {str(e)}")
+        
+        if request.is_json:
+            return jsonify({'success': True, 'message': 'Ration shop rejected successfully'})
+        else:
+            flash('Ration shop rejected successfully!', 'success')
+            return redirect(url_for('admin.ration_shops'))
+        
+    except Exception as e:
+        db.session.rollback()
+        if request.is_json:
+            return jsonify({'success': False, 'message': str(e)})
+        else:
+            flash(f'Error: {str(e)}', 'error')
+            return redirect(url_for('admin.ration_shops'))
+
 @admin.context_processor
 def inject_admin_data():
     admin_data = {'current_user': current_user}
@@ -1214,314 +1261,6 @@ def ration_register():
     
     return render_template('ration_register.html', form=form, maps_api_key=current_app.config['GOOGLE_MAPS_API_KEY'])
 
-# Ration shop routes
-@main.route('/ration/dashboard')
-@login_required
-def ration_dashboard():
-    # Check if user is a ration shop manager
-    if not current_user.is_authenticated or current_user.role != 'ration_shop':
-        flash('You need to be logged in as a ration shop manager to access this page.', 'error')
-        return redirect(url_for('auth.login'))
-    
-    # Get the ration shop data
-    shop = RationShop.query.filter_by(user_id=current_user.id).first()
-    if not shop:
-        flash('Ration shop not found.', 'error')
-        return redirect(url_for('main.index'))
-    
-    # Get statistics (placeholder for now)
-    stats = {
-        'customers': 0,
-        'inventory_items': 0,
-        'transactions': 0,
-        'pending_requests': 0
-    }
-    
-    # Get notifications (placeholder for now)
-    notifications = []
-    
-    return render_template('ration/dashboard.html', shop=shop, stats=stats, notifications=notifications)
-
-# Admin routes for ration shops
-@admin.route('/ration-shops')
-@admin_required
-def ration_shops():
-    ration_shops = RationShop.query.all()
-    return render_template('admin/ration_shops.html', ration_shops=ration_shops)
-
-# Route to approve ration shop
-@admin.route('/approve-ration-shop', methods=['POST'])
-@admin_required
-def approve_ration_shop():
-    import logging
-    logger = logging.getLogger('approve_ration_shop')
-    
-    # Handle both form data and JSON data
-    if request.is_json:
-        data = request.get_json()
-        logger.debug("Received JSON data for ration shop approval")
-    else:
-        data = request.form
-        logger.debug("Received form data for ration shop approval")
-    
-    shop_id = data.get('shop_id')
-    unique_id = data.get('unique_id')
-    password = data.get('password')
-    
-    logger.debug(f"Processing approval for shop_id: {shop_id}, unique_id: {unique_id}")
-    
-    if not all([shop_id, unique_id, password]):
-        logger.error("Missing required fields for ration shop approval")
-        if request.is_json:
-            return jsonify({'success': False, 'message': 'Missing required fields'})
-        else:
-            flash('Missing required fields', 'error')
-            return redirect(url_for('admin.ration_shops'))
-    
-    try:
-        # Get the ration shop
-        shop = RationShop.query.get(shop_id)
-        if not shop:
-            logger.error(f"Ration shop with ID {shop_id} not found")
-            if request.is_json:
-                return jsonify({'success': False, 'message': 'Ration shop not found'})
-            else:
-                flash('Ration shop not found', 'error')
-                return redirect(url_for('admin.ration_shops'))
-        
-        logger.debug(f"Found ration shop: {shop.name}, email: {shop.email}, status: {shop.status}")
-        
-        # Check if shop is already approved or rejected
-        if shop.status != 'pending':
-            logger.warning(f"Ration shop is already {shop.status}")
-            if request.is_json:
-                return jsonify({'success': False, 'message': f'Ration shop is already {shop.status}'})
-            else:
-                flash(f'Ration shop is already {shop.status}', 'error')
-                return redirect(url_for('admin.ration_shops'))
-        
-        # Check if unique ID is already in use
-        existing_shop = RationShop.query.filter_by(unique_id=unique_id).first()
-        if existing_shop and existing_shop.id != int(shop_id):
-            logger.warning(f"Unique ID {unique_id} is already in use by another shop")
-            if request.is_json:
-                return jsonify({'success': False, 'message': 'Unique ID is already in use'})
-            else:
-                flash('Unique ID is already in use', 'error')
-                return redirect(url_for('admin.ration_shops'))
-        
-        logger.debug("Creating new user for the ration shop")
-        # Create a new user for the ration shop
-        # Use the unique_id as the phone_number since it's required and unique
-        user = User(
-            phone_number=unique_id,  # Using unique_id as phone_number
-            password_hash=generate_password_hash(password),
-            role='ration_shop'
-        )
-        db.session.add(user)
-        db.session.flush()  # Flush to get the user ID
-        
-        logger.debug(f"Created user with ID: {user.id}")
-        
-        # Update the ration shop
-        shop.status = 'approved'
-        shop.unique_id = unique_id
-        shop.temp_password = password  # Store the temporary password (consider encrypting this in production)
-        shop.user_id = user.id
-        shop.approved_at = datetime.utcnow()
-        
-        logger.debug("Committing changes to database")
-        db.session.commit()
-        logger.info(f"Ration shop {shop.name} (ID: {shop.id}) approved successfully")
-        
-        # Send an email to the shop owner with their credentials
-        email_sent = False
-        try:
-            # Log the attempt to send email
-            logger.info(f"Attempting to send credentials email to {shop.email}")
-            
-            # Check if email and password are set
-            email_user = os.environ.get('EMAIL_USER', '')
-            email_password = os.environ.get('EMAIL_PASSWORD', '')
-            logger.debug(f"Email configuration: USER={email_user}, PASSWORD_SET={'Yes' if email_password else 'No'}")
-            
-            # Send the email
-            email_sent = send_credentials_email(shop.email, shop.name, unique_id, password)
-            
-            if email_sent:
-                logger.info(f"Successfully sent credentials email to {shop.email}")
-            else:
-                logger.error(f"Failed to send credentials email to {shop.email}")
-        except Exception as e:
-            # Log the error but continue with the approval process
-            logger.exception(f"Error sending email to {shop.email}: {str(e)}")
-        
-        if request.is_json:
-            return jsonify({
-                'success': True, 
-                'email_sent': email_sent,
-                'message': 'Ration shop approved successfully' + ('' if email_sent else ', but email could not be sent')
-            })
-        else:
-            if email_sent:
-                flash('Ration shop approved successfully and credentials email sent!', 'success')
-            else:
-                flash('Ration shop approved successfully, but credentials email could not be sent. Please check email settings.', 'warning')
-            return redirect(url_for('admin.ration_shops'))
-        
-    except Exception as e:
-        logger.exception(f"Error approving ration shop: {str(e)}")
-        db.session.rollback()
-        if request.is_json:
-            return jsonify({'success': False, 'message': str(e)})
-        else:
-            flash(f'Error: {str(e)}', 'error')
-            return redirect(url_for('admin.ration_shops'))
-
-# Route to reject ration shop
-@admin.route('/reject-ration-shop', methods=['POST'])
-@admin_required
-def reject_ration_shop():
-    # Handle both form data and JSON data
-    if request.is_json:
-        data = request.get_json()
-    else:
-        data = request.form
-    
-    shop_id = data.get('shop_id')
-    reason = data.get('reason', '')
-    
-    if not shop_id:
-        if request.is_json:
-            return jsonify({'success': False, 'message': 'Shop ID is required'})
-        else:
-            flash('Shop ID is required', 'error')
-            return redirect(url_for('admin.ration_shops'))
-    
-    try:
-        # Get the ration shop
-        shop = RationShop.query.get(shop_id)
-        if not shop:
-            if request.is_json:
-                return jsonify({'success': False, 'message': 'Ration shop not found'})
-            else:
-                flash('Ration shop not found', 'error')
-                return redirect(url_for('admin.ration_shops'))
-        
-        # Check if shop is already approved or rejected
-        if shop.status != 'pending':
-            if request.is_json:
-                return jsonify({'success': False, 'message': f'Ration shop is already {shop.status}'})
-            else:
-                flash(f'Ration shop is already {shop.status}', 'error')
-                return redirect(url_for('admin.ration_shops'))
-        
-        # Update the ration shop
-        shop.status = 'rejected'
-        shop.rejection_reason = reason
-        shop.rejected_at = datetime.utcnow()
-        
-        db.session.commit()
-        
-        # Optionally, send an email to the shop owner with the rejection reason
-        try:
-            send_rejection_email(shop.email, reason)
-        except Exception as e:
-            # Log the error but continue with the rejection process
-            print(f"Error sending email: {str(e)}")
-        
-        if request.is_json:
-            return jsonify({'success': True})
-        else:
-            flash('Ration shop rejected successfully!', 'success')
-            return redirect(url_for('admin.ration_shops'))
-        
-    except Exception as e:
-        db.session.rollback()
-        if request.is_json:
-            return jsonify({'success': False, 'message': str(e)})
-        else:
-            flash(f'Error: {str(e)}', 'error')
-            return redirect(url_for('admin.ration_shops'))
-
-# Route to get ration shop credentials
-@admin.route('/get-ration-shop-credentials/<int:shop_id>')
-@admin_required
-def get_ration_shop_credentials(shop_id):
-    try:
-        # Get the ration shop
-        shop = RationShop.query.get(shop_id)
-        if not shop:
-            return jsonify({'success': False, 'message': 'Ration shop not found'})
-        
-        # Check if shop is approved
-        if shop.status != 'approved':
-            return jsonify({'success': False, 'message': 'Ration shop is not approved'})
-        
-        # Get the user associated with the shop
-        user = User.query.get(shop.user_id) if shop.user_id else None
-        if not user:
-            return jsonify({'success': False, 'message': 'User not found for this ration shop'})
-        
-        # Return the credentials
-        return jsonify({
-            'success': True,
-            'shop_name': shop.name,
-            'unique_id': shop.unique_id,
-            'password': shop.temp_password  # Note: In a production environment, you might want to handle this differently
-        })
-        
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)})
-
-# Route to reset ration shop password
-@admin.route('/reset-ration-shop-password', methods=['POST'])
-@admin_required
-def reset_ration_shop_password():
-    if not request.is_json:
-        return jsonify({'success': False, 'message': 'Invalid request format'})
-    
-    data = request.get_json()
-    shop_id = data.get('shop_id')
-    new_password = data.get('new_password')
-    
-    if not all([shop_id, new_password]):
-        return jsonify({'success': False, 'message': 'Missing required fields'})
-    
-    try:
-        # Get the ration shop
-        shop = RationShop.query.get(shop_id)
-        if not shop:
-            return jsonify({'success': False, 'message': 'Ration shop not found'})
-        
-        # Check if shop is approved
-        if shop.status != 'approved':
-            return jsonify({'success': False, 'message': 'Ration shop is not approved'})
-        
-        # Get the user associated with the shop
-        user = User.query.get(shop.user_id) if shop.user_id else None
-        if not user:
-            return jsonify({'success': False, 'message': 'User not found for this ration shop'})
-        
-        # Update the password
-        user.password_hash = generate_password_hash(new_password)
-        shop.temp_password = new_password  # Store the new temporary password
-        
-        db.session.commit()
-        
-        # Optionally, send an email to the shop owner with the new password
-        try:
-            send_password_reset_email(shop.email, shop.unique_id, new_password)
-        except Exception as e:
-            # Log the error but continue with the password reset process
-            print(f"Error sending email: {str(e)}")
-        
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)})
-
 @auth.route('/ration/login', methods=['GET', 'POST'])
 def ration_login():
     # If user is already logged in, redirect to dashboard
@@ -1570,6 +1309,215 @@ def ration_login():
             return render_template('ration/login.html', form=form)
     
     return render_template('ration/login.html', form=form)
+
+@main.route('/ration/dashboard')
+@login_required
+def ration_dashboard():
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        flash('You need to be logged in as a ration shop manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        flash('Ration shop not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get statistics
+    pending_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id, status='pending').count()
+    approved_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id, status='approved').count()
+    rejected_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id, status='rejected').count()
+    total_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id).count()
+    
+    # Calculate total inventory
+    total_inventory = 0  # This would be calculated from actual inventory
+    
+    stats = {
+        'customers': 0,  # This would be calculated from actual customer data
+        'inventory_items': total_inventory,
+        'transactions': 0,  # This would be calculated from actual transaction data
+        'pending_requests': pending_requests
+    }
+    
+    # Get notifications
+    notifications = Notification.query.filter_by(user_id=current_user.id, read=False).all()
+    
+    # Get all warehouses for making requests
+    warehouses = Warehouse.query.all()
+    
+    # Get all stock requests made by this ration shop
+    stock_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id).order_by(RationStockRequest.request_date.desc()).all()
+    
+    # Get warehouse stock data for the first warehouse (default selection)
+    default_warehouse = warehouses[0] if warehouses else None
+    warehouse_stock = []
+    
+    if default_warehouse:
+        warehouse_stock = Stock.query.filter_by(
+            warehouse_id=default_warehouse.id,
+            status='stored'
+        ).all()
+    
+    return render_template('ration/dashboard.html', 
+                          shop=shop, 
+                          stats=stats, 
+                          notifications=notifications,
+                          warehouses=warehouses,
+                          stock_requests=stock_requests,
+                          pending_count=pending_requests,
+                          approved_count=approved_requests,
+                          rejected_count=rejected_requests,
+                          total_count=total_requests,
+                          default_warehouse=default_warehouse,
+                          warehouse_stock=warehouse_stock)
+
+@main.route('/ration/get_warehouse_stock/<int:warehouse_id>')
+@login_required
+def get_warehouse_stock(warehouse_id):
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.get(warehouse_id)
+    if not warehouse:
+        return jsonify({'success': False, 'message': 'Warehouse not found'}), 404
+    
+    # Get all stored stock in the warehouse
+    stocks = Stock.query.filter_by(
+        warehouse_id=warehouse_id,
+        status='stored'
+    ).all()
+    
+    # Format the stock data
+    stock_data = []
+    for stock in stocks:
+        stock_data.append({
+            'id': stock.id,
+            'type': stock.type,
+            'quantity': stock.quantity,
+            'farmer_name': stock.farmer.name if stock.farmer else 'Unknown'
+        })
+    
+    # Get warehouse capacity information
+    total_allocated = sum([stock.quantity for stock in stocks])
+    available_space = warehouse.capacity - total_allocated
+    
+    return jsonify({
+        'success': True,
+        'warehouse': {
+            'id': warehouse.id,
+            'name': warehouse.name,
+            'location': warehouse.location,
+            'capacity': warehouse.capacity,
+            'total_allocated': total_allocated,
+            'available_space': available_space
+        },
+        'stocks': stock_data
+    })
+
+@main.route('/ration/make_request', methods=['POST'])
+@login_required
+def ration_make_request():
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        return jsonify({'success': False, 'message': 'Ration shop not found'}), 404
+    
+    # Get form data
+    data = request.form
+    warehouse_id = data.get('warehouse_id')
+    stock_type = data.get('stock_type')
+    quantity = data.get('quantity')
+    notes = data.get('notes', '')
+    
+    # Validate data
+    if not warehouse_id or not stock_type or not quantity:
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+    
+    try:
+        quantity = float(quantity)
+        if quantity <= 0:
+            return jsonify({'success': False, 'message': 'Quantity must be greater than 0'}), 400
+    except ValueError:
+        return jsonify({'success': False, 'message': 'Invalid quantity format'}), 400
+    
+    # Check if warehouse exists
+    warehouse = Warehouse.query.get(warehouse_id)
+    if not warehouse:
+        return jsonify({'success': False, 'message': 'Warehouse not found'}), 404
+    
+    # Create stock request
+    stock_request = RationStockRequest(
+        ration_shop_id=shop.id,
+        warehouse_id=warehouse_id,
+        stock_type=stock_type,
+        quantity=quantity,
+        notes=notes,
+        status='pending'
+    )
+    
+    try:
+        db.session.add(stock_request)
+        db.session.commit()
+        
+        # Create notification for warehouse manager
+        notification = Notification(
+            user_id=warehouse.user_id,
+            title='New Stock Request',
+            message=f'Ration shop {shop.name} has requested {quantity} tons of {stock_type}.',
+            type='ration_stock_request'
+        )
+        db.session.add(notification)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Stock request submitted successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error creating request: {str(e)}'}), 500
+
+@main.route('/ration/cancel_request/<int:request_id>', methods=['POST'])
+@login_required
+def ration_cancel_request(request_id):
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        return jsonify({'success': False, 'message': 'Ration shop not found'}), 404
+    
+    # Find the request
+    stock_request = RationStockRequest.query.filter_by(id=request_id, ration_shop_id=shop.id, status='pending').first()
+    if not stock_request:
+        return jsonify({'success': False, 'message': 'Request not found or cannot be canceled'}), 404
+    
+    # Cancel the request
+    stock_request.status = 'canceled'
+    
+    try:
+        db.session.commit()
+        
+        # Create notification for warehouse manager
+        notification = Notification(
+            user_id=stock_request.warehouse.user_id,
+            title='Request Canceled',
+            message=f'Ration shop {shop.name} has canceled their request for {stock_request.quantity} tons of {stock_request.stock_type}.',
+            type='ration_stock_request_canceled'
+        )
+        db.session.add(notification)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Request canceled successfully'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Error canceling request: {str(e)}'}), 500
 
 @auth.route('/test-maps-api')
 def test_maps_api():

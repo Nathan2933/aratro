@@ -112,8 +112,87 @@
             </table>
         </div>
     </div>
+
+    <!-- Ration Shop Pending Requests Section -->
+    <div class="card mb-4">
+        <h2>Ration Shop Pending Requests</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Ration Shop</th>
+                        <th>Stock Type</th>
+                        <th>Requested Quantity</th>
+                        <th>Request Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in ration_pending_requests %}
+                    <tr>
+                        <td>{{ request.ration_shop.name }}</td>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td>{{ request.request_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <span class="badge badge-warning">Pending</span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-success btn-sm" 
+                                        onclick="approveRationRequest({{ request.id }})">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button class="btn btn-danger btn-sm" 
+                                        onclick="rejectRationRequest({{ request.id }})">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Ration Shop Approved Requests Section -->
+    <div class="card mb-4">
+        <h2>Ration Shop Approved Requests</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Ration Shop</th>
+                        <th>Stock Type</th>
+                        <th>Quantity</th>
+                        <th>Request Date</th>
+                        <th>Processed Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in ration_approved_requests %}
+                    <tr>
+                        <td>{{ request.ration_shop.name }}</td>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td>{{ request.request_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ request.processed_date.strftime('%Y-%m-%d %H:%M') if request.processed_date else 'N/A' }}</td>
+                        <td>
+                            <span class="badge badge-success">Approved</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 
+<!-- Include SweetAlert2 library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 function approveRequest(requestId) {
@@ -236,6 +315,175 @@ function initializeStorageChart() {
 document.addEventListener('DOMContentLoaded', function() {
     initializeStorageChart();
 });
+
+// Function to approve ration shop request
+function approveRationRequest(requestId) {
+    // Show modal for notes
+    Swal.fire({
+        title: 'Approve Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Notes (optional):</label>
+                <textarea id="notes" class="form-control"></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Approve',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            return {
+                notes: document.getElementById('notes').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Approving the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send approval request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'approve',
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request approved successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to approve request.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An unexpected error occurred: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// Function to reject ration shop request
+function rejectRationRequest(requestId) {
+    // Show modal for rejection reason
+    Swal.fire({
+        title: 'Reject Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Reason for rejection:</label>
+                <textarea id="notes" class="form-control" required></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const notes = document.getElementById('notes').value;
+            if (!notes) {
+                Swal.showValidationMessage('Please provide a reason for rejection');
+                return false;
+            }
+            return {
+                notes: notes
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Rejecting the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send rejection request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'reject',
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request rejected successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to reject request.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An unexpected error occurred: ' + error.message
+                });
+            });
+        }
+    });
+}
 </script>
 
 <style>

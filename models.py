@@ -137,3 +137,26 @@ class RationShop(db.Model):
     
     def __repr__(self):
         return f'<RationShop {self.name}>'
+
+class RationStockRequest(db.Model):
+    __tablename__ = 'ration_stock_request'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    ration_shop_id = db.Column(db.Integer, db.ForeignKey('ration_shop.id'), nullable=False)
+    warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)
+    stock_type = db.Column(db.String(100), nullable=False)
+    quantity = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, rejected
+    request_date = db.Column(db.DateTime, default=datetime.utcnow)
+    processed_date = db.Column(db.DateTime, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    admin_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    ration_shop = db.relationship('RationShop', backref='stock_requests')
+    warehouse = db.relationship('Warehouse', backref='ration_requests')
+    
+    def __repr__(self):
+        return f'<RationStockRequest {self.id}: from {self.ration_shop_id} to {self.warehouse_id}>'

@@ -4,299 +4,476 @@
 
 {% block styles %}
 <style>
-/* Dashboard Stats - New Design */
-.dashboard-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+/* Dashboard layout */
+.main-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+}
+
+.dashboard-header h1 {
+    margin-bottom: 0.5rem;
+    color: #2d6b45;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
     margin-bottom: 2rem;
 }
 
-/* Using higher specificity to override global styles */
-.dashboard-stats .stat-card {
-    background: white !important;
-    border-radius: 16px !important;
-    padding: 2rem !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
-    transition: all 0.3s ease !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    position: relative !important;
-    border: 2px solid #e0e0e0 !important;
-    background-image: none !important;
+.card h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    color: #2d6b45;
+    font-size: 1.5rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.75rem;
 }
 
-.dashboard-stats .stat-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(90deg, #55c759, #3da042);
-    border-bottom-left-radius: 16px;
-    border-bottom-right-radius: 16px;
+/* Storage stats */
+.storage-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
-.dashboard-stats .stat-card:hover {
-    transform: translateY(-5px) !important;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15) !important;
-}
-
-.dashboard-stats .stat-card i {
-    font-size: 2.5rem !important;
-    margin-bottom: 1rem !important;
-    background: linear-gradient(135deg, #55c759, #3da042);
-    -webkit-background-clip: text !important;
-    -webkit-text-fill-color: transparent !important;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-}
-
-.dashboard-stats .stat-card h3 {
-    font-size: 2.5rem !important;
-    font-weight: 700 !important;
-    color: #2d6b45 !important;
-    margin: 0.5rem 0 !important;
-    line-height: 1 !important;
-}
-
-.dashboard-stats .stat-card p {
-    font-size: 1rem !important;
-    color: #666 !important;
-    margin: 0 !important;
-    font-weight: 500 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 1px !important;
-}
-
-.dashboard-stats .stat-card:nth-child(1)::after {
-    background: linear-gradient(90deg, #55c759, #3da042) !important;
-}
-
-.dashboard-stats .stat-card:nth-child(2)::after {
-    background: linear-gradient(90deg, #358856, #246b3d) !important;
-}
-
-.dashboard-stats .stat-card:nth-child(3)::after {
-    background: linear-gradient(90deg, #6ab04c, #437c2d) !important;
-}
-
-.dashboard-stats .stat-card:nth-child(4)::after {
-    background: linear-gradient(90deg, #92d275, #6ab04c) !important;
-}
-
-/* Status list styles */
-.status-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.status-item {
-    background: var(--surface-color);
-    border-radius: 8px;
+.stat-item {
+    text-align: center;
     padding: 1rem;
-    border: 1px solid var(--border-color);
+    background: #f9f9f9;
+    border-radius: 8px;
 }
 
-.status-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    margin-right: 0.75rem;
+.stat-item h3 {
+    margin-top: 0;
+    font-size: 1rem;
+    color: #666;
 }
 
-.status-dot.warning { background-color: var(--warning-color); }
-.status-dot.success { background-color: var(--success-color); }
-.status-dot.error { background-color: var(--error-color); }
-
-.status-label {
-    font-weight: 500;
-    color: var(--text-primary);
-    flex: 1;
-}
-
-.status-count {
+.stat-item p {
+    margin-bottom: 0;
+    font-size: 1.5rem;
     font-weight: 600;
-    color: var(--text-primary);
-    background: var(--background-color);
+    color: #2d6b45;
+}
+
+/* Storage chart */
+.storage-chart-container {
+    height: 250px;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+.tab {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: #666;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab:hover {
+    color: #2d6b45;
+}
+
+.tab.active {
+    color: #2d6b45;
+    border-bottom-color: #2d6b45;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Table styles */
+.table-container {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th, .table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+.table th {
+    background-color: #f9f9f9;
+    font-weight: 600;
+    color: #333;
+}
+
+.table tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #2d6b45;
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #235536;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.btn-danger {
+    background-color: #e53935;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c62828;
+}
+
+/* Status badges */
+.badge {
     padding: 0.25rem 0.75rem;
-    border-radius: 999px;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
 }
 
-.status-details {
-    margin-top: 0.5rem;
-    padding-left: 1.75rem;
+.badge-warning {
+    background-color: #ffeaa7;
+    color: #d35400;
 }
 
-.text-muted {
-    color: var(--text-secondary);
+.badge-success {
+    background-color: #d4f5d4;
+    color: #27ae60;
+}
+
+.badge-danger {
+    background-color: #ffebee;
+    color: #e53935;
+}
+
+.badge-secondary {
+    background-color: #e0e0e0;
+    color: #555;
+}
+
+/* Warehouse stock section */
+.warehouse-stock {
+    margin-top: 1.5rem;
+}
+
+.warehouse-selector {
+    margin-bottom: 1.5rem;
+}
+
+.warehouse-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #f9f9f9;
+    border-radius: 8px;
+}
+
+.warehouse-info-item {
+    text-align: center;
+}
+
+.warehouse-info-item h4 {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #666;
+}
+
+.warehouse-info-item p {
+    margin: 0.5rem 0 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #2d6b45;
+}
+
+/* Alert styles */
+.alert {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.alert-success {
+    background-color: #d4f5d4;
+    color: #27ae60;
+}
+
+.alert-error {
+    background-color: #ffebee;
+    color: #e53935;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Add map styles */
+.map-container {
+    height: 400px;
+    width: 100%;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border: 1px solid #d7e6d7;
+}
+
+.warehouse-marker {
+    cursor: pointer;
+}
+
+.warehouse-marker-selected {
+    border: 3px solid #2d6b45;
+    border-radius: 50%;
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="ration-dashboard">
-    <div class="flex justify-between items-center mb-4">
+<div class="main-container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
         <h1>Ration Shop Dashboard</h1>
-        <a href="#" class="btn btn-primary">
-            <i class="fas fa-plus"></i>
-            New Stock Request
-        </a>
+        <p>Welcome back, {{ shop.name }}</p>
     </div>
 
-    <div class="dashboard-stats">
-        <div class="stat-card">
-            <i class="fas fa-users"></i>
-            <h3>{{ stats.customers|default(0) }}</h3>
-            <p>Registered Customers</p>
+    <!-- Alerts container for displaying messages -->
+    <div id="alerts-container"></div>
+
+    <!-- Stats Overview Section -->
+    <div class="card">
+        <h2>Overview</h2>
+        <div class="storage-stats">
+            <div class="stat-item">
+                <h3>Total Requests</h3>
+                <p>{{ total_count }}</p>
+            </div>
+            <div class="stat-item">
+                <h3>Pending</h3>
+                <p>{{ pending_count }}</p>
+            </div>
+            <div class="stat-item">
+                <h3>Approved</h3>
+                <p>{{ approved_count }}</p>
         </div>
-        <div class="stat-card">
-            <i class="fas fa-box"></i>
-            <h3>{{ stats.inventory_items|default(0) }}</h3>
-            <p>Inventory Items</p>
+            <div class="stat-item">
+                <h3>Rejected</h3>
+                <p>{{ rejected_count }}</p>
         </div>
-        <div class="stat-card">
-            <i class="fas fa-exchange-alt"></i>
-            <h3>{{ stats.transactions|default(0) }}</h3>
-            <p>Transactions</p>
         </div>
-        <div class="stat-card">
-            <i class="fas fa-clipboard-list"></i>
-            <h3>{{ stats.pending_requests|default(0) }}</h3>
-            <p>Pending Requests</p>
+        <div class="storage-chart-container">
+            <canvas id="requestsChart"></canvas>
         </div>
     </div>
 
-    <div class="flex gap-4 mt-6">
-        <div class="card" style="flex: 2;">
-            <div class="flex justify-between items-center mb-3">
-                <h2>Inventory Status Overview</h2>
-                <div class="flex gap-2">
-                    <select id="timeFilter" class="form-select">
-                        <option value="all">All Time</option>
-                        <option value="week">Last Week</option>
-                        <option value="month">Last Month</option>
-                        <option value="year">Last Year</option>
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" data-tab="warehouse-stock">Warehouse Stock</div>
+        <div class="tab" data-tab="make-request">Make Stock Request</div>
+        <div class="tab" data-tab="view-requests">View Requests</div>
+    </div>
+    
+    <!-- Warehouse Stock Tab -->
+    <div class="tab-content active" id="warehouse-stock">
+        <div class="card">
+            <h2>Available Stock in Warehouses</h2>
+            <div class="warehouse-selector">
+                <div class="form-group">
+                    <label for="warehouse_selector">Select Warehouse:</label>
+                    <select class="form-control" id="warehouse_selector">
+                        {% for warehouse in warehouses %}
+                        <option value="{{ warehouse.id }}" {% if default_warehouse and warehouse.id == default_warehouse.id %}selected{% endif %}>
+                            {{ warehouse.name }} ({{ warehouse.location }})
+                        </option>
+                        {% endfor %}
                     </select>
                 </div>
             </div>
-            <div class="mt-4">
-                <div class="status-list">
-                    <div class="status-item">
-                        <div class="flex items-center">
-                            <span class="status-dot warning"></span>
-                            <span class="status-label">Low Stock Items</span>
-                            <span class="status-count">{{ stats.low_stock|default(0) }}</span>
-                        </div>
-                        <div class="status-details">
-                            <span class="text-sm text-muted">Items that need to be restocked soon</span>
-                        </div>
+            
+            <div id="warehouse-details">
+                {% if default_warehouse %}
+                <div class="warehouse-info">
+                    <div class="warehouse-info-item">
+                        <h4>Total Capacity</h4>
+                        <p id="warehouse-capacity">{{ default_warehouse.capacity }} tons</p>
                     </div>
-                    
-                    <div class="status-item">
-                        <div class="flex items-center">
-                            <span class="status-dot success"></span>
-                            <span class="status-label">Available Items</span>
-                            <span class="status-count">{{ stats.available_items|default(0) }}</span>
-                        </div>
-                        <div class="status-details">
-                            <span class="text-sm text-muted">Items with sufficient stock</span>
-                        </div>
+                    <div class="warehouse-info-item">
+                        <h4>Allocated Space</h4>
+                        <p id="warehouse-allocated">Loading...</p>
                     </div>
-                    
-                    <div class="status-item">
-                        <div class="flex items-center">
-                            <span class="status-dot error"></span>
-                            <span class="status-label">Out of Stock</span>
-                            <span class="status-count">{{ stats.out_of_stock|default(0) }}</span>
-                        </div>
-                        <div class="status-details">
-                            <span class="text-sm text-muted">Items that need immediate attention</span>
-                        </div>
+                    <div class="warehouse-info-item">
+                        <h4>Available Space</h4>
+                        <p id="warehouse-available">Loading...</p>
                     </div>
                 </div>
-            </div>
+                {% endif %}
         </div>
 
-        <div class="card" style="flex: 1;">
-            <div class="quick-actions">
-                <h2>Quick Actions</h2>
-                <div class="action-buttons">
-                    <a href="#" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        Create New Request
-                    </a>
-                    <a href="#" class="btn btn-outline">
-                        <i class="fas fa-list"></i>
-                        View All Inventory
-                    </a>
-                    <a href="#" class="btn btn-outline">
-                        <i class="fas fa-users"></i>
-                        Manage Customers
-                    </a>
-                    <a href="#" class="btn btn-outline">
-                        <i class="fas fa-exchange-alt"></i>
-                        New Transaction
-                    </a>
-                    <button class="btn btn-outline" onclick="exportReports()">
-                        <i class="fas fa-download"></i>
-                        Export Reports
-                    </button>
-                </div>
+            <div class="table-container">
+                <table class="table" id="warehouse-stock-table">
+                    <thead>
+                        <tr>
+                            <th>Stock Type</th>
+                            <th>Quantity (tons)</th>
+                            <th>Farmer</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="warehouse-stock-body">
+                        <tr>
+                            <td colspan="4" class="text-center">Loading stock data...</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <div class="flex gap-4 mt-6">
-        <div class="card dashboard-option-card" onclick="window.location.href='#'">
-            <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-plus-circle fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">New Transaction</h2>
-                <p class="mb-4">Create a new customer transaction</p>
-                <a href="#" class="btn btn-primary w-full">
-                    <i class="fas fa-plus"></i>
-                    New Transaction
-                </a>
+    <!-- Make Request Tab -->
+    <div class="tab-content" id="make-request">
+        <div class="card">
+            <h2>Request Stock from Warehouse</h2>
+            
+            <!-- Map Container -->
+            <div class="form-group">
+                <label>Select Warehouse on Map:</label>
+                <div id="warehouse-map" class="map-container" style="height: 400px; width: 100%; margin-bottom: 20px;"></div>
+                <div class="form-text">Click on a warehouse marker to select it</div>
             </div>
+            
+            <form id="stockRequestForm">
+                <div class="form-group">
+                    <label for="warehouse_id">Selected Warehouse:</label>
+                    <select class="form-control" id="warehouse_id" name="warehouse_id" required>
+                        <option value="">-- Select Warehouse --</option>
+                        {% for warehouse in warehouses %}
+                        <option value="{{ warehouse.id }}" data-lat="{{ warehouse.latitude }}" data-lng="{{ warehouse.longitude }}">{{ warehouse.name }} ({{ warehouse.location }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="stock_type">Available Stock Types:</label>
+                    <select class="form-control" id="stock_type" name="stock_type" required>
+                        <option value="">-- Select Warehouse First --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="quantity">Quantity (tons):</label>
+                    <input type="number" class="form-control" id="quantity" name="quantity" min="0.1" step="0.1" required>
+                    <div id="max-quantity-info" class="form-text">Maximum available: <span id="max-quantity">0</span> tons</div>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes (optional):</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit Request</button>
+            </form>
         </div>
-
-        <div class="card dashboard-option-card">
-            <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-box fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">Manage Inventory</h2>
-                <p class="mb-4">View and update your inventory items</p>
-                <a href="#" class="btn btn-primary w-full">
-                    <i class="fas fa-eye"></i>
-                    View Inventory
-                </a>
-            </div>
-        </div>
-
-        <div class="card dashboard-option-card">
-            <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-users fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">Customer Management</h2>
-                <p class="mb-4">Manage your registered customers</p>
-                <a href="#" class="btn btn-primary w-full">
-                    <i class="fas fa-eye"></i>
-                    View Customers
-                </a>
-            </div>
-        </div>
+    </div>
         
-        <div class="card dashboard-option-card">
-            <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-chart-bar fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">Reports</h2>
-                <p class="mb-4">View and export transaction reports</p>
-                <a href="#" class="btn btn-primary w-full">
-                    <i class="fas fa-eye"></i>
-                    View Reports
-                </a>
+    <!-- View Requests Tab -->
+    <div class="tab-content" id="view-requests">
+        <div class="card">
+            <h2>Your Stock Requests</h2>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Warehouse</th>
+                            <th>Stock Type</th>
+                            <th>Quantity</th>
+                            <th>Request Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for request in stock_requests %}
+                        <tr>
+                            <td>{{ request.warehouse.name }}</td>
+                            <td>{{ request.stock_type }}</td>
+                            <td>{{ request.quantity }} tons</td>
+                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if request.status == 'pending' %}
+                                <span class="badge badge-warning">Pending</span>
+                                {% elif request.status == 'approved' %}
+                                <span class="badge badge-success">Approved</span>
+                                {% elif request.status == 'rejected' %}
+                                <span class="badge badge-danger">Rejected</span>
+                                {% elif request.status == 'canceled' %}
+                                <span class="badge badge-secondary">Canceled</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if request.status == 'pending' %}
+                                <button class="btn btn-sm btn-danger" onclick="cancelRequest('{{ request.id }}')">Cancel</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not stock_requests %}
+                        <tr>
+                            <td colspan="6" class="text-center">No stock requests found.</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -304,27 +481,599 @@
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Include SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Include Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&libraries=places&callback=initMap" async defer></script>
 <script>
+// Global variables
+let map;
+let warehouseMarkers = [];
+let selectedWarehouseId = null;
+let warehouseStockData = {};
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Add hover effect to cards
-    const cards = document.querySelectorAll('.dashboard-option-card');
-    cards.forEach(card => {
-        card.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-5px)';
-            this.style.boxShadow = '0 10px 20px rgba(45, 107, 69, 0.1)';
-        });
-        
-        card.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = '0 4px 6px rgba(45, 107, 69, 0.1)';
+    // Tab switching
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            const tabId = tab.getAttribute('data-tab');
+            
+            // Remove active class from all tabs and contents
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            
+            // Add active class to clicked tab and corresponding content
+            tab.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            
+            // If switching to make-request tab, resize the map
+            if (tabId === 'make-request' && map) {
+                google.maps.event.trigger(map, 'resize');
+            }
         });
     });
-
-    function exportReports() {
-        alert('Exporting reports...');
-        // Add export functionality here
+    
+    // Requests chart
+    const requestsCtx = document.getElementById('requestsChart').getContext('2d');
+    const requestsChart = new Chart(requestsCtx, {
+        type: 'pie',
+        data: {
+            labels: ['Pending', 'Approved', 'Rejected'],
+            datasets: [{
+                data: ["{{ pending_count }}", "{{ approved_count }}", "{{ rejected_count }}"],
+                backgroundColor: [
+                    '#ffeaa7',
+                    '#d4f5d4',
+                    '#ffebee'
+                ],
+                borderColor: [
+                    '#d35400',
+                    '#27ae60',
+                    '#e53935'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+    
+    // Load warehouse stock data
+    const warehouseSelector = document.getElementById('warehouse_selector');
+    
+    // Function to load warehouse stock data
+    function loadWarehouseStock(warehouseId) {
+        fetch(`/ration/get_warehouse_stock/${warehouseId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Store the warehouse stock data for later use
+                    warehouseStockData[warehouseId] = data;
+                    
+                    // Update warehouse info
+                    document.getElementById('warehouse-capacity').textContent = `${data.warehouse.capacity} tons`;
+                    document.getElementById('warehouse-allocated').textContent = `${data.warehouse.total_allocated.toFixed(2)} tons`;
+                    document.getElementById('warehouse-available').textContent = `${data.warehouse.available_space.toFixed(2)} tons`;
+                    
+                    // Update stock table
+                    const stockBody = document.getElementById('warehouse-stock-body');
+                    stockBody.innerHTML = '';
+                    
+                    if (data.stocks.length === 0) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = '<td colspan="4" class="text-center">No stock available in this warehouse.</td>';
+                        stockBody.appendChild(row);
+                    } else {
+                        data.stocks.forEach(stock => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${stock.type}</td>
+                                <td>${stock.quantity} tons</td>
+                                <td>${stock.farmer_name}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-primary" onclick="requestStock(${stock.id}, '${stock.type}')">Request</button>
+                                </td>
+                            `;
+                            stockBody.appendChild(row);
+                        });
+                    }
+                } else {
+                    console.error('Error loading warehouse stock:', data.message);
+                    showAlert('Error loading warehouse stock data', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error loading warehouse stock data', 'error');
+            });
+    }
+    
+    // Load initial warehouse stock data
+    if (warehouseSelector.value) {
+        loadWarehouseStock(warehouseSelector.value);
+    }
+    
+    // Handle warehouse selection change
+    warehouseSelector.addEventListener('change', function() {
+        loadWarehouseStock(this.value);
+    });
+    
+    // Function to request stock directly from the warehouse stock tab
+    window.requestStock = function(stockId, stockType) {
+        // Pre-fill the stock request form and switch to the make-request tab
+        document.getElementById('warehouse_id').value = warehouseSelector.value;
+        updateStockTypeOptions(warehouseSelector.value);
+        document.getElementById('stock_type').value = stockType;
+        document.getElementById('quantity').focus();
+        
+        // Switch to make-request tab
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+        
+        document.querySelector('[data-tab="make-request"]').classList.add('active');
+        document.getElementById('make-request').classList.add('active');
+        
+        // Update the map to show the selected warehouse
+        selectWarehouseOnMap(warehouseSelector.value);
+    };
+    
+    // Function to show alerts
+    window.showAlert = function(message, type) {
+        const alertsContainer = document.getElementById('alerts-container');
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type}`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" onclick="this.parentElement.remove()">×</button>
+        `;
+        alertsContainer.appendChild(alertDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    };
+    
+    // Stock request form submission
+    const stockRequestForm = document.getElementById('stockRequestForm');
+    stockRequestForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(stockRequestForm);
+        
+        // Show loading state
+        const submitBtn = stockRequestForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.textContent;
+        submitBtn.textContent = 'Submitting...';
+        submitBtn.disabled = true;
+        
+        fetch("{{ url_for('main.ration_make_request') }}", {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Reset button state
+            submitBtn.textContent = originalBtnText;
+            submitBtn.disabled = false;
+            
+            if (data.success) {
+                // Show success message
+                showAlert('Stock request submitted successfully', 'success');
+                
+                // Reset form
+                stockRequestForm.reset();
+                
+                // Reload page after a short delay
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                // Show error message
+                showAlert(data.message || 'Failed to submit request', 'error');
+            }
+        })
+        .catch(error => {
+            // Reset button state
+            submitBtn.textContent = originalBtnText;
+            submitBtn.disabled = false;
+            
+            console.error('Error:', error);
+            showAlert('An unexpected error occurred', 'error');
+        });
+    });
+    
+    // Handle warehouse selection in the form
+    const warehouseIdSelect = document.getElementById('warehouse_id');
+    warehouseIdSelect.addEventListener('change', function() {
+        updateStockTypeOptions(this.value);
+    });
+    
+    // Function to update stock type options based on selected warehouse
+    function updateStockTypeOptions(warehouseId) {
+        const stockTypeSelect = document.getElementById('stock_type');
+        stockTypeSelect.innerHTML = '<option value="">-- Loading Stock Types --</option>';
+        
+        if (!warehouseId) {
+            stockTypeSelect.innerHTML = '<option value="">-- Select Warehouse First --</option>';
+            return;
+        }
+        
+        // Check if we already have the data
+        if (warehouseStockData[warehouseId]) {
+            populateStockTypes(warehouseStockData[warehouseId]);
+        } else {
+            // Fetch the warehouse stock data
+            fetch(`/ration/get_warehouse_stock/${warehouseId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        warehouseStockData[warehouseId] = data;
+                        populateStockTypes(data);
+                    } else {
+                        console.error('Error loading warehouse stock:', data.message);
+                        stockTypeSelect.innerHTML = '<option value="">-- Error Loading Stock Types --</option>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    stockTypeSelect.innerHTML = '<option value="">-- Error Loading Stock Types --</option>';
+                });
+        }
+    }
+    
+    // Function to populate stock types dropdown
+    function populateStockTypes(data) {
+        const stockTypeSelect = document.getElementById('stock_type');
+        stockTypeSelect.innerHTML = '<option value="">-- Select Stock Type --</option>';
+        
+        if (data.stocks.length === 0) {
+            stockTypeSelect.innerHTML = '<option value="">-- No Stock Available --</option>';
+            return;
+        }
+        
+        // Create a map to aggregate quantities by stock type
+        const stockTypeMap = {};
+        
+        data.stocks.forEach(stock => {
+            if (!stockTypeMap[stock.type]) {
+                stockTypeMap[stock.type] = {
+                    quantity: 0,
+                    stocks: []
+                };
+            }
+            stockTypeMap[stock.type].quantity += stock.quantity;
+            stockTypeMap[stock.type].stocks.push(stock);
+        });
+        
+        // Add options for each stock type
+        Object.keys(stockTypeMap).forEach(type => {
+            const option = document.createElement('option');
+            option.value = type;
+            option.textContent = `${type} (${stockTypeMap[type].quantity.toFixed(2)} tons available)`;
+            option.dataset.maxQuantity = stockTypeMap[type].quantity;
+            stockTypeSelect.appendChild(option);
+        });
+        
+        // Add event listener to stock type select
+        stockTypeSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const maxQuantity = selectedOption.dataset.maxQuantity || 0;
+            
+            // Update max quantity info
+            document.getElementById('max-quantity').textContent = maxQuantity;
+            
+            // Update quantity input max value
+            const quantityInput = document.getElementById('quantity');
+            quantityInput.max = maxQuantity;
+            
+            if (parseFloat(quantityInput.value) > parseFloat(maxQuantity)) {
+                quantityInput.value = maxQuantity;
+            }
+        });
     }
 });
+
+// Function to cancel a request
+function cancelRequest(requestId) {
+    if (confirm('Are you sure you want to cancel this request?')) {
+        // Show loading state
+        const btn = event.target;
+        const originalBtnText = btn.textContent;
+        btn.textContent = 'Canceling...';
+        btn.disabled = true;
+        
+        fetch("{{ url_for('main.ration_cancel_request', request_id=0) }}".replace('0', requestId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Reset button state
+            btn.textContent = originalBtnText;
+            btn.disabled = false;
+            
+            if (data.success) {
+                // Show success message
+                showAlert('Request canceled successfully', 'success');
+                
+                // Reload page after a short delay
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                // Show error message
+                showAlert(data.message || 'Failed to cancel request', 'error');
+            }
+        })
+        .catch(error => {
+            // Reset button state
+            btn.textContent = originalBtnText;
+            btn.disabled = false;
+            
+            console.error('Error:', error);
+            showAlert('An unexpected error occurred', 'error');
+        });
+    }
+}
+
+// Initialize Google Maps
+function initMap() {
+    // Create the map centered on India
+    map = new google.maps.Map(document.getElementById('warehouse-map'), {
+        center: { lat: 20.5937, lng: 78.9629 }, // Center of India
+        zoom: 5,
+        mapTypeControl: true,
+        fullscreenControl: true,
+        streetViewControl: false
+    });
+    
+    // Try to get user's current location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                userLocation = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                
+                // Add marker for user location
+                new google.maps.Marker({
+                    position: userLocation,
+                    map: map,
+                    icon: {
+                        path: google.maps.SymbolPath.CIRCLE,
+                        scale: 10,
+                        fillColor: "#4285F4",
+                        fillOpacity: 1,
+                        strokeColor: "#FFFFFF",
+                        strokeWeight: 2,
+                    },
+                    title: "Your Location"
+                });
+                
+                // Center map on user location and zoom in
+                map.setCenter(userLocation);
+                map.setZoom(10);
+                
+                // Load warehouses after getting user location
+                loadWarehousesOnMap();
+            },
+            () => {
+                // If geolocation fails, just load warehouses with default center
+                loadWarehousesOnMap();
+            }
+        );
+    } else {
+        // Browser doesn't support geolocation
+        loadWarehousesOnMap();
+    }
+}
+
+// Function to load warehouses on the map
+function loadWarehousesOnMap() {
+    // Get warehouse data from the select options
+    const warehouseOptions = document.querySelectorAll('#warehouse_id option');
+    const warehouses = [];
+    
+    warehouseOptions.forEach(option => {
+        if (option.value) {
+            warehouses.push({
+                id: option.value,
+                name: option.textContent,
+                lat: parseFloat(option.getAttribute('data-lat')),
+                lng: parseFloat(option.getAttribute('data-lng'))
+            });
+        }
+    });
+    
+    // If no warehouses, show message
+    if (warehouses.length === 0) {
+        showAlert('No warehouses available', 'error');
+        return;
+    }
+    
+    // Create bounds to fit all markers
+    const bounds = new google.maps.LatLngBounds();
+    
+    // Add markers for each warehouse
+    warehouses.forEach(warehouse => {
+        if (warehouse.lat && warehouse.lng) {
+            const position = {
+                lat: warehouse.lat,
+                lng: warehouse.lng
+            };
+            
+            // Create marker
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: warehouse.name,
+                animation: google.maps.Animation.DROP,
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: '#2d6b45',
+                    fillOpacity: 0.8,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2,
+                    scale: 10
+                }
+            });
+            
+            // Store marker with warehouse ID
+            warehouseMarkers.push({
+                id: warehouse.id,
+                marker: marker
+            });
+            
+            // Fetch warehouse details for info window
+            fetch(`/ration/get_warehouse_stock/${warehouse.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Store the warehouse data
+                        warehouseStockData[warehouse.id] = data;
+                        
+                        // Create stock list for info window
+                        const stockList = data.stocks.map(stock => 
+                            `<li>${stock.type}: ${stock.quantity} tons</li>`
+                        ).join('');
+                        
+                        const contentString = `
+                            <div class="info-window">
+                                <h3>${data.warehouse.name}</h3>
+                                <p><strong>Location:</strong> ${data.warehouse.location}</p>
+                                <p><strong>Capacity:</strong> ${data.warehouse.capacity} tons</p>
+                                <p><strong>Available Space:</strong> ${data.warehouse.available_space.toFixed(2)} tons</p>
+                                <h4>Available Stock:</h4>
+                                <ul>${stockList.length ? stockList : '<li>No stock available</li>'}</ul>
+                                <button class="btn btn-sm btn-primary select-warehouse-btn" 
+                                        onclick="selectWarehouse('${warehouse.id}')">
+                                    Select This Warehouse
+                                </button>
+                            </div>
+                        `;
+                        
+                        const infoWindow = new google.maps.InfoWindow({
+                            content: contentString
+                        });
+                        
+                        // Add click event to marker
+                        marker.addListener('click', () => {
+                            // Close all other info windows
+                            warehouseMarkers.forEach(wm => {
+                                if (wm.infoWindow && wm.infoWindow !== infoWindow) {
+                                    wm.infoWindow.close();
+                                }
+                            });
+                            
+                            infoWindow.open(map, marker);
+                        });
+                        
+                        // Store info window with marker
+                        const markerObj = warehouseMarkers.find(wm => wm.id === warehouse.id);
+                        if (markerObj) {
+                            markerObj.infoWindow = infoWindow;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading warehouse data:', error);
+                });
+            
+            // Extend bounds to include this marker
+            bounds.extend(position);
+        }
+    });
+    
+    // Fit map to bounds after all markers are added
+    if (!bounds.isEmpty()) {
+        map.fitBounds(bounds);
+        
+        // Don't zoom in too far
+        const listener = google.maps.event.addListener(map, "idle", () => {
+            if (map.getZoom() > 12) {
+                map.setZoom(12);
+            }
+            google.maps.event.removeListener(listener);
+        });
+    }
+}
+
+// Function to select a warehouse from the map
+window.selectWarehouse = function(warehouseId) {
+    // Update the warehouse select
+    const warehouseSelect = document.getElementById('warehouse_id');
+    warehouseSelect.value = warehouseId;
+    
+    // Trigger change event to update stock types
+    const event = new Event('change');
+    warehouseSelect.dispatchEvent(event);
+    
+    // Update selected warehouse on map
+    selectWarehouseOnMap(warehouseId);
+    
+    // Show success message
+    showAlert('Warehouse selected', 'success');
+};
+
+// Function to update the map to show the selected warehouse
+function selectWarehouseOnMap(warehouseId) {
+    // Reset all markers to default
+    warehouseMarkers.forEach(wm => {
+        wm.marker.setIcon({
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: '#2d6b45',
+            fillOpacity: 0.8,
+            strokeColor: '#ffffff',
+            strokeWeight: 2,
+            scale: 10
+        });
+    });
+    
+    // Highlight the selected warehouse
+    const selectedMarker = warehouseMarkers.find(wm => wm.id === warehouseId);
+    if (selectedMarker) {
+        selectedMarker.marker.setIcon({
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: '#e53935',
+            fillOpacity: 0.8,
+            strokeColor: '#ffffff',
+            strokeWeight: 3,
+            scale: 12
+        });
+        
+        // Center map on selected warehouse
+        map.setCenter(selectedMarker.marker.getPosition());
+        map.setZoom(10);
+        
+        // Store selected warehouse ID
+        selectedWarehouseId = warehouseId;
+    }
+}
 </script>
 {% endblock %}
