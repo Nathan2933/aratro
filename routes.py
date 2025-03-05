@@ -1539,3 +1539,77 @@ def test_maps_api():
     """Test route to verify Google Maps API key"""
     api_key = current_app.config['GOOGLE_MAPS_API_KEY']
     return render_template('test_maps.html', maps_api_key=api_key)
+
+@admin.route('/get-ration-shop-credentials/<int:shop_id>')
+@admin_required
+def get_ration_shop_credentials(shop_id):
+    try:
+        # Get the ration shop
+        shop = RationShop.query.get(shop_id)
+        if not shop:
+            return jsonify({'success': False, 'message': 'Ration shop not found'})
+        
+        # Check if shop is approved
+        if shop.status != 'approved':
+            return jsonify({'success': False, 'message': 'Ration shop is not approved'})
+        
+        # Return the credentials
+        return jsonify({
+            'success': True,
+            'shop_name': shop.name,
+            'unique_id': shop.unique_id,
+            'password': shop.temp_password
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+@admin.route('/reset-ration-shop-password', methods=['POST'])
+@admin_required
+def reset_ration_shop_password():
+    data = request.json if request.is_json else request.form
+    
+    shop_id = data.get('shop_id')
+    new_password = data.get('new_password')
+    
+    if not all([shop_id, new_password]):
+        return jsonify({'success': False, 'message': 'Missing required fields'})
+    
+    try:
+        # Get the ration shop
+        shop = RationShop.query.get(shop_id)
+        if not shop:
+            return jsonify({'success': False, 'message': 'Ration shop not found'})
+        
+        # Check if shop is approved
+        if shop.status != 'approved':
+            return jsonify({'success': False, 'message': 'Ration shop is not approved'})
+        
+        # Get the user associated with the shop
+        user = User.query.get(shop.user_id)
+        if not user:
+            return jsonify({'success': False, 'message': 'User not found'})
+        
+        # Update the password
+        user.password_hash = generate_password_hash(new_password)
+        shop.temp_password = new_password  # Store the new temporary password
+        
+        db.session.commit()
+        
+        # Send an email to the shop owner with their new credentials
+        email_sent = False
+        try:
+            email_sent = send_password_reset_email(shop.email, shop.unique_id, new_password)
+        except Exception as e:
+            # Log the error but continue with the password reset process
+            print(f"Error sending email: {str(e)}")
+        
+        return jsonify({
+            'success': True, 
+            'email_sent': email_sent,
+            'message': 'Password reset successfully' + ('' if email_sent else ', but email could not be sent')
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)})
