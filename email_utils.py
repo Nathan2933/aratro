@@ -4,11 +4,83 @@ from email.mime.multipart import MIMEMultipart
 import os
 from flask import current_app
 import logging
+import ssl
+import traceback
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, 
+logging.basicConfig(level=logging.DEBUG,  # Change to DEBUG for more detailed logs
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('email_utils')
+
+def send_email(recipient_email, subject, html_content):
+    """
+    Generic function to send emails
+    
+    Args:
+        recipient_email (str): The email address of the recipient
+        subject (str): Email subject
+        html_content (str): HTML content of the email
+    
+    Returns:
+        bool: True if email was sent successfully, False otherwise
+    """
+    # Get email credentials from environment variables or use defaults for development
+    sender_email = os.environ.get("EMAIL_USER", "aratrocorp@gmail.com")
+    sender_password = os.environ.get("EMAIL_PASSWORD", "")
+    
+    logger.debug(f"Email configuration: USER={sender_email}, PASSWORD={'*' * len(sender_password) if sender_password else 'NOT SET'}")
+    
+    if not sender_email or not sender_password:
+        logger.error("Email credentials are not properly configured. Check your .env file or environment variables.")
+        return False
+    
+    # Create message
+    message = MIMEMultipart()
+    message["From"] = sender_email
+    message["To"] = recipient_email
+    message["Subject"] = subject
+    
+    # Attach HTML content
+    message.attach(MIMEText(html_content, "html"))
+    
+    try:
+        logger.info(f"Attempting to send email to {recipient_email}")
+        logger.debug(f"Email subject: {subject}")
+        
+        # Create SMTP session with SSL context
+        logger.debug("Creating SSL context")
+        context = ssl.create_default_context()
+        
+        # Connect to Gmail's SMTP server
+        logger.debug("Connecting to Gmail SMTP server (smtp.gmail.com:465)")
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+            # Login to sender email
+            logger.debug(f"Attempting to login with user: {sender_email}")
+            server.login(sender_email, sender_password)
+            logger.debug("Login successful")
+            
+            # Send email
+            logger.debug("Sending email message")
+            server.send_message(message)
+            logger.debug("Email sent successfully")
+            
+        logger.info(f"Email sent successfully to {recipient_email}")
+        return True
+    
+    except smtplib.SMTPAuthenticationError as e:
+        logger.error(f"Authentication failed: {str(e)}")
+        logger.error("If using Gmail, make sure you're using an App Password if 2FA is enabled")
+        logger.error("Go to https://myaccount.google.com/apppasswords to generate an App Password")
+        logger.error("Make sure there are no extra spaces or characters in your password")
+        return False
+    except smtplib.SMTPException as e:
+        logger.error(f"SMTP error: {str(e)}")
+        logger.error(f"Error details: {traceback.format_exc()}")
+        return False
+    except Exception as e:
+        logger.error(f"Failed to send email: {str(e)}")
+        logger.error(f"Error details: {traceback.format_exc()}")
+        return False
 
 def send_credentials_email(recipient_email, shop_name, unique_id, password):
     """
@@ -23,17 +95,8 @@ def send_credentials_email(recipient_email, shop_name, unique_id, password):
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    sender_email = "aratrocorp@gmail.com"  # REPLACE THIS WITH YOUR GMAIL ADDRESS
-    
-    # For Gmail, you need to use an App Password if 2FA is enabled
-    # See: https://support.google.com/accounts/answer/185833
-    sender_password = "naathadaleo"  # REPLACE THIS WITH YOUR APP PASSWORD
-    
-    # Create message
-    message = MIMEMultipart()
-    message["From"] = sender_email
-    message["To"] = recipient_email
-    message["Subject"] = "Your Aratro Ration Shop Credentials"
+    logger.info(f"Preparing to send credentials email to {recipient_email} for shop: {shop_name}")
+    subject = "Your Aratro Ration Shop Credentials"
     
     # Create HTML content
     html = f"""
@@ -68,38 +131,7 @@ def send_credentials_email(recipient_email, shop_name, unique_id, password):
     </html>
     """
     
-    # Attach HTML content
-    message.attach(MIMEText(html, "html"))
-    
-    try:
-        logger.info(f"Attempting to send email to {recipient_email}")
-        
-        # Create SMTP session
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()  # Secure the connection
-        
-        # Login to sender email
-        server.login(sender_email, sender_password)
-        
-        # Send email
-        server.send_message(message)
-        
-        # Close connection
-        server.quit()
-        
-        logger.info(f"Email sent successfully to {recipient_email}")
-        return True
-    
-    except smtplib.SMTPAuthenticationError as e:
-        logger.error(f"Authentication failed: {str(e)}")
-        logger.error("If using Gmail, make sure you're using an App Password if 2FA is enabled")
-        return False
-    except smtplib.SMTPException as e:
-        logger.error(f"SMTP error: {str(e)}")
-        return False
-    except Exception as e:
-        logger.error(f"Failed to send email: {str(e)}")
-        return False
+    return send_email(recipient_email, subject, html)
 
 def send_rejection_email(recipient_email, reason):
     """
@@ -112,14 +144,8 @@ def send_rejection_email(recipient_email, reason):
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    sender_email = "aratrocorp@gmail.com"  # REPLACE THIS WITH YOUR GMAIL ADDRESS
-    sender_password = "naathadaleo"  # REPLACE THIS WITH YOUR APP PASSWORD
-    
-    # Create message
-    message = MIMEMultipart()
-    message["From"] = sender_email
-    message["To"] = recipient_email
-    message["Subject"] = "Aratro Ration Shop Registration Status"
+    logger.info(f"Preparing to send rejection email to {recipient_email}")
+    subject = "Aratro Ration Shop Registration Status"
     
     # Create HTML content
     html = f"""
@@ -152,31 +178,7 @@ def send_rejection_email(recipient_email, reason):
     </html>
     """
     
-    # Attach HTML content
-    message.attach(MIMEText(html, "html"))
-    
-    try:
-        logger.info(f"Attempting to send rejection email to {recipient_email}")
-        
-        # Create SMTP session
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()  # Secure the connection
-        
-        # Login to sender email
-        server.login(sender_email, sender_password)
-        
-        # Send email
-        server.send_message(message)
-        
-        # Close connection
-        server.quit()
-        
-        logger.info(f"Rejection email sent successfully to {recipient_email}")
-        return True
-    
-    except Exception as e:
-        logger.error(f"Failed to send rejection email: {str(e)}")
-        return False
+    return send_email(recipient_email, subject, html)
 
 def send_password_reset_email(recipient_email, unique_id, new_password):
     """
@@ -190,14 +192,8 @@ def send_password_reset_email(recipient_email, unique_id, new_password):
     Returns:
         bool: True if email was sent successfully, False otherwise
     """
-    sender_email = "aratrocorp@gmail.com"  # REPLACE THIS WITH YOUR GMAIL ADDRESS
-    sender_password = "naathadaleo"  # REPLACE THIS WITH YOUR APP PASSWORD
-    
-    # Create message
-    message = MIMEMultipart()
-    message["From"] = sender_email
-    message["To"] = recipient_email
-    message["Subject"] = "Your Aratro Ration Shop Password Has Been Reset"
+    logger.info(f"Preparing to send password reset email to {recipient_email}")
+    subject = "Your Aratro Ration Shop Password Has Been Reset"
     
     # Create HTML content
     html = f"""
@@ -232,28 +228,4 @@ def send_password_reset_email(recipient_email, unique_id, new_password):
     </html>
     """
     
-    # Attach HTML content
-    message.attach(MIMEText(html, "html"))
-    
-    try:
-        logger.info(f"Attempting to send password reset email to {recipient_email}")
-        
-        # Create SMTP session
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()  # Secure the connection
-        
-        # Login to sender email
-        server.login(sender_email, sender_password)
-        
-        # Send email
-        server.send_message(message)
-        
-        # Close connection
-        server.quit()
-        
-        logger.info(f"Password reset email sent successfully to {recipient_email}")
-        return True
-    
-    except Exception as e:
-        logger.error(f"Failed to send password reset email: {str(e)}")
-        return False 
+    return send_email(recipient_email, subject, html) 

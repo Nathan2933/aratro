@@ -7,6 +7,7 @@ from datetime import datetime
 from functools import wraps
 from email_utils import send_credentials_email, send_rejection_email, send_password_reset_email
 import uuid
+import os
 
 auth = Blueprint('auth', __name__)
 main = Blueprint('main', __name__)
@@ -1248,17 +1249,25 @@ def ration_shops():
 @admin.route('/approve-ration-shop', methods=['POST'])
 @admin_required
 def approve_ration_shop():
+    import logging
+    logger = logging.getLogger('approve_ration_shop')
+    
     # Handle both form data and JSON data
     if request.is_json:
         data = request.get_json()
+        logger.debug("Received JSON data for ration shop approval")
     else:
         data = request.form
+        logger.debug("Received form data for ration shop approval")
     
     shop_id = data.get('shop_id')
     unique_id = data.get('unique_id')
     password = data.get('password')
     
+    logger.debug(f"Processing approval for shop_id: {shop_id}, unique_id: {unique_id}")
+    
     if not all([shop_id, unique_id, password]):
+        logger.error("Missing required fields for ration shop approval")
         if request.is_json:
             return jsonify({'success': False, 'message': 'Missing required fields'})
         else:
@@ -1269,14 +1278,18 @@ def approve_ration_shop():
         # Get the ration shop
         shop = RationShop.query.get(shop_id)
         if not shop:
+            logger.error(f"Ration shop with ID {shop_id} not found")
             if request.is_json:
                 return jsonify({'success': False, 'message': 'Ration shop not found'})
             else:
                 flash('Ration shop not found', 'error')
                 return redirect(url_for('admin.ration_shops'))
         
+        logger.debug(f"Found ration shop: {shop.name}, email: {shop.email}, status: {shop.status}")
+        
         # Check if shop is already approved or rejected
         if shop.status != 'pending':
+            logger.warning(f"Ration shop is already {shop.status}")
             if request.is_json:
                 return jsonify({'success': False, 'message': f'Ration shop is already {shop.status}'})
             else:
@@ -1286,12 +1299,14 @@ def approve_ration_shop():
         # Check if unique ID is already in use
         existing_shop = RationShop.query.filter_by(unique_id=unique_id).first()
         if existing_shop and existing_shop.id != int(shop_id):
+            logger.warning(f"Unique ID {unique_id} is already in use by another shop")
             if request.is_json:
                 return jsonify({'success': False, 'message': 'Unique ID is already in use'})
             else:
                 flash('Unique ID is already in use', 'error')
                 return redirect(url_for('admin.ration_shops'))
         
+        logger.debug("Creating new user for the ration shop")
         # Create a new user for the ration shop
         # Use the unique_id as the phone_number since it's required and unique
         user = User(
@@ -1302,6 +1317,8 @@ def approve_ration_shop():
         db.session.add(user)
         db.session.flush()  # Flush to get the user ID
         
+        logger.debug(f"Created user with ID: {user.id}")
+        
         # Update the ration shop
         shop.status = 'approved'
         shop.unique_id = unique_id
@@ -1309,22 +1326,47 @@ def approve_ration_shop():
         shop.user_id = user.id
         shop.approved_at = datetime.utcnow()
         
+        logger.debug("Committing changes to database")
         db.session.commit()
+        logger.info(f"Ration shop {shop.name} (ID: {shop.id}) approved successfully")
         
-        # Optionally, send an email to the shop owner with their credentials
+        # Send an email to the shop owner with their credentials
+        email_sent = False
         try:
-            send_credentials_email(shop.email, unique_id, password)
+            # Log the attempt to send email
+            logger.info(f"Attempting to send credentials email to {shop.email}")
+            
+            # Check if email and password are set
+            email_user = os.environ.get('EMAIL_USER', '')
+            email_password = os.environ.get('EMAIL_PASSWORD', '')
+            logger.debug(f"Email configuration: USER={email_user}, PASSWORD_SET={'Yes' if email_password else 'No'}")
+            
+            # Send the email
+            email_sent = send_credentials_email(shop.email, shop.name, unique_id, password)
+            
+            if email_sent:
+                logger.info(f"Successfully sent credentials email to {shop.email}")
+            else:
+                logger.error(f"Failed to send credentials email to {shop.email}")
         except Exception as e:
             # Log the error but continue with the approval process
-            print(f"Error sending email: {str(e)}")
+            logger.exception(f"Error sending email to {shop.email}: {str(e)}")
         
         if request.is_json:
-            return jsonify({'success': True})
+            return jsonify({
+                'success': True, 
+                'email_sent': email_sent,
+                'message': 'Ration shop approved successfully' + ('' if email_sent else ', but email could not be sent')
+            })
         else:
-            flash('Ration shop approved successfully!', 'success')
+            if email_sent:
+                flash('Ration shop approved successfully and credentials email sent!', 'success')
+            else:
+                flash('Ration shop approved successfully, but credentials email could not be sent. Please check email settings.', 'warning')
             return redirect(url_for('admin.ration_shops'))
         
     except Exception as e:
+        logger.exception(f"Error approving ration shop: {str(e)}")
         db.session.rollback()
         if request.is_json:
             return jsonify({'success': False, 'message': str(e)})

@@ -1,92 +1,91 @@
-# Supply Chain Management System
+# Aratro - Agricultural Supply Chain Management System
 
-A Flask-based web application that connects farmers, warehouse managers, and ration shop managers in a streamlined supply chain system.
-
-## Project Structure
-```
-supply_chain/
-├── app.py              # Main application file
-├── models.py           # Database models
-├── routes.py           # Route handlers
-├── requirements.txt    # Project dependencies
-├── static/
-│   └── css/
-│       └── style.css  # Custom styles
-└── templates/
-    ├── base.html      # Base template
-    ├── index.html     # Landing page
-    ├── login.html     # Login page
-    ├── register.html  # Registration page
-    ├── farmer_dashboard.html
-    ├── warehouse_dashboard.html
-    └── ration_dashboard.html
-```
+Aratro is a comprehensive platform designed to streamline the agricultural supply chain by connecting farmers, warehouses, and ration shops.
 
 ## Features
 
-1. **User Authentication**
-   - Registration with role selection (Farmer/Warehouse/Ration Shop)
-   - Login/Logout functionality
-   - Role-based access control
-
-2. **Farmer Dashboard**
-   - View stock requests from warehouses
-   - View nearby warehouses and their storage capacity
-   - Approve/Reject stock requests
-
-3. **Warehouse Dashboard**
-   - Update storage capacity and available space
-   - Manage stock inventory
-   - Track stock from farmers
-   - Update stock quantities
-
-4. **Ration Shop Dashboard**
-   - Request stocks from warehouses
-   - View available warehouses and their stocks
-   - Track request status
+- **Farmer Portal**: Manage crop inventory and submit storage requests
+- **Warehouse Portal**: Process storage requests and manage inventory
+- **Ration Shop Portal**: Order and distribute agricultural products
+- **Admin Dashboard**: Oversee all operations and approve registrations
 
 ## Setup Instructions
 
-1. Create a virtual environment:
-   ```bash
-   python -m venv venv
-   venv\Scripts\activate
+### Prerequisites
+
+- Python 3.8 or higher
+- pip (Python package manager)
+
+### Installation
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/aratro.git
+   cd aratro
    ```
 
-2. Install dependencies:
-   ```bash
+2. Create and activate a virtual environment:
+   ```
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. Install dependencies:
+   ```
    pip install -r requirements.txt
    ```
 
-3. Run the application:
-   ```bash
+4. Set up environment variables:
+   - Create a `.env` file in the project root with the following variables:
+   ```
+   SECRET_KEY=your-secret-key-here
+   DATABASE_URI=sqlite:///aratro.db
+   EMAIL_USER=your-email@gmail.com
+   EMAIL_PASSWORD=your-app-password-here
+   GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+   ```
+
+### Email Configuration
+
+For the email functionality to work properly (sending credentials to ration shop owners, etc.), you need to set up your Gmail account:
+
+#### If you have 2-Factor Authentication enabled (recommended):
+
+1. Go to [Google Account Security](https://myaccount.google.com/security)
+2. Under "Signing in to Google," select "App passwords"
+3. Generate a new App Password for "Mail" and "Other (Custom name)" - name it "Aratro"
+4. Copy the generated 16-character password
+5. Paste it as the `EMAIL_PASSWORD` value in your `.env` file
+
+#### If you don't have 2-Factor Authentication:
+
+1. Go to [Less secure app access](https://myaccount.google.com/lesssecureapps)
+2. Turn on "Allow less secure apps"
+3. Use your regular Gmail password as the `EMAIL_PASSWORD` value in your `.env` file
+
+**Note**: Google may still block sign-in attempts from "less secure apps." For production use, we recommend using a dedicated email service provider.
+
+### Running the Application
+
+1. Initialize the database:
+   ```
+   flask db init
+   flask db migrate -m "Initial migration"
+   flask db upgrade
+   ```
+
+2. Start the application:
+   ```
    python app.py
    ```
 
-4. Open your browser and navigate to `http://localhost:5000`
+3. Access the application at `http://localhost:5000`
 
-## Database Schema
+### Default Admin Credentials
 
-The application uses SQLite3 for data storage with the following models:
+- Email: admin@aratro.com
+- Password: admin123
 
-- User: Stores user authentication details and role
-- Farmer: Stores farmer-specific information
-- Warehouse: Manages warehouse details and capacity
-- RationShop: Stores ration shop information
-- Stock: Tracks stock items and their status
-- StockRequest: Manages stock requests between entities
+## License
 
-## Security Features
-
-- Password hashing using Werkzeug
-- Flask-Login for session management
-- CSRF protection with Flask-WTF
-- Role-based access control
-
-## Contributing
-
-1. Fork the repository
-2. Create a new branch for your feature
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+This project is licensed under the MIT License - see the LICENSE file for details.

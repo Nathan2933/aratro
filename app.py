@@ -1,4 +1,4 @@
-from flask import Flask, session
+from flask import Flask, session, render_template, request, jsonify
 from flask_login import LoginManager
 from flask_migrate import Migrate
 from models import db, User, Admin
@@ -6,15 +6,45 @@ from routes import auth, main, farmer_dashboard, warehouse_dashboard, admin as a
 import os
 from datetime import timedelta, datetime
 import requests
-from flask import jsonify
 from werkzeug.security import generate_password_hash
+from dotenv import load_dotenv
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('app')
+
+# Load environment variables from .env file if it exists
+logger.info("Loading environment variables from .env file")
+load_dotenv()
 
 app = Flask(__name__)
 # Security configurations
-app.config['SECRET_KEY'] = os.urandom(24)  # Generate a random secret key
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///supply_chain.db'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', 'sqlite:///supply_chain.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['GOOGLE_MAPS_API_KEY'] = 'AIzaSyBN9xaw0Vida_n03yQpXL0dGawEqPUS3Jg'
+app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyBN9xaw0Vida_n03yQpXL0dGawEqPUS3Jg')
+
+# Email configuration
+# For Gmail:
+# 1. If you have 2-factor authentication enabled:
+#    - Go to https://myaccount.google.com/apppasswords
+#    - Generate an App Password for this application
+#    - Use that App Password instead of your regular Gmail password
+# 2. If you don't have 2-factor authentication:
+#    - Go to https://myaccount.google.com/lesssecureapps
+#    - Turn on "Allow less secure apps"
+#    - Note: Google may still block the login attempt
+app.config['EMAIL_USER'] = os.environ.get('EMAIL_USER', 'aratrocorp@gmail.com')
+app.config['EMAIL_PASSWORD'] = os.environ.get('EMAIL_PASSWORD', 'your-app-password-here')
+os.environ['EMAIL_USER'] = app.config['EMAIL_USER']
+os.environ['EMAIL_PASSWORD'] = app.config['EMAIL_PASSWORD']
+
+# Log email configuration (masking the password)
+logger.info(f"Email User: {app.config['EMAIL_USER']}")
+logger.info(f"Email Password set: {'Yes' if app.config['EMAIL_PASSWORD'] else 'No'}")
+logger.info(f"Email Password length: {len(app.config['EMAIL_PASSWORD']) if app.config['EMAIL_PASSWORD'] else 0}")
 
 # Session security settings
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session expires after 7 days
