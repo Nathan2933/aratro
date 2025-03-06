@@ -1,0 +1,635 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="main-container">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h1>Warehouse Dashboard</h1>
+        <p>Welcome back, {{ warehouse.manager_name }}</p>
+    </div>
+
+    <!-- Storage Overview Section -->
+    <div class="card mb-4">
+        <h2>Storage Overview</h2>
+        <div class="storage-stats">
+            <div class="stat-item">
+                <h3>Total Capacity</h3>
+                <p>{{ warehouse.capacity }} tons</p>
+            </div>
+            <div class="stat-item">
+                <h3>Allocated Space</h3>
+                <p>{{ total_allocated_space }} tons</p>
+            </div>
+            <div class="stat-item">
+                <h3>Available Space</h3>
+                <p>{{ warehouse.capacity - total_allocated_space }} tons</p>
+            </div>
+        </div>
+        <div class="storage-chart-container">
+            <canvas id="storageChart"></canvas>
+        </div>
+    </div>
+    
+    <!-- Pending Requests Section -->
+    <div class="card mb-4">
+        <h2>Pending Requests</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Farmer</th>
+                        <th>Stock Type</th>
+                        <th>Requested Quantity</th>
+                        <th>Approve Quantity</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in pending_requests %}
+                    <tr>
+                        <td>{{ request.stock.farmer.name }}</td>
+                        <td>{{ request.stock.type }}</td>
+                        <td>{{ request.stock.requested_quantity }} tons</td>
+                        <td>
+                            <input type="number" 
+                                   class="form-control quantity-input" 
+                                   id="quantity_{{ request.id }}"
+                                   value="{{ request.stock.requested_quantity }}"
+                                   min="0.1"
+                                   max="{{ warehouse.capacity - total_allocated_space }}"
+                                   step="0.1">
+                        </td>
+                        <td>
+                            <span class="badge badge-warning">Pending</span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-success btn-sm" 
+                                        onclick="approveRequest({{ request.id }})">
+                                    <i class="fas fa-check"></i> Approve
+                            </button>
+                                <button class="btn btn-danger btn-sm" 
+                                        onclick="rejectRequest({{ request.id }})">
+                                    <i class="fas fa-times"></i> Reject
+                            </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+    </div>
+</div>
+
+    <!-- Approved Requests Section -->
+    <div class="card mb-4">
+        <h2>Approved Requests</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Farmer</th>
+                        <th>Stock Type</th>
+                        <th>Requested Quantity</th>
+                        <th>Approved Quantity</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in approved_requests %}
+                    <tr>
+                        <td>{{ request.stock.farmer.name }}</td>
+                        <td>{{ request.stock.type }}</td>
+                        <td>{{ request.stock.requested_quantity }} tons</td>
+                        <td>{{ request.stock.quantity }} tons</td>
+                        <td>
+                            <span class="badge badge-success">Approved</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Ration Shop Pending Requests Section -->
+    <div class="card mb-4">
+        <h2>Ration Shop Pending Requests</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Ration Shop</th>
+                        <th>Stock Type</th>
+                        <th>Requested Quantity</th>
+                        <th>Request Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in ration_pending_requests %}
+                    <tr>
+                        <td>{{ request.ration_shop.name }}</td>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td>{{ request.request_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <span class="badge badge-warning">Pending</span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-success btn-sm" 
+                                        onclick="approveRationRequest({{ request.id }})">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button class="btn btn-danger btn-sm" 
+                                        onclick="rejectRationRequest({{ request.id }})">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Ration Shop Approved Requests Section -->
+    <div class="card mb-4">
+        <h2>Ration Shop Approved Requests</h2>
+        <div class="table-container">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Ration Shop</th>
+                        <th>Stock Type</th>
+                        <th>Quantity</th>
+                        <th>Request Date</th>
+                        <th>Processed Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in ration_approved_requests %}
+                    <tr>
+                        <td>{{ request.ration_shop.name }}</td>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td>{{ request.request_date.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ request.processed_date.strftime('%Y-%m-%d %H:%M') if request.processed_date else 'N/A' }}</td>
+                        <td>
+                            <span class="badge badge-success">Approved</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Include SweetAlert2 library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+function approveRequest(requestId) {
+    const quantity = parseFloat(document.getElementById(`quantity_${requestId}`).value);
+    const availableSpace = {{ warehouse.capacity - total_allocated_space }};
+    
+    if (quantity <= 0) {
+        showAlert('Please enter a valid quantity greater than zero', 'error');
+        return;
+    }
+    
+    if (quantity > availableSpace) {
+        showAlert(`Cannot approve more than available space (${availableSpace.toFixed(2)} tons)`, 'error');
+        return;
+    }
+    
+    fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            request_id: requestId,
+            approved_quantity: quantity,
+            action: 'approve'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Request approved successfully', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert(data.message || 'Error approving request', 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error processing request', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function rejectRequest(requestId) {
+    if (!confirm('Are you sure you want to reject this request?')) {
+        return;
+    }
+
+    fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            request_id: requestId,
+            action: 'reject'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('Request rejected successfully', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showAlert(data.message || 'Error rejecting request', 'error');
+        }
+    })
+    .catch(error => {
+        showAlert('Error processing request', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    document.querySelector('.main-container').prepend(alertDiv);
+    
+    setTimeout(() => {
+        alertDiv.classList.remove('show');
+        setTimeout(() => alertDiv.remove(), 150);
+    }, 5000);
+}
+
+// Initialize storage chart
+const storageData = {
+    allocated: {{ total_allocated_space|float }},
+    available: {{ (warehouse.capacity - total_allocated_space)|float }}
+};
+
+function initializeStorageChart() {
+    const ctx = document.getElementById('storageChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Allocated Space', 'Available Space'],
+            datasets: [{
+                data: [storageData.allocated, storageData.available],
+                backgroundColor: ['#55c759', '#e1efe1'],
+                borderColor: ['#3da042', '#d7e6d7'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            },
+            cutout: '70%'
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    initializeStorageChart();
+});
+
+// Function to approve ration shop request
+function approveRationRequest(requestId) {
+    // Show modal for notes
+    Swal.fire({
+        title: 'Approve Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Notes (optional):</label>
+                <textarea id="notes" class="form-control"></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Approve',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            return {
+                notes: document.getElementById('notes').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Approving the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send approval request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'approve',
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request approved successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to approve request.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An unexpected error occurred: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// Function to reject ration shop request
+function rejectRationRequest(requestId) {
+    // Show modal for rejection reason
+    Swal.fire({
+        title: 'Reject Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Reason for rejection:</label>
+                <textarea id="notes" class="form-control" required></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const notes = document.getElementById('notes').value;
+            if (!notes) {
+                Swal.showValidationMessage('Please provide a reason for rejection');
+                return false;
+            }
+            return {
+                notes: notes
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Rejecting the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send rejection request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'reject',
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request rejected successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to reject request.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An unexpected error occurred: ' + error.message
+                });
+            });
+        }
+    });
+}
+</script>
+
+<style>
+.main-container {
+    padding: 1rem 2rem;
+    max-width: 100%;
+    margin: 0;
+    position: relative;
+    overflow-y: auto;
+    height: calc(100vh - 4rem);
+}
+
+.dashboard-header {
+    margin-bottom: 1.5rem;
+    padding-top: 0.5rem;
+}
+
+.dashboard-header h1 {
+    color: #2d6b45;
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-header p {
+    color: #666;
+    font-size: 1.1rem;
+}
+
+.card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 2rem;
+}
+
+.card h2 {
+    color: #2d6b45;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+}
+
+.storage-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-item {
+    background: #f1f8f1;
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.stat-item h3 {
+    color: #2d6b45;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.stat-item p {
+    color: #55c759;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.storage-chart-container {
+    height: 300px;
+    margin-top: 2rem;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table th {
+    background: #f1f8f1;
+    color: #2d6b45;
+    font-weight: 600;
+    padding: 1rem;
+    text-align: left;
+}
+
+.table td {
+    padding: 1rem;
+    border-bottom: 1px solid #e1efe1;
+}
+
+.quantity-input {
+    width: 120px;
+}
+
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-group .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.badge-warning {
+    background: #ffd700;
+    color: #856404;
+}
+
+.badge-success {
+    background: #55c759;
+    color: white;
+}
+
+.alert {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    min-width: 300px;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.alert-success {
+    background: #55c759;
+    color: white;
+}
+
+.alert-error {
+    background: #dc3545;
+    color: white;
+}
+</style>
+{% endblock %}
+
