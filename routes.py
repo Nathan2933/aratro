@@ -40,6 +40,7 @@ def farmer_register():
         flash('You are already logged in. If you want to create a new account, please log out first.', 'warning')
 
     if request.method == 'POST':
+        print("Received farmer registration POST request")  # Debug log
         name = request.form.get('name')
         address = request.form.get('address')
         aadhar_number = request.form.get('aadharNumber')
@@ -47,44 +48,61 @@ def farmer_register():
         password = request.form.get('password')
         confirm_password = request.form.get('confirmPassword')
 
+        print(f"Form data: name={name}, address={address}, aadhar={aadhar_number}, phone={phone_number}")  # Debug log
+
         # Validate required fields
         if not all([name, address, aadhar_number, phone_number, password, confirm_password]):
+            missing = []
+            if not name: missing.append('name')
+            if not address: missing.append('address')
+            if not aadhar_number: missing.append('aadhar number')
+            if not phone_number: missing.append('phone number')
+            if not password: missing.append('password')
+            if not confirm_password: missing.append('confirm password')
+            print(f"Missing fields: {', '.join(missing)}")  # Debug log
             flash('All fields are required', 'error')
             return redirect(url_for('auth.farmer_register'))
 
         # Validate password match
         if password != confirm_password:
+            print("Password mismatch")  # Debug log
             flash('Passwords do not match', 'error')
             return redirect(url_for('auth.farmer_register'))
 
         # Validate password length
         if len(password) < 8:
+            print("Password too short")  # Debug log
             flash('Password must be at least 8 characters long', 'error')
             return redirect(url_for('auth.farmer_register'))
 
         # Validate Aadhar number format
         if not aadhar_number.isdigit() or len(aadhar_number) != 12:
+            print(f"Invalid Aadhar number format: {aadhar_number}")  # Debug log
             flash('Invalid Aadhar number. Must be 12 digits', 'error')
             return redirect(url_for('auth.farmer_register'))
 
         # Validate phone number format
         if not phone_number.isdigit() or len(phone_number) != 10:
+            print(f"Invalid phone number format: {phone_number}")  # Debug log
             flash('Invalid phone number. Must be 10 digits', 'error')
             return redirect(url_for('auth.farmer_register'))
 
         # Check if user already exists
         user = User.query.filter_by(phone_number=phone_number).first()
         if user:
+            print(f"Phone number {phone_number} already registered")  # Debug log
             flash('Phone number already registered', 'error')
             return redirect(url_for('auth.farmer_register'))
 
         # Check if Aadhar is already registered
         farmer = Farmer.query.filter_by(aadhar_number=aadhar_number).first()
         if farmer:
+            print(f"Aadhar number {aadhar_number} already registered")  # Debug log
             flash('Aadhar number already registered', 'error')
             return redirect(url_for('auth.farmer_register'))
 
         try:
+            print("Creating new user and farmer records")  # Debug log
             # Create new user
             user = User(
                 phone_number=phone_number,
@@ -93,6 +111,7 @@ def farmer_register():
             )
             db.session.add(user)
             db.session.flush()  # Get user.id before committing
+            print(f"Created user with ID: {user.id}")  # Debug log
 
             # Create farmer profile
             farmer = Farmer(
@@ -103,14 +122,17 @@ def farmer_register():
                 phone_number=phone_number
             )
             db.session.add(farmer)
+            print("Added farmer to session")  # Debug log
             
             db.session.commit()
+            print("Database commit successful")  # Debug log
             login_user(user)
             flash('Registration successful!', 'success')
             return redirect(url_for('main.dashboard'))
         except Exception as e:
             db.session.rollback()
-            flash('Error occurred during registration', 'error')
+            print(f"Error during registration: {str(e)}")  # Debug log
+            flash(f'Error during registration: {str(e)}', 'error')
             return redirect(url_for('auth.farmer_register'))
 
     return render_template('farmer_register.html')

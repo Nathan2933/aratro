@@ -5,7 +5,7 @@ from datetime import datetime
 db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     phone_number = db.Column(db.String(10), unique=True, nullable=False)  # Exactly 10 digits
     password_hash = db.Column(db.String(256), nullable=False)  # Increased length for secure hash
     role = db.Column(db.String(20), nullable=False)  # 'farmer', 'warehouse_manager', or 'ration_manager'
@@ -13,7 +13,7 @@ class User(UserMixin, db.Model):
     warehouse = db.relationship('Warehouse', backref='user', lazy=True, uselist=False)
 
 class Farmer(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     address = db.Column(db.String(200), nullable=False)
@@ -22,7 +22,7 @@ class Farmer(db.Model):
     stocks = db.relationship('Stock', backref='farmer', lazy=True)
 
 class Warehouse(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     manager_name = db.Column(db.String(100), nullable=False)
     name = db.Column(db.String(100), nullable=False)
@@ -36,7 +36,7 @@ class Warehouse(db.Model):
     stocks = db.relationship('Stock', backref='warehouse', lazy=True)
 
 class Stock(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     type = db.Column(db.String(100), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
     requested_quantity = db.Column(db.Float, nullable=False)  # Original requested quantity
@@ -52,7 +52,7 @@ class Stock(db.Model):
 class StockRequest(db.Model):
     __tablename__ = 'stock_request'
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     from_id = db.Column(db.Integer, db.ForeignKey('farmer.id'), nullable=False)  # Farmer's ID
     to_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)    # Warehouse's ID
     stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
@@ -70,7 +70,7 @@ class StockRequest(db.Model):
         return f'<StockRequest {self.id}: from {self.from_id} to {self.to_id}>'
 
 class WarehouseRequest(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)
     stock_type = db.Column(db.String(50), nullable=False)
     quantity = db.Column(db.Float, nullable=False)
@@ -87,7 +87,7 @@ class WarehouseRequest(db.Model):
         return f'<WarehouseRequest {self.id}: {self.warehouse.name} requesting {self.quantity} tons of {self.stock_type}>'
 
 class Notification(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(100), nullable=False)
     message = db.Column(db.Text, nullable=False)
@@ -102,7 +102,7 @@ class Notification(db.Model):
         return f'<Notification {self.id}: {self.title}>'
 
 class Admin(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(100), unique=True, nullable=False)
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -116,7 +116,7 @@ class Admin(UserMixin, db.Model):
         return f'<Admin {self.email}>'
 
 class RationShop(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     shop_id = db.Column(db.String(50), unique=True, nullable=True)  # Added to match database schema
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Will be set after approval
     name = db.Column(db.String(100), nullable=False)
@@ -141,7 +141,7 @@ class RationShop(db.Model):
 class RationStockRequest(db.Model):
     __tablename__ = 'ration_stock_request'
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     ration_shop_id = db.Column(db.Integer, db.ForeignKey('ration_shop.id'), nullable=False)
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)
     stock_type = db.Column(db.String(100), nullable=False)

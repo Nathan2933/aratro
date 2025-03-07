@@ -23,8 +23,32 @@ load_dotenv()
 app = Flask(__name__)
 # Security configurations
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', 'sqlite:///supply_chain.db')
+
+# Database configuration
+supabase_url = os.environ.get('SUPABASE_DB_URL')
+if not supabase_url:
+    logger.error("SUPABASE_DB_URL not found in environment variables")
+    raise ValueError("SUPABASE_DB_URL must be set in .env file")
+
+app.config['SQLALCHEMY_DATABASE_URI'] = supabase_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_size': 5,  # Reduced from 20 to prevent too many connections
+    'max_overflow': 10,  # Allow up to 10 additional connections when pool is full
+    'pool_timeout': 30,  # Timeout after 30 seconds of waiting for a connection
+    'pool_recycle': 1800,  # Recycle connections every 30 minutes
+    'pool_pre_ping': True,  # Check connection health before using
+    'connect_args': {
+        'sslmode': 'require',
+        'connect_timeout': 10,  # Connection timeout in seconds
+        'keepalives': 1,  # Enable TCP keepalive
+        'keepalives_idle': 30,  # Time between keepalive probes
+        'keepalives_interval': 10,  # Time between probes if previous probe failed
+        'keepalives_count': 5,  # Number of failed probes before connection is considered dead
+        'application_name': 'aratro'  # Identify your application in database logs
+    }
+}
+
 app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyCRhQb3mjxdmiYnS3K1NihMxYOO5NULF48')
 
 # Email configuration
