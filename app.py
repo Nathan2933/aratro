@@ -194,11 +194,6 @@ with app.app_context():
         db.session.commit()
         print("Admin password updated")
 
+# This is required for Vercel
 if __name__ == '__main__':
-    # Parse command line arguments
-    parser = argparse.ArgumentParser(description='Run the Aratro Flask application')
-    parser.add_argument('--port', type=int, default=5000, help='Port to run the application on')
-    args = parser.parse_args()
-    
-    # Run the application on the specified port
-    app.run(debug=True, port=args.port)  # Run without HTTPS in development
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
