@@ -195,5 +195,10 @@ with app.app_context():
         print("Admin password updated")
 
 # This is required for Vercel
+def handler(request):
+    with app.request_context(request):
+        return app(request)
+
+# Keep the app.run() for local development
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
