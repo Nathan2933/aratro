@@ -160,3 +160,15 @@ class RationStockRequest(db.Model):
     
     def __repr__(self):
         return f'<RationStockRequest {self.id}: from {self.ration_shop_id} to {self.warehouse_id}>'
+
+class OTP(db.Model):
+    """Model for storing OTP codes for password reset"""
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    phone_number = db.Column(db.String(10), nullable=False)  # Phone number to which OTP is sent
+    otp_code = db.Column(db.String(6), nullable=False)  # 6-digit OTP code
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)  # OTP expiration time
+    is_used = db.Column(db.Boolean, default=False)  # Whether the OTP has been used
+    
+    def __repr__(self):
+        return f'<OTP {self.id}: {self.phone_number}>'

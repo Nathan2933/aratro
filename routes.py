@@ -1,11 +1,11 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, session
 from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop, RationStockRequest
+from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop, RationStockRequest, OTP
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
-from email_utils import send_credentials_email, send_rejection_email, send_password_reset_email
+from email_utils import send_credentials_email, send_rejection_email, send_password_reset_email, generate_otp, send_otp_via_email, send_otp_via_sms
 import uuid
 import os
 
@@ -284,6 +284,251 @@ def logout():
     logout_user()
     flash('You have been logged out successfully.', 'success')
     return redirect(url_for('auth.login'))
+
+@auth.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Route for initiating the forgot password process"""
+    if request.method == 'POST':
+        phone_number = request.form.get('phone_number')
+        role = request.form.get('role')
+        
+        if not phone_number or not role:
+            flash('Please enter your phone number and select your role', 'error')
+            return redirect(url_for('auth.forgot_password'))
+        
+        # Validate phone number format
+        if not phone_number.isdigit() or len(phone_number) != 10:
+            flash('Invalid phone number. Must be 10 digits', 'error')
+            return redirect(url_for('auth.forgot_password'))
+        
+        # Map selected role to database role
+        role_mapping = {
+            'farmer': 'farmer',
+            'warehouse': 'warehouse_manager',
+            'ration': 'ration_manager'
+        }
+        
+        db_role = role_mapping.get(role)
+        if not db_role:
+            flash('Invalid role selected', 'error')
+            return redirect(url_for('auth.forgot_password'))
+        
+        # Check if user exists with this phone number and role
+        user = User.query.filter_by(phone_number=phone_number, role=db_role).first()
+        if not user:
+            flash('No account found with this phone number and role', 'error')
+            return redirect(url_for('auth.forgot_password'))
+        
+        # Generate OTP
+        otp_code = generate_otp()
+        
+        # Set expiration time (10 minutes from now)
+        expires_at = datetime.utcnow() + timedelta(minutes=10)
+        
+        # Save OTP to database
+        otp = OTP(
+            phone_number=phone_number,
+            otp_code=otp_code,
+            expires_at=expires_at
+        )
+        db.session.add(otp)
+        db.session.commit()
+        
+        # Send OTP via SMS using Twilio
+        send_otp_via_sms(phone_number, otp_code)
+        
+        # If user is a farmer, also send OTP via email if available
+        if db_role == 'farmer':
+            farmer = Farmer.query.filter_by(user_id=user.id).first()
+            if farmer:
+                # In a real application, you would check if the farmer has an email
+                # For now, we'll simulate sending to a dummy email
+                dummy_email = f"{phone_number}@example.com"
+                send_otp_via_email(dummy_email, phone_number, otp_code)
+        
+        # If user is a warehouse manager, also send OTP via email if available
+        elif db_role == 'warehouse_manager':
+            warehouse = Warehouse.query.filter_by(user_id=user.id).first()
+            if warehouse:
+                # In a real application, you would check if the warehouse has an email
+                # For now, we'll simulate sending to a dummy email
+                dummy_email = f"{phone_number}@example.com"
+                send_otp_via_email(dummy_email, phone_number, otp_code)
+        
+        # If user is a ration shop manager, also send OTP via email
+        elif db_role == 'ration_manager':
+            ration_shop = RationShop.query.filter_by(user_id=user.id).first()
+            if ration_shop and ration_shop.email:
+                send_otp_via_email(ration_shop.email, phone_number, otp_code)
+        
+        # Store phone number and role in session for the next step
+        session['reset_phone_number'] = phone_number
+        session['reset_role'] = db_role
+        
+        flash('OTP has been sent to your phone number. Please enter it to reset your password.', 'success')
+        return redirect(url_for('auth.verify_otp'))
+    
+    return render_template('forgot_password.html')
+
+@auth.route('/verify-otp', methods=['GET', 'POST'])
+def verify_otp():
+    """Route for verifying the OTP"""
+    # Check if we have the necessary session data
+    if 'reset_phone_number' not in session or 'reset_role' not in session:
+        flash('Please start the password reset process again', 'error')
+        return redirect(url_for('auth.forgot_password'))
+    
+    phone_number = session['reset_phone_number']
+    
+    if request.method == 'POST':
+        otp_code = request.form.get('otp_code')
+        
+        if not otp_code:
+            flash('Please enter the OTP sent to your phone', 'error')
+            return redirect(url_for('auth.verify_otp'))
+        
+        # Find the most recent valid OTP for this phone number
+        otp = OTP.query.filter_by(
+            phone_number=phone_number,
+            is_used=False
+        ).order_by(OTP.created_at.desc()).first()
+        
+        if not otp:
+            flash('No valid OTP found. Please request a new one.', 'error')
+            return redirect(url_for('auth.forgot_password'))
+        
+        # Check if OTP has expired
+        if datetime.utcnow() > otp.expires_at:
+            flash('OTP has expired. Please request a new one.', 'error')
+            return redirect(url_for('auth.forgot_password'))
+        
+        # Verify OTP
+        if otp.otp_code != otp_code:
+            flash('Invalid OTP. Please try again.', 'error')
+            return redirect(url_for('auth.verify_otp'))
+        
+        # Mark OTP as used
+        otp.is_used = True
+        db.session.commit()
+        
+        # Store verification in session
+        session['otp_verified'] = True
+        
+        flash('OTP verified successfully. Please set your new password.', 'success')
+        return redirect(url_for('auth.reset_password'))
+    
+    return render_template('verify_otp.html', phone_number=phone_number)
+
+@auth.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    """Route for setting a new password after OTP verification"""
+    # Check if we have the necessary session data and OTP verification
+    if 'reset_phone_number' not in session or 'reset_role' not in session or 'otp_verified' not in session:
+        flash('Please complete the verification process first', 'error')
+        return redirect(url_for('auth.forgot_password'))
+    
+    phone_number = session['reset_phone_number']
+    role = session['reset_role']
+    
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        if not new_password or not confirm_password:
+            flash('Please enter and confirm your new password', 'error')
+            return redirect(url_for('auth.reset_password'))
+        
+        # Validate password match
+        if new_password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return redirect(url_for('auth.reset_password'))
+        
+        # Validate password length
+        if len(new_password) < 8:
+            flash('Password must be at least 8 characters long', 'error')
+            return redirect(url_for('auth.reset_password'))
+        
+        # Find the user
+        user = User.query.filter_by(phone_number=phone_number, role=role).first()
+        if not user:
+            flash('User not found', 'error')
+            return redirect(url_for('auth.forgot_password'))
+        
+        # Update the password
+        user.password_hash = generate_password_hash(new_password)
+        db.session.commit()
+        
+        # Clear session data
+        session.pop('reset_phone_number', None)
+        session.pop('reset_role', None)
+        session.pop('otp_verified', None)
+        
+        flash('Your password has been reset successfully. Please log in with your new password.', 'success')
+        return redirect(url_for('auth.login'))
+    
+    return render_template('reset_password.html')
+
+@auth.route('/resend-otp', methods=['POST'])
+def resend_otp():
+    """Route for resending OTP"""
+    # Check if we have the necessary session data
+    if 'reset_phone_number' not in session or 'reset_role' not in session:
+        flash('Please start the password reset process again', 'error')
+        return redirect(url_for('auth.forgot_password'))
+    
+    phone_number = session['reset_phone_number']
+    role = session['reset_role']
+    
+    # Find the user
+    user = User.query.filter_by(phone_number=phone_number, role=role).first()
+    if not user:
+        flash('User not found', 'error')
+        return redirect(url_for('auth.forgot_password'))
+    
+    # Generate new OTP
+    otp_code = generate_otp()
+    
+    # Set expiration time (10 minutes from now)
+    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    
+    # Save OTP to database
+    otp = OTP(
+        phone_number=phone_number,
+        otp_code=otp_code,
+        expires_at=expires_at
+    )
+    db.session.add(otp)
+    db.session.commit()
+    
+    # Send OTP via SMS using Twilio
+    send_otp_via_sms(phone_number, otp_code)
+    
+    # If user is a farmer, also send OTP via email if available
+    if role == 'farmer':
+        farmer = Farmer.query.filter_by(user_id=user.id).first()
+        if farmer:
+            # In a real application, you would check if the farmer has an email
+            # For now, we'll simulate sending to a dummy email
+            dummy_email = f"{phone_number}@example.com"
+            send_otp_via_email(dummy_email, phone_number, otp_code)
+    
+    # If user is a warehouse manager, also send OTP via email if available
+    elif role == 'warehouse_manager':
+        warehouse = Warehouse.query.filter_by(user_id=user.id).first()
+        if warehouse:
+            # In a real application, you would check if the warehouse has an email
+            # For now, we'll simulate sending to a dummy email
+            dummy_email = f"{phone_number}@example.com"
+            send_otp_via_email(dummy_email, phone_number, otp_code)
+    
+    # If user is a ration shop manager, also send OTP via email
+    elif role == 'ration_manager':
+        ration_shop = RationShop.query.filter_by(user_id=user.id).first()
+        if ration_shop and ration_shop.email:
+            send_otp_via_email(ration_shop.email, phone_number, otp_code)
+    
+    flash('A new OTP has been sent to your phone number', 'success')
+    return redirect(url_for('auth.verify_otp'))
 
 @main.before_request
 def check_user_account():

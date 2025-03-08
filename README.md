@@ -8,6 +8,7 @@ Aratro is a comprehensive platform designed to streamline the agricultural suppl
 - **Warehouse Portal**: Process storage requests and manage inventory
 - **Ration Shop Portal**: Order and distribute agricultural products
 - **Admin Dashboard**: Oversee all operations and approve registrations
+- **SMS Notifications**: Send OTP and notifications via SMS using Twilio
 
 ## Setup Instructions
 
@@ -43,6 +44,9 @@ Aratro is a comprehensive platform designed to streamline the agricultural suppl
    EMAIL_USER=your-email@gmail.com
    EMAIL_PASSWORD=your-app-password-here
    GOOGLE_MAPS_API_KEY=your-google-maps-api-key
+   TWILIO_ACCOUNT_SID=your-twilio-account-sid
+   TWILIO_AUTH_TOKEN=your-twilio-auth-token
+   TWILIO_PHONE_NUMBER=your-twilio-phone-number
    ```
 
 ### Email Configuration
@@ -64,6 +68,27 @@ For the email functionality to work properly (sending credentials to ration shop
 3. Use your regular Gmail password as the `EMAIL_PASSWORD` value in your `.env` file
 
 **Note**: Google may still block sign-in attempts from "less secure apps." For production use, we recommend using a dedicated email service provider.
+
+### Twilio Configuration
+
+For SMS functionality to work properly (sending OTP codes, notifications, etc.), you need to set up a Twilio account:
+
+1. Sign up for a Twilio account at [Twilio](https://www.twilio.com/)
+2. Once registered, navigate to your [Twilio Console Dashboard](https://www.twilio.com/console)
+3. Find your Account SID and Auth Token
+4. Purchase a Twilio phone number or use the trial number provided
+5. Add these details to your `.env` file:
+   ```
+   TWILIO_ACCOUNT_SID=your-account-sid
+   TWILIO_AUTH_TOKEN=your-auth-token
+   TWILIO_PHONE_NUMBER=your-twilio-phone-number
+   ```
+
+To test if your Twilio integration is working correctly, run:
+```
+python test_sms.py +1234567890
+```
+Replace `+1234567890` with your actual phone number (including country code).
 
 ### Running the Application
 
