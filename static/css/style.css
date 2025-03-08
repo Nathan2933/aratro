@@ -114,6 +114,7 @@ h2 {
 .navbar-brand {
     display: flex;
     align-items: center;
+    z-index: 1001; /* Ensure brand stays above mobile menu */
 }
 
 .brand-link {
@@ -139,12 +140,14 @@ h2 {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    transition: all 0.3s ease;
 }
 
 .navbar-end {
     display: flex;
     align-items: center;
     gap: var(--spacing-md);
+    z-index: 1001; /* Ensure user menu stays above mobile menu */
 }
 
 .nav-link {
@@ -173,6 +176,51 @@ h2 {
 
 .nav-link i {
     font-size: 1rem;
+}
+
+/* Mobile menu toggle */
+.mobile-menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: #e8f5e9;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    z-index: 1001;
+    transition: all 0.2s ease;
+}
+
+.mobile-menu-toggle:hover {
+    color: #7ed681;
+}
+
+.hamburger-icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 24px;
+    height: 18px;
+}
+
+.hamburger-icon span {
+    display: block;
+    height: 2px;
+    width: 100%;
+    background-color: #e8f5e9;
+    transition: all 0.3s ease;
+}
+
+.mobile-menu-toggle.active .hamburger-icon span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+}
+
+.mobile-menu-toggle.active .hamburger-icon span:nth-child(2) {
+    opacity: 0;
+}
+
+.mobile-menu-toggle.active .hamburger-icon span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
 }
 
 /* User menu styles - completely rewritten */
@@ -432,16 +480,13 @@ label {
 .btn {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    padding: 0.5rem 1rem;
-    border-radius: var(--border-radius);
-    font-family: var(--font-family);
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
     gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
 }
 
 .btn-primary {
@@ -615,23 +660,129 @@ label {
     }
     
     .navbar {
-        padding: 0.5rem;
+        padding: 0.75rem 1rem;
+    }
+    
+    .mobile-menu-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        order: 3;
+    }
+    
+    .navbar-brand {
+        flex: 1;
+    }
+    
+    .navbar-menu {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #2d6b45;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 2rem;
+        transform: translateX(-100%);
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        height: 100vh;
+        width: 100%;
+        overflow-y: auto;
+    }
+    
+    .navbar-menu.active {
+        transform: translateX(0);
+        opacity: 1;
+        visibility: visible;
+    }
+    
+    .nav-link {
+        font-size: 1.1rem;
+        padding: 0.75rem 1.5rem;
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+    }
+    
+    .navbar-end {
+        margin-left: auto;
+    }
+    
+    .user-menu-dropdown {
+        right: 0;
+        left: auto;
+    }
+    
+    body.menu-open {
+        overflow: hidden;
     }
     
     .brand-link {
         font-size: 1.1rem;
     }
     
-    .nav-link {
+    .brand-link i {
+        font-size: 1.3rem;
+    }
+    
+    .user-menu-btn {
         padding: 0.5rem;
     }
     
-    .main-container {
-        padding: 0 0.5rem;
+    .user-menu-btn .user-name {
+        display: none;
     }
     
-    .card {
-        padding: 1rem;
+    .user-menu-btn i.fa-chevron-down {
+        display: none;
+    }
+    
+    .navbar-end {
+        gap: 0.5rem;
+    }
+    
+    .nav-link {
+        padding: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .brand-link {
+        font-size: 1.1rem;
+    }
+    
+    .brand-link i {
+        font-size: 1.3rem;
+    }
+    
+    .user-menu-btn {
+        padding: 0.5rem;
+    }
+    
+    .user-menu-btn .user-name {
+        display: none;
+    }
+    
+    .user-menu-btn i.fa-chevron-down {
+        display: none;
+    }
+    
+    .navbar-end {
+        gap: 0.5rem;
+    }
+    
+    .nav-link {
+        padding: 0.5rem;
     }
 }
 
@@ -799,4 +950,23 @@ label {
 .welcome-banner .close-banner-btn:hover {
     opacity: 1;
     background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive styles for navbar */
+@media (max-width: 992px) {
+    .navbar {
+        padding: 0.75rem 1rem;
+    }
+    
+    .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .user-menu-btn .user-name {
+        max-width: 120px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
 }

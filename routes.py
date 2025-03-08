@@ -644,24 +644,37 @@ def rejected_requests():
 @login_required
 def partial_acceptances():
     if current_user.role != 'farmer':
-        flash('Access denied. Farmers only.', 'error')
+        flash('Access denied: You must be a farmer to view this page', 'error')
         return redirect(url_for('main.dashboard'))
     
+    # Get the farmer's ID
     farmer = Farmer.query.filter_by(user_id=current_user.id).first()
     if not farmer:
-        flash('Farmer profile not found.', 'error')
+        flash('Farmer profile not found', 'error')
         return redirect(url_for('main.dashboard'))
     
-    requests = StockRequest.query.filter_by(
-        from_id=farmer.id,
-        status='approved'
-    ).join(Stock).filter(
-        Stock.quantity < Stock.requested_quantity
-    ).order_by(StockRequest.updated_at.desc()).all()
+    # Get partially accepted requests
+    partial_requests = StockRequest.query.filter_by(farmer_id=farmer.id, status='partially_accepted').order_by(StockRequest.date_requested.desc()).all()
     
-    warehouses = Warehouse.query.all()
+    return render_template('partial_acceptances.html', partial_requests=partial_requests)
+
+@farmer_dashboard.route('/accepted-requests')
+@login_required
+def accepted_requests():
+    if current_user.role != 'farmer':
+        flash('Access denied: You must be a farmer to view this page', 'error')
+        return redirect(url_for('main.dashboard'))
     
-    return render_template('partial_acceptances.html', requests=requests, warehouses=warehouses)
+    # Get the farmer's ID
+    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    if not farmer:
+        flash('Farmer profile not found', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    # Get accepted requests - using from_id instead of farmer_id
+    accepted_requests = StockRequest.query.filter_by(from_id=farmer.id, status='approved').order_by(StockRequest.request_date.desc()).all()
+    
+    return render_template('accepted_requests.html', accepted_requests=accepted_requests)
 
 # Warehouse Dashboard Routes
 @warehouse_dashboard.route('/')

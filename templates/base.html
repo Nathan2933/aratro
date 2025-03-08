@@ -450,8 +450,16 @@
             </a>
         </div>
 
+        <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
+            <div class="hamburger-icon">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </button>
+
         {% if current_user.is_authenticated %}
-        <div class="navbar-menu">
+        <div class="navbar-menu" id="navbarMenu">
             <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
                 <i class="fas fa-chart-line"></i>
                 Dashboard
@@ -509,7 +517,7 @@
             </div>
         </div>
         {% else %}
-        <div class="navbar-end">
+        <div class="navbar-menu" id="navbarMenu">
             <a href="{{ url_for('auth.login') }}" class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}">
                 <i class="fas fa-sign-in-alt"></i>
                 Login
@@ -578,6 +586,46 @@
         // All DOM interactions in a single DOMContentLoaded event
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM fully loaded');
+            
+            // Mobile menu functionality
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            const navbarMenu = document.getElementById('navbarMenu');
+            
+            if (mobileMenuToggle && navbarMenu) {
+                console.log('Mobile menu elements found');
+                
+                mobileMenuToggle.addEventListener('click', function() {
+                    console.log('Mobile menu toggle clicked');
+                    this.classList.toggle('active');
+                    navbarMenu.classList.toggle('active');
+                    document.body.classList.toggle('menu-open');
+                });
+                
+                // Close mobile menu when clicking on a link
+                const navLinks = navbarMenu.querySelectorAll('.nav-link');
+                navLinks.forEach(function(link) {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth <= 768) {
+                            mobileMenuToggle.classList.remove('active');
+                            navbarMenu.classList.remove('active');
+                            document.body.classList.remove('menu-open');
+                        }
+                    });
+                });
+                
+                // Close mobile menu when window is resized above mobile breakpoint
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 768 && navbarMenu.classList.contains('active')) {
+                        mobileMenuToggle.classList.remove('active');
+                        navbarMenu.classList.remove('active');
+                        document.body.classList.remove('menu-open');
+                    }
+                });
+            } else {
+                console.log('Mobile menu elements not found');
+                if (!mobileMenuToggle) console.log('mobileMenuToggle not found');
+                if (!navbarMenu) console.log('navbarMenu not found');
+            }
             
             // User dropdown functionality
             const userMenuBtn = document.getElementById('userMenuBtn');

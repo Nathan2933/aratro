@@ -340,6 +340,103 @@
 .partial-requests-list::-webkit-scrollbar-thumb:hover {
     background: #3da042;
 }
+
+/* Mobile responsiveness improvements */
+@media (max-width: 768px) {
+    .dashboard-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+    
+    .dashboard-stats .stat-card {
+        padding: 1rem 0.75rem !important;
+    }
+    
+    .dashboard-stats .stat-card i {
+        font-size: 1.5rem !important;
+        margin-bottom: 0.5rem !important;
+    }
+    
+    .dashboard-stats .stat-card h3 {
+        font-size: 1.5rem !important;
+        margin: 0.25rem 0 !important;
+    }
+    
+    .dashboard-stats .stat-card p {
+        font-size: 0.7rem !important;
+        letter-spacing: 0.5px !important;
+    }
+    
+    .flex.gap-4 {
+        flex-direction: column;
+    }
+    
+    .card {
+        margin-bottom: 1rem;
+    }
+    
+    .dashboard-option-cards {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .status-item {
+        padding: 0.75rem;
+    }
+    
+    .status-count {
+        padding: 0.15rem 0.5rem;
+    }
+    
+    h1 {
+        font-size: 1.5rem;
+    }
+    
+    h2 {
+        font-size: 1.25rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.9rem;
+        text-decoration: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .navbar {
+        padding: 0.75rem 0.5rem;
+    }
+    
+    .brand-link {
+        font-size: 1.1rem;
+    }
+    
+    .brand-link i {
+        font-size: 1.3rem;
+    }
+    
+    .user-menu-btn {
+        padding: 0.5rem;
+    }
+    
+    .user-menu-btn .user-name {
+        display: none;
+    }
+    
+    .user-menu-btn i.fa-chevron-down {
+        display: none;
+    }
+    
+    .navbar-end {
+        gap: 0.5rem;
+    }
+    
+    .nav-link {
+        padding: 0.5rem;
+    }
+}
 </style>
 {% endblock %}
 
@@ -435,28 +532,20 @@
                         <i class="fas fa-plus"></i>
                         Create New Request
                     </a>
-                    <a href="{{ url_for('farmer_dashboard.view_requests_page') }}" class="btn btn-outline">
-                        <i class="fas fa-list"></i>
-                        View All Requests
+                    <a href="{{ url_for('farmer_dashboard.accepted_requests') }}" class="btn btn-outline">
+                        <i class="fas fa-check-circle"></i>
+                        Accepted Requests
                     </a>
                     <a href="{{ url_for('farmer_dashboard.rejected_requests') }}" class="btn btn-outline">
                         <i class="fas fa-times-circle"></i>
-                        View Rejected Requests
+                        Rejected Requests
                     </a>
-                    <a href="{{ url_for('farmer_dashboard.partial_acceptances') }}" class="btn btn-outline">
-                        <i class="fas fa-exclamation-circle"></i>
-                        View Partial Acceptances
-                    </a>
-                    <button class="btn btn-outline" onclick="exportRequests()">
-                        <i class="fas fa-download"></i>
-                        Export Requests
-                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="flex gap-4 mt-6">
+    <div class="dashboard-option-cards flex gap-4 mt-6">
         <div class="card dashboard-option-card" onclick="window.location.href='{{ url_for('farmer_dashboard.create_request_page') }}'">
             <div class="card-content text-center py-6 px-4">
                 <i class="fas fa-plus-circle fa-5x mb-4" style="color: var(--primary-color);"></i>
@@ -471,36 +560,24 @@
 
         <div class="card dashboard-option-card">
             <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-bell fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">Partial Acceptances</h2>
-                <p class="mb-4">Requests where warehouses accepted partial quantities</p>
-                <a href="{{ url_for('farmer_dashboard.partial_acceptances') }}" class="btn btn-primary w-full">
+                <i class="fas fa-check-circle fa-5x mb-4" style="color: var(--success-color);"></i>
+                <h2 class="text-xl mb-3">Accepted Requests</h2>
+                <p class="mb-4">View requests that have been approved by warehouses</p>
+                <a href="{{ url_for('farmer_dashboard.accepted_requests') }}" class="btn btn-primary w-full">
                     <i class="fas fa-eye"></i>
-                    View Partial Acceptances
+                    View Accepted Requests
                 </a>
             </div>
         </div>
 
         <div class="card dashboard-option-card">
             <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-times-circle fa-5x mb-4" style="color: var(--primary-color);"></i>
+                <i class="fas fa-times-circle fa-5x mb-4" style="color: var(--error-color);"></i>
                 <h2 class="text-xl mb-3">Rejected Requests</h2>
                 <p class="mb-4">View requests that were rejected by warehouses</p>
                 <a href="{{ url_for('farmer_dashboard.rejected_requests') }}" class="btn btn-primary w-full">
                     <i class="fas fa-eye"></i>
                     View Rejected Requests
-                </a>
-            </div>
-        </div>
-        
-        <div class="card dashboard-option-card">
-            <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-list-alt fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">View Requests</h2>
-                <p class="mb-4">View and manage your existing requests</p>
-                <a href="{{ url_for('farmer_dashboard.view_requests_page') }}" class="btn btn-primary w-full">
-                    <i class="fas fa-eye"></i>
-                    View Requests
                 </a>
             </div>
         </div>
