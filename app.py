@@ -168,37 +168,43 @@ def test_maps_api():
     except Exception as e:
         return jsonify({'status': 'error', 'message': f"Connection Error: {str(e)}"})
 
-# Create database and admin user
-with app.app_context():
-    db.create_all()
-    
-    # Create admin user if it doesn't exist
-    admin_email = 'admin@aratro.com'
-    admin_password = 'Admin@123456'  # This should be changed in production
-    
-    admin = Admin.query.filter_by(email=admin_email).first()
-    print(f"Checking for admin user: {admin_email}")
-    if not admin:
-        print("Admin user not found, creating new admin user")
-        admin = Admin(
-            email=admin_email,
-            password_hash=generate_password_hash(admin_password)
-        )
-        db.session.add(admin)
-        db.session.commit()
-        print(f"Admin user created successfully with ID: {admin.id}")
-    else:
-        print(f"Admin user already exists with ID: {admin.id}")
-        # Update password if needed
-        admin.password_hash = generate_password_hash(admin_password)
-        db.session.commit()
-        print("Admin password updated")
+def init_db():
+    with app.app_context():
+        db.create_all()
+        
+        # Create admin user if it doesn't exist
+        admin_email = 'admin@aratro.com'
+        admin_password = 'Admin@123456'  # This should be changed in production
+        
+        admin = Admin.query.filter_by(email=admin_email).first()
+        print(f"Checking for admin user: {admin_email}")
+        if not admin:
+            print("Admin user not found, creating new admin user")
+            admin = Admin(
+                email=admin_email,
+                password_hash=generate_password_hash(admin_password)
+            )
+            db.session.add(admin)
+            db.session.commit()
+            print(f"Admin user created successfully with ID: {admin.id}")
+        else:
+            print(f"Admin user already exists with ID: {admin.id}")
+            # Update password if needed
+            admin.password_hash = generate_password_hash(admin_password)
+            db.session.commit()
+            print("Admin password updated")
 
 # This is required for Vercel
 def handler(request):
+    try:
+        init_db()  # Initialize database on cold starts
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        
     with app.request_context(request):
         return app(request)
 
 # Keep the app.run() for local development
 if __name__ == '__main__':
+    init_db()  # Initialize database for local development
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
