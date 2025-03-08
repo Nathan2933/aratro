@@ -12,13 +12,22 @@ import logging
 import argparse
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG, 
+logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('app')
 
 # Load environment variables from .env file if it exists
 logger.info("Loading environment variables from .env file")
 load_dotenv()
+
+# Determine environment
+FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
+IS_PRODUCTION = FLASK_ENV == 'production'
+
+if IS_PRODUCTION:
+    logger.info("Running in PRODUCTION mode")
+else:
+    logger.info("Running in DEVELOPMENT mode")
 
 app = Flask(__name__)
 # Security configurations
@@ -52,15 +61,6 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyCRhQb3mjxdmiYnS3K1NihMxYOO5NULF48')
 
 # Email configuration
-# For Gmail:
-# 1. If you have 2-factor authentication enabled:
-#    - Go to https://myaccount.google.com/apppasswords
-#    - Generate an App Password for this application
-#    - Use that App Password instead of your regular Gmail password
-# 2. If you don't have 2-factor authentication:
-#    - Go to https://myaccount.google.com/lesssecureapps
-#    - Turn on "Allow less secure apps"
-#    - Note: Google may still block the login attempt
 app.config['EMAIL_USER'] = os.environ.get('EMAIL_USER', 'aratrocorp@gmail.com')
 app.config['EMAIL_PASSWORD'] = os.environ.get('EMAIL_PASSWORD', 'your-app-password-here')
 os.environ['EMAIL_USER'] = app.config['EMAIL_USER']
@@ -78,13 +78,21 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=14)  # Remember me duration
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 
-# In development, we'll disable secure cookies since we're not using HTTPS
-if app.debug:
-    app.config['SESSION_COOKIE_SECURE'] = False
-    app.config['REMEMBER_COOKIE_SECURE'] = False
-else:
+# Set secure cookies based on environment
+if IS_PRODUCTION:
     app.config['SESSION_COOKIE_SECURE'] = True
     app.config['REMEMBER_COOKIE_SECURE'] = True
+    # Additional production settings
+    app.config['DEBUG'] = False
+    app.config['TESTING'] = False
+    app.config['PROPAGATE_EXCEPTIONS'] = False
+else:
+    app.config['SESSION_COOKIE_SECURE'] = False
+    app.config['REMEMBER_COOKIE_SECURE'] = False
+    # Development settings
+    app.config['DEBUG'] = True
+    app.config['TESTING'] = False
+    app.config['PROPAGATE_EXCEPTIONS'] = True
 
 # Initialize extensions
 db.init_app(app)
@@ -134,7 +142,7 @@ def load_user(user_id):
             # Regular user
             return User.query.get(int(user_id))
     except Exception as e:
-        print(f"Error loading user: {e}")
+        logger.error(f"Error loading user: {e}")
         return None
 
 # Session management
@@ -174,32 +182,39 @@ def init_db():
         
         # Create admin user if it doesn't exist
         admin_email = 'admin@aratro.com'
-        admin_password = 'Admin@123456'  # This should be changed in production
+        
+        # In production, use a randomly generated password or from environment variable
+        if IS_PRODUCTION:
+            admin_password = os.environ.get('ADMIN_PASSWORD', os.urandom(24).hex())
+            logger.info(f"Using secure admin password in production")
+        else:
+            admin_password = 'Admin@123456'  # Only for development
+            logger.warning(f"Using default admin password in development. DO NOT use in production!")
         
         admin = Admin.query.filter_by(email=admin_email).first()
-        print(f"Checking for admin user: {admin_email}")
+        logger.info(f"Checking for admin user: {admin_email}")
         if not admin:
-            print("Admin user not found, creating new admin user")
+            logger.info("Admin user not found, creating new admin user")
             admin = Admin(
                 email=admin_email,
                 password_hash=generate_password_hash(admin_password)
             )
             db.session.add(admin)
             db.session.commit()
-            print(f"Admin user created successfully with ID: {admin.id}")
+            logger.info(f"Admin user created successfully with ID: {admin.id}")
         else:
-            print(f"Admin user already exists with ID: {admin.id}")
+            logger.info(f"Admin user already exists with ID: {admin.id}")
             # Update password if needed
             admin.password_hash = generate_password_hash(admin_password)
             db.session.commit()
-            print("Admin password updated")
+            logger.info("Admin password updated")
 
 # This is required for Vercel
 def handler(request):
     try:
         init_db()  # Initialize database on cold starts
     except Exception as e:
-        print(f"Database initialization error: {e}")
+        logger.error(f"Database initialization error: {e}")
         
     with app.request_context(request):
         return app(request)

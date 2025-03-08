@@ -25,3 +25,4 @@ typing-extensions==4.12.2
 urllib3==2.3.0
 wtforms==3.2.1
 psycopg2-binary==2.9.10
+gunicorn==21.2.0
