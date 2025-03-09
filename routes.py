@@ -568,19 +568,40 @@ def farmer_home():
         flash('Error loading requests', 'error')
 
     # Get nearby warehouses and calculate their actual available space
-    try:
-        warehouses = Warehouse.query.all()  # For now, showing all warehouses
-        for warehouse in warehouses:
-            total_allocated = db.session.query(db.func.sum(Stock.quantity))\
-                .filter(Stock.warehouse_id == warehouse.id)\
-                .filter(Stock.status == 'stored')\
-                .scalar() or 0
-            warehouse.available_space = warehouse.capacity - total_allocated
-    except Exception as e:
-        warehouses = []
-        flash('Error loading warehouses', 'error')
+    warehouses = Warehouse.query.all()
+    
+    # Create recent activities data
+    recent_activities = []
+    
+    # Add recent request activities
+    for request in sorted(requests, key=lambda x: x.created_at if hasattr(x, 'created_at') else x.request_date, reverse=True)[:5]:
+        if request.status == 'pending':
+            activity_type = 'request_created'
+            description = f"Created a new request for {request.stock.requested_quantity} tons of {request.stock.type} to {request.warehouse.name}"
+            timestamp = request.created_at if hasattr(request, 'created_at') else request.request_date
+        elif request.status == 'accepted' or request.status == 'approved':
+            activity_type = 'request_accepted'
+            description = f"Request #{request.id} for {request.stock.type} was accepted by {request.warehouse.name}"
+            timestamp = request.updated_at if hasattr(request, 'updated_at') else request.request_date
+        elif request.status == 'rejected':
+            activity_type = 'request_rejected'
+            description = f"Request #{request.id} for {request.stock.type} was rejected by {request.warehouse.name}"
+            timestamp = request.updated_at if hasattr(request, 'updated_at') else request.request_date
+        else:
+            activity_type = 'request_updated'
+            description = f"Request #{request.id} status updated to {request.status}"
+            timestamp = request.updated_at if hasattr(request, 'updated_at') else request.request_date
+            
+        recent_activities.append({
+            'type': activity_type,
+            'description': description,
+            'timestamp': timestamp
+        })
+    
+    # Sort activities by timestamp
+    recent_activities = sorted(recent_activities, key=lambda x: x['timestamp'], reverse=True)
 
-    return render_template('farmer_dashboard.html', farmer=farmer, requests=requests, warehouses=warehouses)
+    return render_template('farmer_dashboard.html', farmer=farmer, requests=requests, warehouses=warehouses, recent_activities=recent_activities)
 
 @farmer_dashboard.route('/create_request', methods=['GET', 'POST'])
 @login_required

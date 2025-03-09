@@ -442,6 +442,7 @@
     {% block style %}{% endblock %}
 </head>
 <body>
+    {% if not current_user.is_authenticated or current_user.role != 'farmer' %}
     <nav class="navbar">
         <div class="navbar-brand">
             <a href="{{ url_for('main.index') }}" class="brand-link">
@@ -464,12 +465,7 @@
                 <i class="fas fa-chart-line"></i>
                 Dashboard
             </a>
-            {% if current_user.role == 'farmer' %}
-            <a href="#" class="nav-link">
-                <i class="fas fa-warehouse"></i>
-                Find Warehouses
-            </a>
-            {% elif current_user.role == 'warehouse_manager' %}
+            {% if current_user.role == 'warehouse_manager' %}
             <a href="#" class="nav-link">
                 <i class="fas fa-boxes"></i>
                 Manage Stock
@@ -489,8 +485,6 @@
                     <span class="user-name">
                     {% if current_user.role == 'warehouse_manager' and user_warehouse %}
                         {{ user_warehouse.manager_name }}
-                    {% elif current_user.role == 'farmer' and user_farmer %}
-                        {{ user_farmer.name }}
                     {% elif current_user.role == 'admin' %}
                         Administrator
                     {% else %}
@@ -533,15 +527,16 @@
         </div>
         {% endif %}
     </nav>
+    {% endif %}
 
-    <div class="main-container">
-        {% if current_user.is_authenticated %}
+    <div class="main-container {% if current_user.is_authenticated and current_user.role == 'farmer' %}no-navbar{% endif %}">
+        {% if current_user.is_authenticated and current_user.role != 'farmer' %}
         <div class="welcome-banner" id="welcomeBanner">
             <div class="welcome-banner-content">
                 {% if current_user.role == 'warehouse_manager' and user_warehouse %}
                     Welcome back, {{ user_warehouse.manager_name }}!
-                {% elif current_user.role == 'farmer' and user_farmer %}
-                    Welcome back, {{ user_farmer.name }}!
+                {% elif current_user.role == 'admin' %}
+                    Welcome back, Administrator!
                 {% else %}
                     Welcome back, {{ current_user.role|replace('_', ' ')|title }}!
                 {% endif %}
@@ -702,94 +697,17 @@
             const welcomeBanner = document.getElementById('welcomeBanner');
             const closeBannerBtn = document.getElementById('closeBannerBtn');
             
-            function closeBanner() {
-                console.log('Closing banner');
-                if (welcomeBanner) {
-                    welcomeBanner.style.animation = 'fadeOut 0.3s forwards';
-                    setTimeout(function() {
-                        welcomeBanner.classList.add('hidden');
-                        // Store in local storage that the banner was closed
-                        localStorage.setItem('welcomeBannerClosed', 'true');
-                    }, 300);
-                }
-            }
-            
-            if (welcomeBanner) {
-                console.log('Welcome banner found');
-                // Check if banner should be hidden based on localStorage
+            if (welcomeBanner && closeBannerBtn) {
+                closeBannerBtn.addEventListener('click', function() {
+                    welcomeBanner.classList.add('hidden');
+                    // Store the banner state in localStorage
+                    localStorage.setItem('welcomeBannerClosed', 'true');
+                });
+                
+                // Check if the banner was previously closed
                 if (localStorage.getItem('welcomeBannerClosed') === 'true') {
                     welcomeBanner.classList.add('hidden');
                 }
-                
-                // Add event listener to close button
-                if (closeBannerBtn) {
-                    console.log('Close banner button found with ID:', closeBannerBtn.id);
-                    closeBannerBtn.addEventListener('click', function(event) {
-                        console.log('Close banner button clicked');
-                        event.preventDefault();
-                        event.stopPropagation();
-                        closeBanner();
-                    });
-                } else {
-                    console.log('Close banner button not found');
-                }
-                
-                // Make the entire banner clickable to close
-                welcomeBanner.addEventListener('click', function(event) {
-                    // Only close if clicking on the banner itself, not its children
-                    if (event.target === welcomeBanner) {
-                        closeBanner();
-                    }
-                });
-            } else {
-                console.log('Welcome banner not found');
-            }
-            
-            // Function to show alert
-            function showAlert(message, type) {
-                const flashMessages = document.querySelector('.flash-messages');
-                const newFlash = document.createElement('div');
-                newFlash.className = `flash-message ${type}`;
-                newFlash.role = 'alert';
-                
-                let icon = '';
-                if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
-                else if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
-                else if (type === 'info') icon = '<i class="fas fa-info-circle"></i>';
-                else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle"></i>';
-                
-                newFlash.innerHTML = `
-                    <div class="flash-message-content">
-                        ${icon}
-                        <span>${message}</span>
-                    </div>
-                    <button type="button" class="close-flash-btn" aria-label="Close">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-                
-                flashMessages.appendChild(newFlash);
-                
-                // Add click event to the new close button
-                const closeBtn = newFlash.querySelector('.close-flash-btn');
-                closeBtn.addEventListener('click', function() {
-                    newFlash.style.animation = 'fadeOut 0.3s forwards';
-                    setTimeout(function() {
-                        newFlash.remove();
-                    }, 300);
-                });
-                
-                // Auto-hide after 5 seconds
-                setTimeout(function() {
-                    if (document.body.contains(newFlash)) {
-                        newFlash.style.animation = 'fadeOut 0.3s forwards';
-                        setTimeout(function() {
-                            if (document.body.contains(newFlash)) {
-                                newFlash.remove();
-                            }
-                        }, 300);
-                    }
-                }, 5000);
             }
         });
     </script>

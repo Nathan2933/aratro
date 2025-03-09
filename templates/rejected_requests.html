@@ -1,294 +1,456 @@
 {% extends "base.html" %}
 
-{% block content %}
-<div class="container">
-    <div class="header-section mb-4">
-        <div class="flex justify-between items-center">
-            <h1>Rejected Requests</h1>
-            <a href="{{ url_for('farmer_dashboard.farmer_home') }}" class="btn btn-outline">
-                <i class="fas fa-arrow-left"></i>
-                Back to Dashboard
-            </a>
-        </div>
-        <p class="text-muted">Review rejected requests and try again with different warehouses</p>
-    </div>
+{% block title %}Rejected Requests{% endblock %}
 
-    <div class="card">
-        <div class="card-header">
-            <h2>Rejected Stock Requests</h2>
-            <span class="text-muted">Requests that were rejected by warehouses</span>
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+{% block content %}
+<div class="container-fluid farmer-dashboard p-0">
+    <div class="row g-0">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper" id="farmerSidebar">
+            <div class="position-sticky">
+                <div class="sidebar-header">
+                    
+                    <h5 class="sidebar-brand">
+                        <span class="company-name" style="color: white; text-align: center; width: 100%;">Aratro</span>
+                        
+                        
+                    </h5>
+                    <button type="button" class="btn-close-sidebar d-md-none" id="closeSidebarBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                    <div class="user-avatar">
+                        <i class="bi bi-person-circle" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{% if user_farmer %}{{ user_farmer.name }}{% elif current_user.is_authenticated %}{{ current_user.username }}{% elif farmer %}{{ farmer.name }}{% else %}Farmer{% endif %}</span>
+                        <span class="user-role">Farmer</span>
+                    </div>
+                </div>
+                
+                <ul class="nav flex-column sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.farmer_home') }}">
+                            <i class="bi bi-grid-1x2-fill me-2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.create_request_page') }}">
+                            <i class="bi bi-file-earmark-plus-fill me-2"></i>
+                            <span>Create Request</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-heading">Request Status</li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span>Accepted Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('farmer_dashboard.rejected_requests') }}">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            <span>Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-footer">
+                    <!-- User info moved to header -->
+                </div>
+            </div>
         </div>
-        <div class="card-body">
-            <div class="search-container mb-4">
-                <div class="input-group">
-                    <input type="text" id="rejectedRequestSearchInput" class="form-control" placeholder="Search rejected requests...">
-                    <div class="input-group-append">
-                        <button class="btn btn-outline-secondary" type="button">
-                            <i class="fas fa-search"></i>
-                        </button>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header text-center">
+                    <h1 class="dashboard-title">Rejected Requests</h1>
+                    <p class="dashboard-subtitle">View requests that have been rejected by warehouses</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Rejected Requests Card -->
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            Rejected Stock Requests
+                        </h5>
+                    </div>
+                    
+                    <div class="card-body">
+                        <div class="search-container mb-4">
+                            <div class="input-group">
+                                <input type="text" id="rejectedRequestSearchInput" class="form-control" placeholder="Search rejected requests...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if requests %}
+                            <div class="rejected-requests-grid">
+                                {% for request in requests %}
+                                <div class="rejected-request-card">
+                                    <div class="card-header">
+                                        <div class="request-info">
+                                            <h3>Stock Request #{{ request.id }}</h3>
+                                            <span class="date">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
+                                        </div>
+                                        <span class="badge badge-error">Rejected</span>
+                                    </div>
+
+                                    <div class="stock-details">
+                                        <div class="detail-group">
+                                            <span class="label">Stock Type</span>
+                                            <span class="value">{{ request.stock.type }}</span>
+                                        </div>
+                                        <div class="detail-group">
+                                            <span class="label">Requested Quantity</span>
+                                            <span class="value">{{ request.stock.requested_quantity }} tons</span>
+                                        </div>
+                                    </div>
+
+                                    <div class="warehouse-details">
+                                        <h4>Rejected By</h4>
+                                        <div class="detail-group">
+                                            <span class="label">Warehouse</span>
+                                            <span class="value">{{ request.warehouse.name }}</span>
+                                        </div>
+                                        <div class="detail-group">
+                                            <span class="label">Location</span>
+                                            <span class="value">{{ request.warehouse.location }}</span>
+                                        </div>
+                                        <div class="detail-group">
+                                            <span class="label">Rejection Date</span>
+                                            <span class="value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
+                                        </div>
+                                        {% if request.admin_notes %}
+                                        <div class="detail-group">
+                                            <span class="label">Rejection Reason</span>
+                                            <span class="value">{{ request.admin_notes }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('farmer_dashboard.create_request_page', stock_type=request.stock.type, quantity=request.stock.requested_quantity) }}" class="btn btn-primary">
+                                            <i class="fas fa-sync"></i>
+                                            Request Again
+                                        </a>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="empty-state">
+                                <div class="empty-state-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <h3>No Rejected Requests</h3>
+                                <p>You don't have any rejected requests at the moment.</p>
+                                <a href="{{ url_for('farmer_dashboard.create_request_page') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i>
+                                    Create New Request
+                                </a>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-            
-            {% if requests %}
-                <div class="rejected-requests-grid">
-                    {% for request in requests %}
-                    <div class="rejected-request-card">
-                        <div class="card-header">
-                            <div class="request-info">
-                                <h3>Stock Request #{{ request.id }}</h3>
-                                <span class="date">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
-                            </div>
-                            <span class="badge badge-error">Rejected</span>
-                        </div>
-
-                        <div class="stock-details">
-                            <div class="detail-group">
-                                <span class="label">Stock Type</span>
-                                <span class="value">{{ request.stock.type }}</span>
-                            </div>
-                            <div class="detail-group">
-                                <span class="label">Requested Quantity</span>
-                                <span class="value">{{ request.stock.requested_quantity }} tons</span>
-                            </div>
-                        </div>
-
-                        <div class="warehouse-details">
-                            <h4>Rejected By</h4>
-                            <div class="detail-group">
-                                <span class="label">Warehouse</span>
-                                <span class="value">{{ request.warehouse.name }}</span>
-                            </div>
-                            <div class="detail-group">
-                                <span class="label">Location</span>
-                                <span class="value">{{ request.warehouse.location }}</span>
-                            </div>
-                            <div class="detail-group">
-                                <span class="label">Rejection Date</span>
-                                <span class="value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
-                            </div>
-                            {% if request.admin_notes %}
-                            <div class="detail-group">
-                                <span class="label">Rejection Reason</span>
-                                <span class="value">{{ request.admin_notes }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="action-buttons">
-                            <a href="{{ url_for('farmer_dashboard.create_request_page', stock_type=request.stock.type, quantity=request.stock.requested_quantity) }}" class="btn btn-primary">
-                                <i class="fas fa-sync"></i>
-                                Request Again
-                            </a>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <h3>No Rejected Requests</h3>
-                    <p>You don't have any rejected requests at the moment.</p>
-                    <a href="{{ url_for('farmer_dashboard.create_request_page') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        Create New Request
-                    </a>
-                </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
-.container {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.header-section h1 {
-    color: #2d6b45;
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.header-section .text-muted {
-    color: #666;
-}
-
-.rejected-requests-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
-}
-
-.rejected-request-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1.5rem;
-}
-
-.request-info h3 {
-    color: #2d6b45;
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
-}
-
-.date {
-    color: #666;
-    font-size: 0.875rem;
-}
-
-.badge {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-weight: 500;
-    font-size: 0.875rem;
-}
-
-.badge-error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.stock-details, .warehouse-details {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-.detail-group {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
-.detail-group:last-child {
-    margin-bottom: 0;
-}
-
-.detail-group .label {
-    color: #666;
-    font-size: 0.875rem;
-}
-
-.detail-group .value {
-    color: #2d6b45;
-    font-weight: 500;
-}
-
-h4 {
-    color: #2d6b45;
-    margin-bottom: 1rem;
-    font-size: 1rem;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-primary {
-    background: #55c759;
-    color: white;
-    border: none;
-}
-
-.btn-primary:hover {
-    background: #3da042;
-    transform: translateY(-2px);
-}
-
-.btn-outline {
-    background: transparent;
-    border: 1px solid #55c759;
-    color: #55c759;
-}
-
-.btn-outline:hover {
-    background: #f1f8f1;
-    transform: translateY(-2px);
-}
-
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-}
-
-.empty-state-icon {
-    font-size: 4rem;
-    color: #55c759;
-    margin-bottom: 1.5rem;
-}
-
-.empty-state h3 {
-    color: #2d6b45;
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.empty-state p {
-    color: #666;
-    margin-bottom: 2rem;
-}
-
-@media (max-width: 768px) {
-    .rejected-requests-grid {
-        grid-template-columns: 1fr;
+    /* Dashboard Layout */
+    .farmer-dashboard {
+        background-color: #f5f7fa;
+        position: relative;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
     }
     
-    .container {
-        padding: 1rem;
+    .main-content {
+        padding: 2rem;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: fit-content;
+        overflow: visible;
     }
-}
+    
+    .content-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: fit-content;
+        overflow: visible;
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dashboard-title::after {
+        content: '';
+        position: absolute;
+        bottom: -0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3rem;
+        height: 0.25rem;
+        background: var(--primary-color);
+        border-radius: 0.125rem;
+    }
+    
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    /* Sidebar Styles */
+    .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+        padding: 10px 0;
+    }
+    
+    .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-info {
+        text-align: center;
+    }
+    
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #e2e8f0;
+    }
+    
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+        text-align: center;
+    }
+    
+    .user-role {
+        font-size: 0.8rem;
+        color: #a0aec0;
+        text-align: center;
+    }
+    
+    /* Remove bullet points from sidebar navigation */
+    .sidebar-nav {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    
+    /* Remove any default list styling that might be causing the white dot */
+    .sidebar-nav li {
+        list-style: none;
+    }
+    
+    .sidebar-divider {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 10px 0;
+        list-style: none;
+    }
+    
+    /* Dashboard Card */
+    .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        width: 100%;
+        height: fit-content;
+        margin-bottom: 2rem;
+    }
+    
+    .dashboard-card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .dashboard-card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dashboard-card-title i {
+        color: #4a5568;
+        margin-right: 0.75rem;
+    }
+    
+    /* Fix for container height */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        height: fit-content;
+    }
+    
+    .container-fluid {
+        height: fit-content;
+        min-height: 0;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .dashboard-card {
+            width: 100%;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .main-content {
+            padding: 1.5rem 1rem;
+        }
+    }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Search functionality
-    const searchInput = document.getElementById('rejectedRequestSearchInput');
-    const requestCards = document.querySelectorAll('.rejected-request-card');
-
-    searchInput.addEventListener('input', function(e) {
-        const searchTerm = e.target.value.toLowerCase();
+    // Mobile sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('farmerSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.add('show');
+            document.body.classList.add('sidebar-open');
+        });
         
-        requestCards.forEach(card => {
-            const stockType = card.querySelector('.stock-details .value').textContent.toLowerCase();
-            const warehouseName = card.querySelector('.warehouse-details .value').textContent.toLowerCase();
-            const requestId = card.querySelector('.request-info h3').textContent.toLowerCase();
+        if (closeSidebarBtn) {
+            closeSidebarBtn.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            });
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggle = sidebarToggle.contains(event.target);
             
-            if (stockType.includes(searchTerm) || warehouseName.includes(searchTerm) || requestId.includes(searchTerm)) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
+            if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
             }
         });
-    });
+        
+        // Close sidebar when pressing Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+    }
+    
+    // Search functionality
+    const searchInput = document.getElementById('rejectedRequestSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const requestCards = document.querySelectorAll('.rejected-request-card');
+            
+            requestCards.forEach(function(card) {
+                const cardText = card.textContent.toLowerCase();
+                if (cardText.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
 });
 </script>
 {% endblock %} 

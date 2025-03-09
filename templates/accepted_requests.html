@@ -1,452 +1,538 @@
-x{% extends "base.html" %}
+{% extends "base.html" %}
+
+{% block title %}Accepted Requests{% endblock %}
+
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
 {% block content %}
-<div class="container">
-    <div class="header-section mb-4">
-        <div class="flex justify-between items-center">
-            <h1>Accepted Requests</h1>
+<div class="container-fluid farmer-dashboard p-0">
+    <div class="row g-0">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper" id="farmerSidebar">
+            <div class="position-sticky">
+                <div class="sidebar-header">
+                    <h5 class="sidebar-brand">
+                        <span class="company-name" style="color: white; text-align: center; width: 100%;">Aratro</span>
+                    </h5>
+                    <button type="button" class="btn-close-sidebar d-md-none" id="closeSidebarBtn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                    <div class="user-avatar">
+                        <i class="bi bi-person-circle" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{% if user_farmer %}{{ user_farmer.name }}{% elif current_user.is_authenticated %}{{ current_user.username }}{% elif farmer %}{{ farmer.name }}{% else %}Farmer{% endif %}</span>
+                        <span class="user-role">Farmer</span>
+                    </div>
+                </div>
+                
+                <ul class="nav flex-column sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.farmer_home') }}">
+                            <i class="bi bi-grid-1x2-fill me-2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.create_request_page') }}">
+                            <i class="bi bi-file-earmark-plus-fill me-2"></i>
+                            <span>Create Request</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-heading">Request Status</li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span>Accepted Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.rejected_requests') }}">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            <span>Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-footer">
+                    <!-- User info moved to header -->
+                </div>
+            </div>
         </div>
-        <div></div>
-        <p class="text-muted">View requests that have been approved by warehouses</p>
-    </div>
-
-    <div class="back-button-container mb-4">
-        <a href="{{ url_for('farmer_dashboard.farmer_home') }}" class="btn-back-to-dashboard">
-            <i class="fas fa-arrow-left"></i>
-            <span>Back to Dashboard</span>
-        </a>
-    </div>
-
-    <div class="card">
-        <div class="card-header">
-            <h2>Approved Stock Requests</h2>
-            <span class="text-muted">Requests that have been approved by warehouses</span>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
         </div>
-        <div class="card-body">
-            <div class="search-container mb-4">
-                <div class="input-group">
-                    <input type="text" id="acceptedRequestSearchInput" class="form-control" placeholder="Search accepted requests...">
-                    <div class="input-group-append">
-                        <button class="btn btn-outline-secondary btn-sm" type="button">
-                            <i class="fas fa-search"></i>
-                        </button>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header text-center">
+                    <h1 class="dashboard-title">Accepted Requests</h1>
+                    <p class="dashboard-subtitle">View requests that have been approved by warehouses</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Accepted Requests Card -->
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Approved Stock Requests
+                        </h5>
+                    </div>
+                    <div class="dashboard-card-body">
+                        {% if accepted_requests %}
+                        <div class="accepted-requests-grid">
+                            {% for request in accepted_requests %}
+                            <div class="request-card">
+                                <div class="request-card-header">
+                                    <div class="request-info">
+                                        <h5 class="request-title">Stock Request #{{ request.id }}</h5>
+                                        <span class="request-date">{{ request.request_date.strftime('%Y-%m-%d') }}</span>
+                                    </div>
+                                    <span class="status-badge status-accepted">
+                                        <i class="bi bi-check-circle me-1"></i>
+                                        Approved
+                                    </span>
+                                </div>
+                                
+                                <div class="request-card-body">
+                                    <div class="request-section">
+                                        <h6 class="section-title">Stock Details</h6>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Stock Type</span>
+                                            <span class="detail-value">{{ request.stock.type }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Approved Quantity</span>
+                                            <span class="detail-value">{{ request.stock.quantity }} tons</span>
+                                        </div>
+                                        {% if request.stock.requested_quantity != request.stock.quantity %}
+                                        <div class="detail-row">
+                                            <span class="detail-label">Originally Requested</span>
+                                            <span class="detail-value">{{ request.stock.requested_quantity }} tons</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="request-section">
+                                        <h6 class="section-title">Warehouse Details</h6>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Warehouse</span>
+                                            <span class="detail-value">{{ request.warehouse.name }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Location</span>
+                                            <span class="detail-value">{{ request.warehouse.location }}</span>
+                                        </div>
+                                        <div class="detail-row">
+                                            <span class="detail-label">Approval Date</span>
+                                            <span class="detail-value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="request-actions">
+                                        <a href="{{ url_for('farmer_dashboard.request_details', request_id=request.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye me-1"></i>
+                                            View Details
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="bi bi-check-circle fs-1 mb-3"></i>
+                            <h5>No Accepted Requests</h5>
+                            <p class="text-muted">You don't have any approved requests at the moment.</p>
+                            <a href="{{ url_for('farmer_dashboard.create_request_page') }}" class="btn btn-primary mt-3">
+                                <i class="bi bi-plus-circle me-2"></i>
+                                Create New Request
+                            </a>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
-            
-            {% if accepted_requests %}
-                <div class="accepted-requests-grid">
-                    {% for request in accepted_requests %}
-                    <div class="accepted-request-card">
-                        <div class="card-header">
-                            <div class="request-info">
-                                <h3>Stock Request #{{ request.id }}</h3>
-                                <span class="date">{{ request.request_date.strftime('%Y-%m-%d') }}</span>
-                            </div>
-                            <span class="badge badge-success">Approved</span>
-                        </div>
-
-                        <div class="stock-details">
-                            <div class="detail-group">
-                                <span class="label">Stock Type</span>
-                                <span class="value">{{ request.stock.type }}</span>
-                            </div>
-                            <div class="detail-group">
-                                <span class="label">Approved Quantity</span>
-                                <span class="value">{{ request.stock.quantity }} tons</span>
-                            </div>
-                            {% if request.stock.requested_quantity != request.stock.quantity %}
-                            <div class="detail-group">
-                                <span class="label">Originally Requested</span>
-                                <span class="value">{{ request.stock.requested_quantity }} tons</span>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="warehouse-details">
-                            <h4>Approved By</h4>
-                            <div class="detail-group">
-                                <span class="label">Warehouse</span>
-                                <span class="value">{{ request.warehouse.name }}</span>
-                            </div>
-                            <div class="detail-group">
-                                <span class="label">Location</span>
-                                <span class="value">{{ request.warehouse.location }}</span>
-                            </div>
-                            <div class="detail-group">
-                                <span class="label">Approval Date</span>
-                                <span class="value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
-                            </div>
-                        </div>
-
-                        
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <h3>No Accepted Requests</h3>
-                    <p>You don't have any approved requests at the moment.</p>
-                    <a href="{{ url_for('farmer_dashboard.create_request_page') }}" class="btn btn-primary">
-                        <i class="fas fa-plus"></i>
-                        Create New Request
-                    </a>
-                </div>
-            {% endif %}
         </div>
     </div>
 </div>
 
 <style>
-.container {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.header-section h1 {
-    color: #2d6b45;
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-}
-
-.header-section .text-muted {
-    color: #666;
-}
-
-.back-button-container {
-    width: 100%;
-}
-
-.btn-back-to-dashboard {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 0.75rem;
-    background-color: #f1f8f1;
-    color: #55c759;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
-
-.btn-back-to-dashboard i {
-    margin-right: 0.5rem;
-}
-
-.btn-back-to-dashboard:hover {
-    background-color: #e1efe1;
-}
-
-.accepted-requests-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(500px, 1fr));
-    gap: 1.5rem;
-    margin-top: 2rem;
-}
-
-.accepted-request-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    border: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-}
-
-.accepted-request-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 1.5rem;
-}
-
-.request-info h3 {
-    color: #2d6b45;
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
-}
-
-.date {
-    color: #666;
-    font-size: 0.875rem;
-}
-
-.badge {
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
-    font-weight: 500;
-    font-size: 0.875rem;
-}
-
-.badge-success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.stock-details, .warehouse-details {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 1rem;
-    margin-bottom: 1rem;
-}
-
-.detail-group {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
-.detail-group:last-child {
-    margin-bottom: 0;
-}
-
-.detail-group .label {
-    color: #666;
-    font-size: 0.875rem;
-}
-
-.detail-group .value {
-    color: #2d6b45;
-    font-weight: 500;
-}
-
-h4 {
-    color: #2d6b45;
-    margin-bottom: 1rem;
-    font-size: 1rem;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    text-decoration: none;
-}
-
-.btn-sm {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.85rem;
-}
-
-.btn-primary {
-    background: #55c759;
-    color: white;
-    border: none;
-}
-
-.btn-primary:hover {
-    background: #3da042;
-    transform: translateY(-2px);
-}
-
-.btn-outline {
-    background: transparent;
-    border: 1px solid #55c759;
-    color: #55c759;
-}
-
-.btn-outline:hover {
-    background: #f1f8f1;
-    transform: translateY(-2px);
-}
-
-.btn-outline-secondary {
-    background: transparent;
-    border: 1px solid #6c757d;
-    color: #6c757d;
-}
-
-.btn-outline-secondary:hover {
-    background: #f8f9fa;
-    color: #5a6268;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 4rem 2rem;
-}
-
-.empty-state-icon {
-    font-size: 4rem;
-    color: #55c759;
-    margin-bottom: 1.5rem;
-}
-
-.empty-state h3 {
-    color: #2d6b45;
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.empty-state p {
-    color: #666;
-    margin-bottom: 2rem;
-}
-
-/* Mobile responsiveness improvements */
-@media (max-width: 768px) {
-    .accepted-requests-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .container {
-        padding: 1rem;
-    }
-    
-    .header-section {
+    /* Dashboard Layout */
+    .farmer-dashboard {
+        background-color: #f5f7fa;
+        position: relative;
+        overflow-x: hidden;
+        display: flex;
         flex-direction: column;
     }
     
-    .header-section .flex {
-        flex-direction: row;
-        justify-content: space-between;
+    .main-content {
+        padding: 2rem;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: fit-content;
+        overflow: visible;
+    }
+    
+    .content-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: fit-content;
+        overflow: visible;
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dashboard-title::after {
+        content: '';
+        position: absolute;
+        bottom: -0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3rem;
+        height: 0.25rem;
+        background: var(--primary-color);
+        border-radius: 0.125rem;
+    }
+    
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    /* Sidebar Styles */
+    .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+        padding: 10px 0;
+    }
+    
+    .sidebar-header {
+        display: flex;
+        flex-direction: column;
         align-items: center;
         width: 100%;
     }
     
-    .header-section h1 {
-        font-size: 1.5rem;
-        margin-bottom: 0;
+    .user-info {
+        text-align: center;
     }
     
-    .header-section a.btn {
-        align-self: center;
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        white-space: nowrap;
-    }
-    
-    .header-section a.btn i {
-        margin-right: 0.25rem;
-    }
-    
-    .search-container .input-group {
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.1);
         display: flex;
-    }
-    
-    .search-container .form-control {
-        font-size: 0.9rem;
-        height: 2.2rem;
-    }
-    
-    .search-container .btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.8rem;
-    }
-    
-    .accepted-request-card {
-        padding: 1rem;
-    }
-    
-    .card-header {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-    
-    .badge {
-        align-self: flex-start;
-        padding: 0.35rem 0.75rem;
-        font-size: 0.75rem;
-    }
-    
-    .detail-group {
-        flex-direction: column;
-        gap: 0.25rem;
-    }
-    
-    .detail-group .value {
-        font-size: 1rem;
-    }
-    
-    .action-buttons {
-        flex-direction: column;
-    }
-    
-    .btn {
-        width: 100%;
+        align-items: center;
         justify-content: center;
+        margin: 0 auto 10px;
+        color: #e2e8f0;
     }
     
-    .btn-back-to-dashboard {
-        padding: 0.6rem;
-        font-size: 0.9rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .header-section a.btn {
-        font-size: 0.7rem;
-        padding: 0.2rem 0.4rem;
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
     }
     
-    .header-section a.btn span {
-        display: none;
+    .user-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+        text-align: center;
     }
     
-    .header-section a.btn i {
-        margin-right: 0;
-        font-size: 0.9rem;
+    .user-role {
+        font-size: 0.8rem;
+        color: #a0aec0;
+        text-align: center;
     }
     
-    .header-section h1 {
-        font-size: 1.3rem;
+    /* Remove bullet points from sidebar navigation */
+    .sidebar-nav {
+        list-style-type: none;
+        padding-left: 0;
     }
     
-    .btn-back-to-dashboard {
-        padding: 0.5rem;
-        font-size: 0.85rem;
+    /* Remove any default list styling that might be causing the white dot */
+    .sidebar-nav li {
+        list-style: none;
     }
     
-    .btn-back-to-dashboard i {
-        font-size: 0.85rem;
+    .sidebar-divider {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 10px 0;
+        list-style: none;
     }
-}
+    
+    /* Dashboard Card */
+    .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        width: 100%;
+        height: fit-content;
+        margin-bottom: 2rem;
+    }
+    
+    .dashboard-card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .dashboard-card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dashboard-card-title i {
+        color: #4a5568;
+        margin-right: 0.75rem;
+    }
+    
+    /* Fix for container height */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        height: fit-content;
+    }
+    
+    .container-fluid {
+        height: fit-content;
+        min-height: 0;
+    }
+    
+    /* Accepted Requests Grid */
+    .accepted-requests-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    /* Request Card */
+    .request-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s;
+        height: 100%;
+    }
+    
+    .request-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .request-card-header {
+        padding: 1.25rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+    }
+    
+    .request-title {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.25rem;
+        font-size: 1.1rem;
+    }
+    
+    .request-date {
+        color: #718096;
+        font-size: 0.875rem;
+    }
+    
+    .request-card-body {
+        padding: 1.25rem;
+    }
+    
+    /* Request Sections */
+    .request-section {
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+    }
+    
+    .section-title {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .detail-label {
+        color: #718096;
+        font-size: 0.875rem;
+    }
+    
+    .detail-value {
+        color: #2d3748;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+    
+    .request-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1rem;
+    }
+    
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+    
+    .status-accepted {
+        background-color: rgba(72, 187, 120, 0.1);
+        color: #2f855a;
+    }
+    
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: #718096;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        color: #cbd5e0;
+        display: block;
+        margin-bottom: 1rem;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 1200px) {
+        .dashboard-card {
+            width: 100%;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .main-content {
+            padding: 1.5rem 1rem;
+        }
+    }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Search functionality
-    const searchInput = document.getElementById('acceptedRequestSearchInput');
-    const requestCards = document.querySelectorAll('.accepted-request-card');
-
-    if (searchInput && requestCards.length > 0) {
-        searchInput.addEventListener('input', function(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            
-            requestCards.forEach(card => {
-                const stockType = card.querySelector('.stock-details .value').textContent.toLowerCase();
-                const warehouseName = card.querySelector('.warehouse-details .value').textContent.toLowerCase();
-                const requestId = card.querySelector('.request-info h3').textContent.toLowerCase();
-                
-                if (stockType.includes(searchTerm) || warehouseName.includes(searchTerm) || requestId.includes(searchTerm)) {
-                    card.style.display = '';
-                } else {
-                    card.style.display = 'none';
-                }
+    // Mobile sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('farmerSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.add('show');
+            document.body.classList.add('sidebar-open');
+        });
+        
+        if (closeSidebarBtn) {
+            closeSidebarBtn.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
             });
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggle = sidebarToggle.contains(event.target);
+            
+            if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+        
+        // Close sidebar when pressing Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
         });
     }
 });
