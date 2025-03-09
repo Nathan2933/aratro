@@ -445,46 +445,24 @@
     {% block style %}{% endblock %}
 </head>
 <body>
-    {% if not current_user.is_authenticated or current_user.role != 'farmer' %}
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <a href="{{ url_for('main.index') }}" class="brand-link">
-                <i class="fas fa-link"></i>
-                Aratro
-            </a>
-        </div>
-
-        <button type="button" class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="Toggle menu">
-            <div class="hamburger-icon">
-                <span></span>
-                <span></span>
-                <span></span>
+    <div class="main-container {% if current_user.is_authenticated and current_user.role == 'farmer' %}no-navbar{% endif %}">
+        {% if current_user.is_authenticated and current_user.role != 'farmer' %}
+        <!-- Sidebar -->
+        <div class="sidebar-wrapper" id="mainSidebar">
+            <div class="sidebar-header">
+                <h5 class="sidebar-brand">
+                    <a href="{{ url_for('main.index') }}" class="brand-link">
+                        <i class="bi bi-link-45deg"></i>
+                        Aratro
+                    </a>
+                </h5>
+               
             </div>
-        </button>
-
-        {% if current_user.is_authenticated %}
-        <div class="navbar-menu" id="navbarMenu">
-            <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
-                <i class="fas fa-chart-line"></i>
-                Dashboard
-            </a>
-            {% if current_user.role == 'warehouse_manager' %}
-            <a href="#" class="nav-link">
-                <i class="fas fa-boxes"></i>
-                Manage Stock
-            </a>
-            {% elif current_user.role == 'admin' %}
-            <a href="{{ url_for('admin.dashboard') }}" class="nav-link">
-                <i class="fas fa-cogs"></i>
-                Admin Panel
-            </a>
-            {% endif %}
-        </div>
-
-        <div class="navbar-end">
-            <div class="user-menu">
-                <button type="button" class="user-menu-btn" id="userMenuBtn" aria-expanded="false" aria-haspopup="true">
-                    <i class="fas fa-user-circle"></i>
+            <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                <div class="user-avatar">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <div class="user-details">
                     <span class="user-name">
                     {% if current_user.role == 'warehouse_manager' and user_warehouse %}
                         {{ user_warehouse.manager_name }}
@@ -494,90 +472,170 @@
                         {{ current_user.role|replace('_', ' ')|title }}
                     {% endif %}
                     </span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div class="user-menu-dropdown" id="userMenuDropdown">
-                    <a href="#" class="dropdown-item">
-                        <i class="fas fa-user"></i>
-                        Profile
-                    </a>
-                    <a href="#" class="dropdown-item">
-                        <i class="fas fa-cog"></i>
-                        Settings
-                    </a>
-                    <div style="height: 1px; background-color: var(--border-color); margin: 0.5rem 0;"></div>
-                    <a href="{{ url_for('auth.logout') }}" class="dropdown-item logout-item">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Logout
-                    </a>
+                    <span class="user-role">{{ current_user.role|replace('_', ' ')|title }}</span>
                 </div>
             </div>
+            <div class="sidebar-menu">
+                <ul>
+                    {% if current_user.role == 'warehouse_manager' %}
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.warehouse_home') }}" class="{% if request.endpoint == 'warehouse_dashboard.warehouse_home' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2-fill"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.respond_to_request') }}" class="{% if request.endpoint == 'warehouse_dashboard.respond_to_request' %}active{% endif %}">
+                            <i class="bi bi-inbox-fill"></i>
+                            <span>Incoming Requests</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.accepted_requests') }}" class="{% if request.endpoint == 'warehouse_dashboard.accepted_requests' %}active{% endif %}">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Accepted Requests</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.rejected_requests') }}" class="{% if request.endpoint == 'warehouse_dashboard.rejected_requests' %}active{% endif %}">
+                            <i class="bi bi-x-circle-fill"></i>
+                            <span>Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    {% elif current_user.role == 'admin' %}
+                    <li>
+                        <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                            <i class="fas fa-cogs"></i>
+                            <span>Admin Panel</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="sidebar-divider"></li>
+                    <li>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-item">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
-        {% else %}
-        <div class="navbar-menu" id="navbarMenu">
-            <a href="{{ url_for('auth.login') }}" class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}">
-                <i class="fas fa-sign-in-alt"></i>
-                Login
-            </a>
-            <a href="{{ url_for('auth.ration_login') }}" class="nav-link {% if request.endpoint == 'auth.ration_login' %}active{% endif %}">
-                <i class="fas fa-store"></i>
-                Ration Shop
-            </a>
-            <a href="{{ url_for('auth.register') }}" class="nav-link {% if request.endpoint == 'auth.register' %}active{% endif %}">
-                <i class="fas fa-user-plus"></i>
-                Register
-            </a>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none hide-on-pc">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
         </div>
         {% endif %}
-    </nav>
-    {% endif %}
-
-    <div class="main-container {% if current_user.is_authenticated and current_user.role == 'farmer' %}no-navbar{% endif %}">
-        {% if current_user.is_authenticated and current_user.role != 'farmer' %}
-        <div class="welcome-banner" id="welcomeBanner">
-            <div class="welcome-banner-content">
-                {% if current_user.role == 'warehouse_manager' and user_warehouse %}
-                    Welcome back, {{ user_warehouse.manager_name }}!
-                {% elif current_user.role == 'admin' %}
-                    Welcome back, Administrator!
-                {% else %}
-                    Welcome back, {{ current_user.role|replace('_', ' ')|title }}!
-                {% endif %}
-                <span class="banner-hint">(Click the X to dismiss)</span>
+        
+        {% if not current_user.is_authenticated %}
+        <!-- Sidebar for non-authenticated users -->
+        <div class="sidebar-wrapper" id="mainSidebar">
+            <div class="sidebar-header">
+                <h5 class="sidebar-brand">
+                    <a href="{{ url_for('main.index') }}" class="brand-link">
+                        <i class="fas fa-link"></i>
+                        Aratro
+                    </a>
+                </h5>
+                <button type="button" class="btn-close-sidebar d-md-none" id="closeSidebarBtn">
+                    <i class="bi bi-x-lg"></i>
+                </button>
             </div>
-            <button type="button" class="close-banner-btn" aria-label="Close" id="closeBannerBtn">
-                <i class="fas fa-times"></i>
+            <div class="sidebar-menu">
+                <ul>
+                    <li>
+                        <a href="{{ url_for('auth.login') }}" class="{% if request.endpoint == 'auth.login' %}active{% endif %}">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Login</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.ration_login') }}" class="{% if request.endpoint == 'auth.ration_login' %}active{% endif %}">
+                            <i class="fas fa-store"></i>
+                            <span>Ration Shop</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.register') }}" class="{% if request.endpoint == 'auth.register' %}active{% endif %}">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Register</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none hide-on-pc">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
             </button>
         </div>
         {% endif %}
 
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="flash-message {{ category }}" role="alert">
-                            <div class="flash-message-content">
-                                {% if category == 'success' %}
-                                    <i class="fas fa-check-circle"></i>
-                                {% elif category == 'error' %}
-                                    <i class="fas fa-exclamation-circle"></i>
-                                {% elif category == 'info' %}
-                                    <i class="fas fa-info-circle"></i>
-                                {% elif category == 'warning' %}
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                {% endif %}
-                                <span>{{ message }}</span>
-                            </div>
-                            <button type="button" class="close-flash-btn" aria-label="Close">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        </div>
+        <div class="content-area {% if current_user.is_authenticated and current_user.role != 'farmer' or not current_user.is_authenticated %}with-sidebar{% endif %}">
+            {% if current_user.is_authenticated and current_user.role != 'farmer' %}
+            <div class="welcome-banner" id="welcomeBanner">
+                <div class="welcome-banner-content">
+                    {% if current_user.role == 'warehouse_manager' and user_warehouse %}
+                        Welcome back, {{ user_warehouse.manager_name }}!
+                    {% elif current_user.role == 'admin' %}
+                        Welcome back, Administrator!
+                    {% else %}
+                        Welcome back, {{ current_user.role|replace('_', ' ')|title }}!
+                    {% endif %}
+                    <span class="banner-hint">(Click the X to dismiss)</span>
+                </div>
+                <button type="button" class="close-banner-btn" aria-label="Close" id="closeBannerBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            {% endif %}
 
-        {% block content %}{% endblock %}
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-message {{ category }}" role="alert">
+                                <div class="flash-message-content">
+                                    {% if category == 'success' %}
+                                        <i class="fas fa-check-circle"></i>
+                                    {% elif category == 'error' %}
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    {% elif category == 'info' %}
+                                        <i class="fas fa-info-circle"></i>
+                                    {% elif category == 'warning' %}
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    {% endif %}
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button type="button" class="close-flash-btn" aria-label="Close">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            {% block content %}{% endblock %}
+        </div>
     </div>
 
     <script>
@@ -585,89 +643,37 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM fully loaded');
             
-            // Mobile menu functionality
-            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
-            const navbarMenu = document.getElementById('navbarMenu');
+            // Sidebar toggle functionality
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainSidebar = document.getElementById('mainSidebar');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
             
-            if (mobileMenuToggle && navbarMenu) {
-                console.log('Mobile menu elements found');
-                
-                mobileMenuToggle.addEventListener('click', function() {
-                    console.log('Mobile menu toggle clicked');
-                    this.classList.toggle('active');
-                    navbarMenu.classList.toggle('active');
-                    document.body.classList.toggle('menu-open');
+            if (sidebarToggle && mainSidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    mainSidebar.classList.add('show');
+                    document.body.classList.add('sidebar-open');
                 });
-                
-                // Close mobile menu when clicking on a link
-                const navLinks = navbarMenu.querySelectorAll('.nav-link');
-                navLinks.forEach(function(link) {
-                    link.addEventListener('click', function() {
-                        if (window.innerWidth <= 768) {
-                            mobileMenuToggle.classList.remove('active');
-                            navbarMenu.classList.remove('active');
-                            document.body.classList.remove('menu-open');
-                        }
-                    });
-                });
-                
-                // Close mobile menu when window is resized above mobile breakpoint
-                window.addEventListener('resize', function() {
-                    if (window.innerWidth > 768 && navbarMenu.classList.contains('active')) {
-                        mobileMenuToggle.classList.remove('active');
-                        navbarMenu.classList.remove('active');
-                        document.body.classList.remove('menu-open');
-                    }
-                });
-            } else {
-                console.log('Mobile menu elements not found');
-                if (!mobileMenuToggle) console.log('mobileMenuToggle not found');
-                if (!navbarMenu) console.log('navbarMenu not found');
             }
             
-            // User dropdown functionality
-            const userMenuBtn = document.getElementById('userMenuBtn');
-            const userMenuDropdown = document.getElementById('userMenuDropdown');
-            
-            if (userMenuBtn && userMenuDropdown) {
-                console.log('User menu elements found');
-                
-                // Toggle dropdown on button click
-                userMenuBtn.addEventListener('click', function(event) {
-                    console.log('User menu button clicked');
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    const expanded = this.getAttribute('aria-expanded') === 'true';
-                    this.setAttribute('aria-expanded', !expanded);
-                    
-                    if (expanded) {
-                        userMenuDropdown.style.display = 'none';
-                    } else {
-                        userMenuDropdown.style.display = 'block';
-                    }
+            if (closeSidebarBtn && mainSidebar) {
+                closeSidebarBtn.addEventListener('click', function() {
+                    mainSidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
                 });
-                
-                // Close dropdown when clicking elsewhere
-                document.addEventListener('click', function(event) {
-                    if (!userMenuBtn.contains(event.target) && !userMenuDropdown.contains(event.target)) {
-                        userMenuBtn.setAttribute('aria-expanded', 'false');
-                        userMenuDropdown.style.display = 'none';
-                    }
-                });
-                
-                // Close dropdown when pressing Escape
-                document.addEventListener('keydown', function(event) {
-                    if (event.key === 'Escape' && userMenuBtn.getAttribute('aria-expanded') === 'true') {
-                        userMenuBtn.setAttribute('aria-expanded', 'false');
-                        userMenuDropdown.style.display = 'none';
-                    }
-                });
-            } else {
-                console.log('User menu elements not found');
-                if (!userMenuBtn) console.log('userMenuBtn not found');
-                if (!userMenuDropdown) console.log('userMenuDropdown not found');
             }
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768 && 
+                    mainSidebar && 
+                    mainSidebar.classList.contains('show') && 
+                    !mainSidebar.contains(event.target) && 
+                    sidebarToggle && 
+                    !sidebarToggle.contains(event.target)) {
+                    mainSidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
             
             // Flash message close buttons
             const closeButtons = document.querySelectorAll('.close-flash-btn');

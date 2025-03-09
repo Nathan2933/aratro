@@ -1,165 +1,146 @@
 {% extends "base.html" %}
 
-{% block title %}View Requests{% endblock %}
+{% block title %}Incoming Requests{% endblock %}
 
 {% block content %}
-<div class="container-fluid farmer-dashboard">
-    <div class="row">
-        <!-- Sidebar -->
-        <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper">
-            <div class="position-sticky pt-3">
-                <div class="sidebar-header mb-4">
-                    <h5 class="sidebar-brand">
-                        <i class="bi bi-grid-1x2-fill me-2"></i>
-                        Farmer Portal
-                    </h5>
+<div class="container-fluid warehouse-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Incoming Requests</h1>
+                    <p class="dashboard-subtitle">View and respond to incoming requests</p>
                 </div>
                 
-                <ul class="nav flex-column sidebar-nav">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('farmer_dashboard.farmer_home') }}">
-                            <i class="bi bi-speedometer2 me-2"></i>
-                            <span>Dashboard</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('farmer_dashboard.create_request_page') }}">
-                            <i class="bi bi-plus-circle me-2"></i>
-                            <span>Create Request</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link active" href="{{ url_for('farmer_dashboard.view_requests_page') }}">
-                            <i class="bi bi-list-check me-2"></i>
-                            <span>View Requests</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-heading">Request Status</li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
-                            <i class="bi bi-check-circle me-2"></i>
-                            <span>Accepted Requests</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('farmer_dashboard.partial_acceptances') }}">
-                            <i class="bi bi-check2-circle me-2"></i>
-                            <span>Partial Acceptances</span>
-                        </a>
-                    </li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('farmer_dashboard.rejected_requests') }}">
-                            <i class="bi bi-x-circle me-2"></i>
-                            <span>Rejected Requests</span>
-                        </a>
-                    </li>
-                    
-                    <li class="sidebar-divider"></li>
-                    
-                    <li class="nav-item">
-                        <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
-                            <i class="bi bi-box-arrow-right me-2"></i>
-                            <span>Logout</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-        
-        <!-- Main Content -->
-        <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4 main-content">
-            <div class="page-header d-flex justify-content-between align-items-center my-4">
-                <div>
-                    <h1 class="page-title">Warehouse Requests</h1>
-                    <p class="page-subtitle">View and respond to warehouse requests for stock</p>
-                </div>
-            </div>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
             
-            <!-- Warehouse Requests Card -->
-            <div class="dashboard-card">
-                <div class="dashboard-card-header">
-                    <h5 class="dashboard-card-title">
-                        <i class="bi bi-building me-2"></i>
-                        Open Warehouse Requests
-                    </h5>
-                    <div class="search-container">
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" id="requestSearchInput" class="form-control" placeholder="Search warehouse requests...">
+                <!-- Tabs for Farmer and Ration Shop Requests -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <div class="request-tabs">
+                            <div class="request-tab active" id="farmer-tab">
+                                <i class="bi bi-person-fill"></i>
+                                <span>Farmer Requests</span>
+                            </div>
+                            <div class="request-tab" id="ration-tab">
+                                <i class="bi bi-shop"></i>
+                                <span>Ration Shop Requests</span>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="dashboard-card-body">
-                    {% if warehouse_requests %}
-                    <div class="table-responsive">
-                        <table class="table dashboard-table" id="warehouseRequestsTable">
-                            <thead>
-                                <tr>
-                                    <th>Warehouse</th>
-                                    <th>Stock Type</th>
-                                    <th>Quantity</th>
-                                    <th>Price per Ton</th>
-                                    <th>Posted Date</th>
-                                    <th>Expiry Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for req in warehouse_requests %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="avatar-icon me-2">
-                                                <i class="bi bi-building"></i>
-                                            </div>
-                                            <span>{{ req.warehouse.name }}</span>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <span class="stock-type-badge">{{ req.stock_type }}</span>
-                                    </td>
-                                    <td>{{ req.quantity }} tons</td>
-                                    <td>₹{{ req.price_per_ton }}/ton</td>
-                                    <td>{{ req.date_posted.strftime('%Y-%m-%d') }}</td>
-                                    <td>
-                                        {% set days_left = (req.expiry_date - now).days %}
-                                        <span class="{% if days_left <= 3 %}text-danger{% elif days_left <= 7 %}text-warning{% else %}text-success{% endif %}">
-                                            {{ req.expiry_date.strftime('%Y-%m-%d') }}
-                                            {% if days_left > 0 %}
-                                            <small>({{ days_left }} days left)</small>
-                                            {% else %}
-                                            <small>(Expires today)</small>
-                                            {% endif %}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-primary" onclick="respondToWarehouseRequest({{ req.id }})">
-                                            <i class="bi bi-reply me-1"></i>
-                                            Respond
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="dashboard-card-body p-0">
+                        <!-- Farmer Requests Content -->
+                        <div class="request-content active" id="farmer-content">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Request ID</th>
+                                            <th>Farmer</th>
+                                            <th>Stock Type</th>
+                                            <th>Requested Quantity</th>
+                                            <th>Approve Quantity</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for request in pending_requests %}
+                                        <tr>
+                                            <td>#{{ request.id }}</td>
+                                            <td>{{ request.farmer.name }}</td>
+                                            <td>{{ request.stock.type }}</td>
+                                            <td>{{ request.stock.requested_quantity }} tons</td>
+                                            <td>
+                                                <input type="number" 
+                                                       class="form-control quantity-input" 
+                                                       id="quantity_{{ request.id }}"
+                                                       value="{{ request.stock.requested_quantity }}"
+                                                       min="0.1"
+                                                       max="{{ warehouse.capacity - total_allocated_space }}"
+                                                       step="0.1">
+                                            </td>
+                                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-success btn-sm" 
+                                                            onclick="approveRequest({{ request.id }})">
+                                                        <i class="bi bi-check-lg"></i> Approve
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm" 
+                                                            onclick="rejectRequest({{ request.id }})">
+                                                        <i class="bi bi-x-lg"></i> Reject
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if not pending_requests %}
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">No pending farmer requests found</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Ration Shop Requests Content -->
+                        <div class="request-content" id="ration-content">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Request ID</th>
+                                            <th>Ration Shop</th>
+                                            <th>Stock Type</th>
+                                            <th>Requested Quantity</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for request in ration_pending_requests %}
+                                        <tr>
+                                            <td>#{{ request.id }}</td>
+                                            <td>{{ request.ration_shop.name }}</td>
+                                            <td>{{ request.stock_type }}</td>
+                                            <td>{{ request.quantity }} tons</td>
+                                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-success btn-sm" 
+                                                            onclick="approveRationRequest({{ request.id }})">
+                                                        <i class="bi bi-check-lg"></i> Approve
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm" 
+                                                            onclick="rejectRationRequest({{ request.id }})">
+                                                        <i class="bi bi-x-lg"></i> Reject
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if not ration_pending_requests %}
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4">No pending ration shop requests found</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
-                    {% else %}
-                    <div class="empty-state">
-                        <i class="bi bi-building-x fs-1 mb-3"></i>
-                        <h5>No Open Warehouse Requests</h5>
-                        <p class="text-muted">There are no open warehouse requests at this time.</p>
-                        <a href="{{ url_for('farmer_dashboard.farmer_home') }}" class="btn btn-primary mt-3">
-                            <i class="bi bi-arrow-left me-2"></i>
-                            Back to Dashboard
-                        </a>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -168,310 +149,570 @@
 
 <style>
     /* Dashboard Layout */
-    .farmer-dashboard {
-        background-color: #f8f9fa;
-        min-height: 100vh;
+    .warehouse-dashboard {
+        background-color: #f5f7fa;
+        position: relative;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
     }
     
     .main-content {
-        padding-top: 1.5rem;
-        padding-bottom: 3rem;
+        padding: 2rem;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: fit-content;
+        overflow: visible;
+    }
+    
+    .content-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: fit-content;
+        overflow: visible;
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dashboard-title::after {
+        content: '';
+        position: absolute;
+        bottom: -0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3rem;
+        height: 0.25rem;
+        background: var(--primary-color);
+        border-radius: 0.125rem;
+    }
+    
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
     }
     
     /* Sidebar Styles */
-    .sidebar-wrapper {
-        background-color: #2d6b45;
-        min-height: 100vh;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 250px;
-        z-index: 100;
-        transition: all 0.3s;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+    .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+        padding: 10px 0;
     }
     
     .sidebar-header {
-        padding: 1.5rem 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .sidebar-brand {
-        color: #ffffff;
-        font-weight: 600;
-        font-size: 1.25rem;
-        margin-bottom: 0;
-    }
-    
-    .sidebar-nav {
-        padding: 0.5rem 0;
-    }
-    
-    .nav-heading {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        padding: 1.25rem 1rem 0.5rem;
-        font-weight: 600;
-    }
-    
-    .sidebar-divider {
-        height: 0;
-        margin: 1rem 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .sidebar-nav .nav-link {
-        color: rgba(255, 255, 255, 0.8);
-        padding: 0.75rem 1rem;
-        border-radius: 0.25rem;
-        margin: 0.2rem 0.75rem;
-        transition: all 0.2s;
         display: flex;
+        flex-direction: column;
         align-items: center;
+        width: 100%;
     }
     
-    .sidebar-nav .nav-link:hover {
-        color: #ffffff;
-        background-color: rgba(255, 255, 255, 0.1);
-    }
-    
-    .sidebar-nav .nav-link.active {
-        color: #ffffff;
-        background-color: rgba(255, 255, 255, 0.2);
-        font-weight: 500;
-    }
-    
-    .sidebar-nav .nav-link i {
-        font-size: 1.1rem;
-        width: 1.5rem;
+    .user-info {
         text-align: center;
     }
     
-    /* Page Header */
-    .page-title {
-        font-weight: 700;
-        color: #2d3748;
-        margin-bottom: 0.25rem;
-        font-size: 1.75rem;
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #e2e8f0;
     }
     
-    .page-subtitle {
-        color: #718096;
-        font-weight: 400;
-        margin-bottom: 0;
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
     }
     
-    /* Dashboard Cards */
+    .user-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+        text-align: center;
+    }
+    
+    .user-role {
+        font-size: 0.8rem;
+        color: #a0aec0;
+        text-align: center;
+    }
+    
+    /* Remove bullet points from sidebar navigation */
+    .sidebar-nav {
+        list-style-type: none;
+        padding-left: 0;
+    }
+    
+    /* Remove any default list styling that might be causing the white dot */
+    .sidebar-nav li {
+        list-style: none;
+    }
+    
+    .sidebar-divider {
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        margin: 10px 0;
+        list-style: none;
+    }
+    
+    /* Dashboard Card */
     .dashboard-card {
         background-color: white;
         border-radius: 0.5rem;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        width: 100%;
+        height: fit-content;
         margin-bottom: 2rem;
-        border: 1px solid #e2e8f0;
-        transition: all 0.2s;
-    }
-    
-    .dashboard-card:hover {
-        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
     }
     
     .dashboard-card-header {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid #e2e8f0;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
         display: flex;
         align-items: center;
-        justify-content: space-between;
     }
     
     .dashboard-card-title {
+        font-size: 1.125rem;
         font-weight: 600;
         color: #2d3748;
-        margin-bottom: 0;
-        font-size: 1.1rem;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dashboard-card-title i {
+        color: #4a5568;
+        margin-right: 0.75rem;
     }
     
     .dashboard-card-body {
         padding: 1.5rem;
     }
     
-    /* Search Container */
-    .search-container {
-        width: 300px;
-    }
-    
-    .search-container .input-group-text {
-        background-color: white;
-        border-right: none;
-    }
-    
-    .search-container .form-control {
-        border-left: none;
-    }
-    
-    .search-container .form-control:focus {
-        box-shadow: none;
-    }
-    
-    /* Table Styles */
-    .dashboard-table {
-        width: 100%;
-        margin-bottom: 0;
-    }
-    
-    .dashboard-table th {
-        font-weight: 600;
-        color: #4a5568;
-        background-color: #f8f9fa;
-        border-bottom: 2px solid #e2e8f0;
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
-    }
-    
-    .dashboard-table td {
-        padding: 1rem;
-        border-bottom: 1px solid #e2e8f0;
-        color: #4a5568;
-        vertical-align: middle;
-    }
-    
-    .dashboard-table tr:last-child td {
+    /* Tab Styles */
+    .nav-tabs {
         border-bottom: none;
     }
     
-    .dashboard-table tr:hover td {
-        background-color: #f8f9fa;
-    }
-    
-    /* Avatar Icon */
-    .avatar-icon {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        background-color: rgba(45, 107, 69, 0.1);
-        color: #2d6b45;
-    }
-    
-    /* Stock Type Badge */
-    .stock-type-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.35rem 0.75rem;
-        border-radius: 9999px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        background-color: rgba(66, 153, 225, 0.1);
-        color: #4299e1;
-    }
-    
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: 3rem 1.5rem;
+    .nav-tabs .nav-link {
+        border: none;
         color: #718096;
+        padding: 0.75rem 1.25rem;
+        font-weight: 500;
+        border-radius: 0;
+        transition: all 0.2s ease;
     }
     
-    .empty-state i {
-        font-size: 3rem;
-        color: #cbd5e0;
-        display: block;
-        margin-bottom: 1rem;
+    .nav-tabs .nav-link:hover {
+        color: #4a5568;
+        background-color: rgba(0, 0, 0, 0.02);
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: var(--primary-color);
+        border-bottom: 2px solid var(--primary-color);
+        background-color: transparent;
+    }
+    
+    /* Form Controls */
+    .quantity-input {
+        width: 120px;
+    }
+    
+    /* Button Styles */
+    .btn-group {
+        display: flex;
+        gap: 0.5rem;
     }
     
     /* Responsive adjustments */
-    @media (max-width: 991.98px) {
-        .sidebar-wrapper {
-            width: 70px;
-        }
-        
-        .sidebar-wrapper .sidebar-brand,
-        .sidebar-wrapper .nav-heading,
-        .sidebar-wrapper .nav-link span {
-            display: none;
-        }
-        
-        .sidebar-wrapper .nav-link i {
-            margin-right: 0;
-            font-size: 1.25rem;
-        }
-        
-        .main-content {
-            margin-left: 70px;
-        }
-        
-        .search-container {
-            width: 200px;
+    @media (max-width: 1200px) {
+        .dashboard-card {
+            width: 100%;
         }
     }
     
-    @media (max-width: 767.98px) {
-        .sidebar-wrapper {
-            position: static;
-            width: 100%;
-            height: auto;
-            min-height: auto;
-            box-shadow: none;
-            margin-bottom: 1.5rem;
-        }
-        
-        .sidebar-wrapper .sidebar-brand,
-        .sidebar-wrapper .nav-heading,
-        .sidebar-wrapper .nav-link span {
-            display: inline-block;
-        }
-        
+    @media (max-width: 768px) {
         .main-content {
-            margin-left: 0;
+            padding: 1.5rem 1rem;
         }
         
-        .dashboard-card-header {
+        .btn-group {
             flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .search-container {
-            width: 100%;
-            margin-top: 1rem;
         }
     }
 </style>
 
+<!-- Include SweetAlert2 library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-// Search functionality
 document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('requestSearchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            const table = document.getElementById('warehouseRequestsTable');
-            const rows = table.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {
-                let found = false;
-                const cells = row.querySelectorAll('td');
-                cells.forEach(cell => {
-                    if (cell.textContent.toLowerCase().includes(searchTerm)) {
-                        found = true;
-                    }
-                });
-                
-                if (found) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+    // Mobile sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('warehouseSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.add('show');
+            document.body.classList.add('sidebar-open');
+        });
+        
+        if (closeSidebarBtn) {
+            closeSidebarBtn.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
             });
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggle = sidebarToggle.contains(event.target);
+            
+            if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+        
+        // Close sidebar when pressing Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+    }
+    
+    // Tab switching functionality
+    const farmerTab = document.getElementById('farmer-tab');
+    const rationTab = document.getElementById('ration-tab');
+    const farmerContent = document.getElementById('farmer-content');
+    const rationContent = document.getElementById('ration-content');
+    
+    if (farmerTab && rationTab) {
+        farmerTab.addEventListener('click', function() {
+            farmerTab.classList.add('active');
+            rationTab.classList.remove('active');
+            farmerContent.classList.add('active');
+            rationContent.classList.remove('active');
+        });
+        
+        rationTab.addEventListener('click', function() {
+            rationTab.classList.add('active');
+            farmerTab.classList.remove('active');
+            rationContent.classList.add('active');
+            farmerContent.classList.remove('active');
         });
     }
 });
 
-// Respond function
-function respondToWarehouseRequest(requestId) {
-    window.location.href = "{{ url_for('farmer_dashboard.create_request_page') }}?warehouse_request_id=" + requestId;
+function approveRequest(requestId) {
+    const quantity = parseFloat(document.getElementById(`quantity_${requestId}`).value);
+    const availableSpace = {{ warehouse.capacity - total_allocated_space }};
+    
+    if (quantity <= 0) {
+        showAlert('Please enter a valid quantity greater than zero', 'error');
+        return;
+    }
+    
+    if (quantity > availableSpace) {
+        showAlert(`Cannot approve more than available space (${availableSpace.toFixed(2)} tons)`, 'error');
+        return;
+    }
+    
+    fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            request_id: requestId,
+            approved_quantity: quantity,
+            action: 'approve'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: 'Request approved successfully',
+                showConfirmButton: false,
+                timer: 1500
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: data.message || 'Error approving request'
+            });
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'Error processing request'
+        });
+        console.error('Error:', error);
+    });
+}
+
+function rejectRequest(requestId) {
+    Swal.fire({
+        title: 'Reject Request',
+        text: 'Are you sure you want to reject this request?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, reject it',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'reject'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request rejected successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Error rejecting request'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Error processing request'
+                });
+                console.error('Error:', error);
+            });
+        }
+    });
+}
+
+// Function to approve ration shop request
+function approveRationRequest(requestId) {
+    // Show modal for notes
+    Swal.fire({
+        title: 'Approve Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Notes (optional):</label>
+                <textarea id="notes" class="form-control"></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Approve',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            return {
+                notes: document.getElementById('notes').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Approving the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send approval request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'approve',
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request approved successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to approve request.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An unexpected error occurred: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// Function to reject ration shop request
+function rejectRationRequest(requestId) {
+    // Show modal for rejection reason
+    Swal.fire({
+        title: 'Reject Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Reason for rejection:</label>
+                <textarea id="notes" class="form-control" required></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const notes = document.getElementById('notes').value;
+            if (!notes) {
+                Swal.showValidationMessage('Please provide a reason for rejection');
+                return false;
+            }
+            return {
+                notes: notes
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Rejecting the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send rejection request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'reject',
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request rejected successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to reject request.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An unexpected error occurred: ' + error.message
+                });
+            });
+        }
+    });
 }
 </script>
+
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 {% endblock %}

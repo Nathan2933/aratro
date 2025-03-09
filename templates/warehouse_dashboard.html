@@ -1,1038 +1,167 @@
 {% extends "base.html" %}
 
+{% block title %}Warehouse Dashboard{% endblock %}
+
 {% block content %}
-<div class="main-container">
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
-        <h1>Warehouse Dashboard</h1>
-        <p>Welcome back, {{ warehouse.manager_name }}</p>
-    </div>
-
-    <!-- Navigation Cards -->
-    <div class="dashboard-cards">
-        <!-- Storage Overview Card -->
-        <div class="dashboard-card">
-            <div class="card-icon">
-                <i class="fas fa-box-open"></i>
-            </div>
-            <div class="card-content">
-                <h3>Storage Overview</h3>
-                <p>View your warehouse storage capacity and allocation</p>
-                
-                <div class="storage-stats">
-                    <div class="stat-item">
-                        <span class="stat-label">Total Capacity:</span>
-                        <span class="stat-value">{{ warehouse.capacity }} tons</span>
-                    </div>
-                    
-                    <div class="stat-item">
-                        <span class="stat-label">Allocated Space:</span>
-                        <span class="stat-value">{{ total_allocated_space }} tons</span>
-                    </div>
-                    
-                    <div class="stat-item">
-                        <span class="stat-label">Available Space:</span>
-                        <span class="stat-value">{{ warehouse.capacity - total_allocated_space }} tons</span>
-                    </div>
+<div class="container-fluid warehouse-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="content-wrapper">
+                <!-- Dashboard Header -->
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Warehouse Dashboard</h1>
+                    <p class="dashboard-subtitle">Welcome, {{ warehouse.manager_name }}</p>
                 </div>
                 
-                <div class="storage-chart-container">
-                    <canvas id="storageChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Combined Requests Card -->
-        <div class="dashboard-card">
-            <div class="card-icon">
-                <i class="fas fa-tasks"></i>
-            </div>
-            <div class="card-content">
-                <h3>Storage Requests</h3>
-                <p>Manage all storage requests</p>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
                 
-                <div class="requests-section">
-                    <div class="request-type">
-                        <h4>Farmer Requests</h4>
-                        <div class="request-buttons">
-                            <button class="btn btn-primary" id="viewPendingFarmerRequests">
-                                <div class="btn-content">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Pending Requests</span>
+                <!-- Statistics Cards -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-bar-chart-fill me-2"></i>
+                            Overview
+                        </h5>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="stats-cards-container">
+                            <div class="stats-card green">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-inbox"></i>
+                                    </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ pending_requests|length }}</h2>
+                                        <p class="stats-label">Pending Requests</p>
+                                    </div>
                                 </div>
-                                <span class="badge">{{ pending_requests|length }}</span>
-                            </button>
-                            <button class="btn btn-success" id="viewApprovedFarmerRequests">
-                                <div class="btn-content">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span>Approved Requests</span>
+                                <div class="stats-card-footer">
+                                    <a href="{{ url_for('warehouse_dashboard.respond_to_request') }}" class="view-details">View Details <i class="bi bi-chevron-right"></i></a>
                                 </div>
-                                <span class="badge">{{ approved_requests|length }}</span>
-                            </button>
+                            </div>
+                            
+                            <div class="stats-card blue">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-check-circle"></i>
+                                    </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ accepted_requests|length }}</h2>
+                                        <p class="stats-label">Accepted Requests</p>
+                                    </div>
+                                </div>
+                                <div class="stats-card-footer">
+                                    <a href="{{ url_for('warehouse_dashboard.accepted_requests') }}" class="view-details">View Details <i class="bi bi-chevron-right"></i></a>
+                                </div>
+                            </div>
+                            
+                            <div class="stats-card yellow">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-x-circle"></i>
+                                    </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ rejected_requests|length }}</h2>
+                                        <p class="stats-label">Rejected Requests</p>
+                                    </div>
+                                </div>
+                                <div class="stats-card-footer">
+                                    <a href="{{ url_for('warehouse_dashboard.rejected_requests') }}" class="view-details">View Details <i class="bi bi-chevron-right"></i></a>
+                                </div>
+                            </div>
+                            
+                            <div class="stats-card red">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ warehouse.capacity }}</h2>
+                                        <p class="stats-label">Total Capacity (kg)</p>
+                                    </div>
+                                </div>
+                                <div class="stats-card-footer">
+                                    <a href="#" class="view-details">Warehouse Capacity <i class="bi bi-chevron-right"></i></a>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="request-type">
-                        <h4>Ration Shop Requests</h4>
-                        <div class="request-buttons">
-                            <button class="btn btn-primary" id="viewPendingRationRequests">
-                                <div class="btn-content">
-                                    <i class="fas fa-clock"></i>
-                                    <span>Pending Requests</span>
-                                </div>
-                                <span class="badge">{{ ration_pending_requests|length }}</span>
-                            </button>
-                            <button class="btn btn-success" id="viewApprovedRationRequests">
-                                <div class="btn-content">
-                                    <i class="fas fa-check-circle"></i>
-                                    <span>Approved Requests</span>
-                                </div>
-                                <span class="badge">{{ ration_approved_requests|length }}</span>
-                            </button>
+                </div>
+                
+                <!-- Recent Requests -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-clock-history me-2"></i>
+                            Recent Requests
+                        </h5>
+                        <a href="{{ url_for('warehouse_dashboard.respond_to_request') }}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="dashboard-card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Request ID</th>
+                                        <th>Farmer</th>
+                                        <th>Stock Type</th>
+                                        <th>Quantity</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for request in recent_requests %}
+                                    <tr>
+                                        <td>#{{ request.id }}</td>
+                                        <td>{{ request.farmer.name }}</td>
+                                        <td>{{ request.stock.type }}</td>
+                                        <td>{{ request.stock.requested_quantity }} tons</td>
+                                        <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            {% if request.status == 'pending' %}
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                            {% elif request.status == 'accepted' %}
+                                            <span class="badge bg-success">Accepted</span>
+                                            {% elif request.status == 'rejected' %}
+                                            <span class="badge bg-danger">Rejected</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('warehouse_dashboard.request_details', request_id=request.id) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% if not recent_requests %}
+                                    <tr>
+                                        <td colspan="7" class="text-center py-4">No recent requests found</td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Content Sections (Initially Hidden) -->
-    <div id="contentSections">
-        <!-- Pending Farmer Requests Section -->
-        <div class="content-section" id="pendingFarmerRequestsSection">
-            <div class="section-header">
-                <h2>Pending Farmer Requests</h2>
-                <button class="section-close">&times;</button>
-            </div>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Farmer</th>
-                            <th>Stock Type</th>
-                            <th>Requested Quantity</th>
-                            <th>Approve Quantity</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for request in pending_requests %}
-                        <tr>
-                            <td>{{ request.stock.farmer.name }}</td>
-                            <td>{{ request.stock.type }}</td>
-                            <td>{{ request.stock.requested_quantity }} tons</td>
-                            <td>
-                                <input type="number" 
-                                       class="form-control quantity-input" 
-                                       id="quantity_{{ request.id }}"
-                                       value="{{ request.stock.requested_quantity }}"
-                                       min="0.1"
-                                       max="{{ warehouse.capacity - total_allocated_space }}"
-                                       step="0.1">
-                            </td>
-                            <td>
-                                <span class="badge badge-warning">Pending</span>
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    <button class="btn btn-success btn-sm" 
-                                            onclick="approveRequest({{ request.id }})">
-                                        <i class="fas fa-check"></i> Approve
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" 
-                                            onclick="rejectRequest({{ request.id }})">
-                                        <i class="fas fa-times"></i> Reject
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Approved Farmer Requests Section -->
-        <div class="content-section" id="approvedFarmerRequestsSection">
-            <div class="section-header">
-                <h2>Approved Farmer Requests</h2>
-                <button class="section-close">&times;</button>
-            </div>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Farmer</th>
-                            <th>Stock Type</th>
-                            <th>Requested Quantity</th>
-                            <th>Approved Quantity</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for request in approved_requests %}
-                        <tr>
-                            <td>{{ request.stock.farmer.name }}</td>
-                            <td>{{ request.stock.type }}</td>
-                            <td>{{ request.stock.requested_quantity }} tons</td>
-                            <td>{{ request.stock.quantity }} tons</td>
-                            <td>
-                                <span class="badge badge-success">Approved</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Pending Ration Shop Requests Section -->
-        <div class="content-section" id="pendingRationRequestsSection">
-            <div class="section-header">
-                <h2>Pending Ration Shop Requests</h2>
-                <button class="section-close">&times;</button>
-            </div>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Ration Shop</th>
-                            <th>Stock Type</th>
-                            <th>Requested Quantity</th>
-                            <th>Request Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for request in ration_pending_requests %}
-                        <tr>
-                            <td>{{ request.ration_shop.name }}</td>
-                            <td>{{ request.stock_type }}</td>
-                            <td>{{ request.quantity }} tons</td>
-                            <td>{{ request.request_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>
-                                <span class="badge badge-warning">Pending</span>
-                            </td>
-                            <td>
-                                <div class="btn-group">
-                                    <button class="btn btn-success btn-sm" 
-                                            onclick="approveRationRequest({{ request.id }})">
-                                        <i class="fas fa-check"></i> Approve
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" 
-                                            onclick="rejectRationRequest({{ request.id }})">
-                                        <i class="fas fa-times"></i> Reject
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Approved Ration Shop Requests Section -->
-        <div class="content-section" id="approvedRationRequestsSection">
-            <div class="section-header">
-                <h2>Approved Ration Shop Requests</h2>
-                <button class="section-close">&times;</button>
-            </div>
-            <div class="table-container">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Ration Shop</th>
-                            <th>Stock Type</th>
-                            <th>Quantity</th>
-                            <th>Request Date</th>
-                            <th>Processed Date</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for request in ration_approved_requests %}
-                        <tr>
-                            <td>{{ request.ration_shop.name }}</td>
-                            <td>{{ request.stock_type }}</td>
-                            <td>{{ request.quantity }} tons</td>
-                            <td>{{ request.request_date.strftime('%Y-%m-%d %H:%M') }}</td>
-                            <td>{{ request.processed_date.strftime('%Y-%m-%d %H:%M') if request.processed_date else 'N/A' }}</td>
-                            <td>
-                                <span class="badge badge-success">Approved</span>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Include SweetAlert2 library -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-function approveRequest(requestId) {
-    const quantity = parseFloat(document.getElementById(`quantity_${requestId}`).value);
-    const availableSpace = {{ warehouse.capacity - total_allocated_space }};
-    
-    if (quantity <= 0) {
-        showAlert('Please enter a valid quantity greater than zero', 'error');
-        return;
-    }
-    
-    if (quantity > availableSpace) {
-        showAlert(`Cannot approve more than available space (${availableSpace.toFixed(2)} tons)`, 'error');
-        return;
-    }
-    
-    fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            request_id: requestId,
-            approved_quantity: quantity,
-            action: 'approve'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('Request approved successfully', 'success');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showAlert(data.message || 'Error approving request', 'error');
-        }
-    })
-    .catch(error => {
-        showAlert('Error processing request', 'error');
-        console.error('Error:', error);
-    });
-}
-
-function rejectRequest(requestId) {
-    if (!confirm('Are you sure you want to reject this request?')) {
-        return;
-    }
-
-    fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            request_id: requestId,
-            action: 'reject'
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showAlert('Request rejected successfully', 'success');
-            setTimeout(() => location.reload(), 1500);
-        } else {
-            showAlert(data.message || 'Error rejecting request', 'error');
-        }
-    })
-    .catch(error => {
-        showAlert('Error processing request', 'error');
-        console.error('Error:', error);
-    });
-}
-
-function showAlert(message, type) {
-    const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    document.querySelector('.main-container').prepend(alertDiv);
-    
-    setTimeout(() => {
-        alertDiv.classList.remove('show');
-        setTimeout(() => alertDiv.remove(), 150);
-    }, 5000);
-}
-
-// Initialize storage chart
-const storageData = {
-    allocated: {{ total_allocated_space|float }},
-    available: {{ (warehouse.capacity - total_allocated_space)|float }}
-};
-
-function initializeStorageChart() {
-    const ctx = document.getElementById('storageChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Allocated Space', 'Available Space'],
-            datasets: [{
-                data: [storageData.allocated, storageData.available],
-                backgroundColor: ['#55c759', '#e1efe1'],
-                borderColor: ['#3da042', '#d7e6d7'],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                }
-            },
-            cutout: '70%'
-        }
-    });
-}
-
-// Function to approve ration shop request
-function approveRationRequest(requestId) {
-    // Show modal for notes
-    Swal.fire({
-        title: 'Approve Request',
-        html: `
-            <div class="form-group">
-                <label for="notes">Notes (optional):</label>
-                <textarea id="notes" class="form-control"></textarea>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Approve',
-        cancelButtonText: 'Cancel',
-        preConfirm: () => {
-            return {
-                notes: document.getElementById('notes').value
-            };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const notes = result.value.notes;
-            
-            // Show loading state
-            Swal.fire({
-                title: 'Processing...',
-                text: 'Approving the request',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
-            // Send approval request
-            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    request_id: requestId,
-                    action: 'approve',
-                    notes: notes
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: 'Request approved successfully.',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: data.message || 'Failed to approve request.'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'An unexpected error occurred: ' + error.message
-                });
-            });
-        }
-    });
-}
-
-// Function to reject ration shop request
-function rejectRationRequest(requestId) {
-    // Show modal for rejection reason
-    Swal.fire({
-        title: 'Reject Request',
-        html: `
-            <div class="form-group">
-                <label for="notes">Reason for rejection:</label>
-                <textarea id="notes" class="form-control" required></textarea>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Reject',
-        cancelButtonText: 'Cancel',
-        preConfirm: () => {
-            const notes = document.getElementById('notes').value;
-            if (!notes) {
-                Swal.showValidationMessage('Please provide a reason for rejection');
-                return false;
-            }
-            return {
-                notes: notes
-            };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const notes = result.value.notes;
-            
-            // Show loading state
-            Swal.fire({
-                title: 'Processing...',
-                text: 'Rejecting the request',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
-            // Send rejection request
-            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    request_id: requestId,
-                    action: 'reject',
-                    notes: notes
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success!',
-                        text: 'Request rejected successfully.',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error!',
-                        text: data.message || 'Failed to reject request.'
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'An unexpected error occurred: ' + error.message
-                });
-            });
-        }
-    });
-}
-
-// Dashboard navigation
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize storage chart
-    initializeStorageChart();
-    
-    // Hide all content sections initially
-    document.querySelectorAll('.content-section').forEach(section => {
-        section.style.display = 'none';
-    });
-    
-    // Button event listeners
-    document.getElementById('viewPendingFarmerRequests').addEventListener('click', function() {
-        showSection('pendingFarmerRequestsSection');
-    });
-    
-    document.getElementById('viewApprovedFarmerRequests').addEventListener('click', function() {
-        showSection('approvedFarmerRequestsSection');
-    });
-    
-    document.getElementById('viewPendingRationRequests').addEventListener('click', function() {
-        showSection('pendingRationRequestsSection');
-    });
-    
-    document.getElementById('viewApprovedRationRequests').addEventListener('click', function() {
-        showSection('approvedRationRequestsSection');
-    });
-    
-    // Close buttons
-    document.querySelectorAll('.section-close').forEach(button => {
-        button.addEventListener('click', function() {
-            this.closest('.content-section').style.display = 'none';
-        });
-    });
-    
-    function showSection(sectionId) {
-        // Hide all sections
-        document.querySelectorAll('.content-section').forEach(section => {
-            section.style.display = 'none';
-        });
-        
-        // Show the selected section
-        document.getElementById(sectionId).style.display = 'block';
-        
-        // Scroll to the section
-        document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
-    }
-});
-</script>
-
-<style>
-:root {
-    --primary: #2d6b45;
-    --primary-light: #55c759;
-    --primary-dark: #1a4d2e;
-    --background: #e8f5e9;
-    --card-bg: #ffffff;
-    --text-dark: #333333;
-    --text-light: #666666;
-    --border-radius: 8px;
-    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-body {
-    background-color: var(--background);
-}
-
-.main-container {
-    padding: 2rem;
-    max-width: 1200px;
-    margin: 0 auto;
-}
-
-.dashboard-header {
-    margin-bottom: 2rem;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-    padding-bottom: 1rem;
-}
-
-.dashboard-header h1 {
-    color: var(--primary);
-    margin-bottom: 0.5rem;
-    font-size: 1.75rem;
-    font-weight: 600;
-}
-
-.dashboard-header p {
-    color: var(--text-light);
-    font-size: 1rem;
-}
-
-.dashboard-cards {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.dashboard-card {
-    background: var(--card-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    overflow: hidden;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.card-icon {
-    background: var(--primary-light);
-    color: white;
-    padding: 0.75rem;
-    text-align: center;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.card-icon i {
-    font-size: 1.75rem;
-}
-
-.card-content {
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    flex: 1;
-}
-
-.card-content h3 {
-    color: var(--primary);
-    margin: 0;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.card-content p {
-    color: var(--text-light);
-    margin: 0;
-    font-size: 0.85rem;
-}
-
-.btn {
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--border-radius);
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-    cursor: pointer;
-    border: none;
-    font-size: 0.9rem;
-    width: 100%;
-    margin-bottom: 0.5rem;
-}
-
-.btn:last-child {
-    margin-bottom: 0;
-}
-
-.btn-primary {
-    background: var(--primary-light);
-    color: white;
-}
-
-.btn-primary:hover {
-    background: var(--primary);
-}
-
-.btn-success {
-    background: var(--primary-light);
-    color: white;
-}
-
-.btn-success:hover {
-    background: var(--primary);
-}
-
-.badge {
-    background: rgba(255, 255, 255, 0.9);
-    color: var(--primary);
-    padding: 0.25rem 0.5rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 600;
-    margin-left: auto;
-}
-
-.storage-stats {
-    margin-bottom: 1rem;
-}
-
-.stat-item {
-    background: #f1f8f1;
-    padding: 0.75rem 1rem;
-    border-radius: var(--border-radius);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.5rem;
-}
-
-.stat-label {
-    color: var(--text-dark);
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.stat-value {
-    color: var(--primary);
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.storage-chart-container {
-    height: 150px;
-    margin-top: 0.5rem;
-}
-
-.btn-danger {
-    background: #dc3545;
-    color: white;
-}
-
-.btn-danger:hover {
-    background: #c82333;
-}
-
-.btn-outline-secondary {
-    background: transparent;
-    color: #6c757d;
-    border: 1px solid #6c757d;
-}
-
-.btn-outline-secondary:hover {
-    background: #6c757d;
-    color: white;
-}
-
-.content-section {
-    background: var(--card-bg);
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-    padding: 0;
-    margin-bottom: 2rem;
-    animation: fadeIn 0.3s ease;
-    overflow: hidden;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid rgba(0,0,0,0.1);
-    background-color: #f9f9f9;
-}
-
-.section-header h2 {
-    color: var(--primary);
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.section-close {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: transparent;
-    color: #6c757d;
-    border: 1px solid #dee2e6;
-    opacity: 0.7;
-    font-size: 1rem;
-    line-height: 1;
-    padding: 0;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.section-close:hover {
-    opacity: 1;
-    background-color: #f8f9fa;
-}
-
-.table-container {
-    padding: 0;
-    overflow-x: auto;
-}
-
-.table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-bottom: 0;
-}
-
-.table th {
-    background: #f1f8f1;
-    color: var(--primary);
-    font-weight: 600;
-    padding: 0.75rem 1.5rem;
-    text-align: left;
-    font-size: 0.9rem;
-    text-transform: uppercase;
-    border-bottom: 1px solid #e1efe1;
-}
-
-.table td {
-    padding: 0.75rem 1.5rem;
-    border-bottom: 1px solid #e1efe1;
-    font-size: 0.9rem;
-}
-
-.table tr:last-child td {
-    border-bottom: none;
-}
-
-.badge-warning {
-    background: #fff3cd;
-    color: #856404;
-    padding: 0.35rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    display: inline-block;
-}
-
-.badge-success {
-    background: #d4edda;
-    color: #155724;
-    padding: 0.35rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    display: inline-block;
-}
-
-.quantity-input {
-    width: 120px;
-}
-
-.btn-group {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.btn-group .btn {
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8rem;
-    width: 100%;
-    flex: 1;
-}
-
-/* Update the table actions column to have enough width */
-.table th:last-child,
-.table td:last-child {
-    min-width: 160px;
-    width: 160px;
-}
-
-.alert {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    z-index: 1000;
-    min-width: 300px;
-    padding: 1rem;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow);
-}
-
-.alert-success {
-    background: var(--primary-light);
-    color: white;
-}
-
-.alert-error {
-    background: #dc3545;
-    color: white;
-}
-
-.requests-section {
-    display: flex;
-    flex-direction: column;
-    gap: 1.25rem;
-    height: 100%;
-    justify-content: space-between;
-}
-
-.request-type {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.request-type h4 {
-    color: var(--text-primary);
-    margin: 0;
-    font-size: 1rem;
-    font-weight: 500;
-    padding-bottom: 0.25rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.request-buttons {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.request-buttons .btn {
-    margin: 0;
-    justify-content: space-between;
-    padding: 0.6rem 1rem;
-}
-
-.request-buttons .btn i {
-    font-size: 0.9rem;
-}
-
-.request-divider {
-    height: 1px;
-    background-color: var(--border-color);
-    margin: 0.25rem 0;
-}
-
-.btn-content {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 992px) {
-    .dashboard-cards {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 576px) {
-    .card-content {
-        padding: 0.75rem;
-    }
-    
-    .request-type h4 {
-        font-size: 0.9rem;
-    }
-    
-    .request-buttons .btn {
-        padding: 0.5rem 0.75rem;
-        font-size: 0.85rem;
-    }
-}
-</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 {% endblock %}
 

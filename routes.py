@@ -1080,98 +1080,228 @@ def respond_to_ration_request():
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error processing request: {str(e)}'}), 500
 
-@warehouse_dashboard.route('/respond_to_request', methods=['POST'])
+@warehouse_dashboard.route('/respond_to_request', methods=['GET', 'POST'])
 @login_required
 def respond_to_request():
     # Check if user is a warehouse manager
     if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
-        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+        if request.method == 'POST':
+            return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+        else:
+            flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+            return redirect(url_for('auth.login'))
     
     # Get the warehouse data
     warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
     if not warehouse:
-        return jsonify({'success': False, 'message': 'Warehouse not found'}), 404
-    
-    # Handle both form data and JSON data
-    data = request.json if request.is_json else request.form
-    request_id = data.get('request_id')
-    approved_quantity = float(data.get('approved_quantity', 0))
-    notes = data.get('notes', '')
-    action = data.get('action')
-    
-    if not request_id:
-        return jsonify({'success': False, 'message': 'Request ID is required'}), 400
-    
-    try:
-        stock_request = StockRequest.query.get(request_id)
-        if not stock_request or stock_request.to_id != warehouse.id:
-            return jsonify({'success': False, 'message': 'Request not found'}), 404
-        
-        if stock_request.status != 'pending':
-            return jsonify({'success': False, 'message': 'Request cannot be modified'}), 400
-        
-        if action == 'approve':
-            # Validate the approved quantity
-            if approved_quantity <= 0:
-                return jsonify({'success': False, 'message': 'Approved quantity must be greater than zero'}), 400
-            
-            # Check if warehouse has enough remaining space
-            total_allocated = sum([
-                s.quantity for s in Stock.query.filter_by(
-                    warehouse_id=warehouse.id, 
-                    status='stored'
-                ).all()
-            ])
-            
-            remaining_space = warehouse.capacity - total_allocated
-            
-            if approved_quantity > remaining_space:
-                return jsonify({
-                    'success': False, 
-                    'message': f'Insufficient warehouse space. Only {remaining_space:.2f} tons available.'
-                }), 400
-            
-            # Update the stock with approved quantity
-            stock_request.stock.quantity = approved_quantity
-            
-            # Update request status and stock status
-            stock_request.status = 'approved'
-            stock_request.stock.status = 'stored'
-            
-            # Create notification for the farmer
-            notification = Notification(
-                user_id=stock_request.stock.farmer.user_id,
-                title='Stock Request Approved',
-                message=f'Your stock request has been approved for {approved_quantity} tons of {stock_request.stock.type}.',
-                type='approved'
-            )
-            db.session.add(notification)
-            
-        elif action == 'reject':
-            # Update request status and stock status
-            stock_request.status = 'rejected'
-            stock_request.stock.status = 'rejected'
-            
-            # Create notification for the farmer
-            notification = Notification(
-                user_id=stock_request.stock.farmer.user_id,
-                title='Stock Request Rejected',
-                message=f'Your stock request for {stock_request.stock.requested_quantity} tons of {stock_request.stock.type} has been rejected.',
-                type='rejected'
-            )
-            db.session.add(notification)
+        if request.method == 'POST':
+            return jsonify({'success': False, 'message': 'Warehouse not found'}), 404
         else:
-            return jsonify({'success': False, 'message': 'Invalid action'}), 400
+            flash('Warehouse not found.', 'error')
+            return redirect(url_for('main.index'))
+    
+    if request.method == 'GET':
+        # Get all pending requests for this warehouse
+        pending_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='pending').all()
         
-        # Update notes
-        stock_request.admin_notes = notes
+        # Get all pending ration shop requests for this warehouse
+        ration_pending_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='pending').all()
         
-        db.session.commit()
-        return jsonify({'success': True, 'message': f'Request {action}d successfully'}), 200
+        # Calculate total allocated space
+        total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
         
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return render_template('view_requests.html', 
+                              warehouse=warehouse,
+                              pending_requests=pending_requests,
+                              ration_pending_requests=ration_pending_requests,
+                              total_allocated_space=total_allocated_space)
+    else:
+        # Handle both form data and JSON data
+        data = request.json if request.is_json else request.form
+        request_id = data.get('request_id')
+        approved_quantity = float(data.get('approved_quantity', 0))
+        notes = data.get('notes', '')
+        action = data.get('action')
+        
+        if not request_id:
+            return jsonify({'success': False, 'message': 'Request ID is required'}), 400
+        
+        try:
+            stock_request = StockRequest.query.get(request_id)
+            if not stock_request or stock_request.to_id != warehouse.id:
+                return jsonify({'success': False, 'message': 'Request not found'}), 404
+            
+            # Debug the status
+            print(f"Request status: '{stock_request.status}'")
+            
+            # Check if the request can be modified
+            if stock_request.status in ['approved', 'rejected']:
+                return jsonify({'success': False, 'message': f"Request cannot be modified. Current status: '{stock_request.status}'"}), 400
+            
+            if action == 'approve':
+                # Validate the approved quantity
+                if approved_quantity <= 0:
+                    return jsonify({'success': False, 'message': 'Approved quantity must be greater than zero'}), 400
+                
+                # Check if warehouse has enough remaining space
+                total_allocated = sum([
+                    s.quantity for s in Stock.query.filter_by(
+                        warehouse_id=warehouse.id, 
+                        status='stored'
+                    ).all()
+                ])
+                
+                remaining_space = warehouse.capacity - total_allocated
+                
+                if approved_quantity > remaining_space:
+                    return jsonify({
+                        'success': False, 
+                        'message': f'Insufficient warehouse space. Only {remaining_space:.2f} tons available.'
+                    }), 400
+                
+                # Update the stock with approved quantity
+                stock_request.stock.quantity = approved_quantity
+                
+                # Update request status and stock status
+                stock_request.status = 'approved'
+                stock_request.stock.status = 'stored'
+                
+                # Create notification for the farmer
+                notification = Notification(
+                    user_id=stock_request.stock.farmer.user_id,
+                    title='Stock Request Approved',
+                    message=f'Your stock request has been approved for {approved_quantity} tons of {stock_request.stock.type}.',
+                    type='approved'
+                )
+                db.session.add(notification)
+                
+            elif action == 'reject':
+                # Update request status and stock status
+                stock_request.status = 'rejected'
+                stock_request.stock.status = 'rejected'
+                
+                # Create notification for the farmer
+                notification = Notification(
+                    user_id=stock_request.stock.farmer.user_id,
+                    title='Stock Request Rejected',
+                    message=f'Your stock request for {stock_request.stock.requested_quantity} tons of {stock_request.stock.type} has been rejected.',
+                    type='rejected'
+                )
+                db.session.add(notification)
+            else:
+                return jsonify({'success': False, 'message': 'Invalid action'}), 400
+            
+            # Update notes
+            stock_request.admin_notes = notes
+            
+            db.session.commit()
+            return jsonify({'success': True, 'message': f'Request {action}d successfully'}), 200
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'success': False, 'message': str(e)}), 500
+
+@warehouse_dashboard.route('/accepted_requests')
+@login_required
+def accepted_requests():
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get all accepted requests for this warehouse
+    approved_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='approved').all()
+    
+    # Get all accepted ration shop requests for this warehouse
+    ration_approved_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='approved').all()
+    
+    return render_template('warehouse_accepted_requests.html', 
+                          warehouse=warehouse,
+                          approved_requests=approved_requests,
+                          ration_approved_requests=ration_approved_requests)
+
+@warehouse_dashboard.route('/rejected_requests')
+@login_required
+def rejected_requests():
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get all rejected requests for this warehouse
+    rejected_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='rejected').all()
+    
+    # Get all rejected ration shop requests for this warehouse
+    ration_rejected_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='rejected').all()
+    
+    return render_template('warehouse_rejected_requests.html', 
+                          warehouse=warehouse,
+                          rejected_requests=rejected_requests,
+                          ration_rejected_requests=ration_rejected_requests)
+
+@warehouse_dashboard.route('/request_details/<int:request_id>')
+@login_required
+def request_details(request_id):
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get the request
+    stock_request = StockRequest.query.get_or_404(request_id)
+    
+    # Check if the request belongs to this warehouse
+    if stock_request.to_id != warehouse.id:
+        flash('You do not have permission to view this request.', 'error')
+        return redirect(url_for('warehouse_dashboard.warehouse_home'))
+    
+    return render_template('request_details.html', 
+                          warehouse=warehouse,
+                          request=stock_request)
+
+@warehouse_dashboard.route('/ration_request_details/<int:request_id>')
+@login_required
+def ration_request_details(request_id):
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get the request
+    ration_request = RationStockRequest.query.get_or_404(request_id)
+    
+    # Check if the request belongs to this warehouse
+    if ration_request.warehouse_id != warehouse.id:
+        flash('You do not have permission to view this request.', 'error')
+        return redirect(url_for('warehouse_dashboard.warehouse_home'))
+    
+    return render_template('ration_request_details.html', 
+                          warehouse=warehouse,
+                          request=ration_request)
 
 @main.route('/')
 def index():
