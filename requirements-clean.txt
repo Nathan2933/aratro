@@ -1,0 +1,19 @@
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-WTF==1.2.1
+Werkzeug==3.0.1
+email-validator==2.1.0.post1
+Flask-Bcrypt==1.0.1
+Flask-Migrate==4.1.0
+python-dotenv==1.0.1
+requests==2.32.3
+gunicorn==21.2.0
+twilio==8.13.0
+
+# Blockchain dependencies
+web3==5.31.1
+eth-utils==1.10.0
+eth-account==0.5.9
+py-solc-x==1.1.1
+toolz>=0.11.2

@@ -42,7 +42,7 @@
     justify-content: center;
     align-items: center;
     min-height: calc(100vh - 4rem);
-    padding: var(--spacing-md);
+    padding: 1rem;
     background: #e8f5e9;
     position: fixed;
     top: 4rem;
@@ -50,144 +50,162 @@
     right: 0;
     bottom: 0;
     overflow-y: auto;
-    z-index: 1;
 }
 
 .auth-card {
     background: white;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px rgba(53, 136, 86, 0.1);
-    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
     width: 100%;
     max-width: 800px;
-    border: 1px solid #d7e6d7;
-    margin: 1rem auto;
-    animation: fadeIn 0.3s ease;
+    margin: 0 auto;
 }
 
 .auth-header {
     text-align: center;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
 }
 
 .auth-header i {
     font-size: 3rem;
-    color: #55c759;
+    color: var(--primary-color);
     margin-bottom: 1rem;
-    display: block;
 }
 
 .auth-header h2 {
-    color: #2d6b45;
+    font-size: 1.75rem;
     margin-bottom: 0.5rem;
-    font-size: 2rem;
-    font-weight: 600;
+    color: #333;
 }
 
 .auth-header p {
-    color: #456946;
-    font-size: 1.1rem;
+    color: #666;
 }
 
 .role-selection {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 1.5rem;
-    margin: 2rem 0;
+    margin-bottom: 2rem;
 }
 
 .role-card {
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.3s ease;
+    border: 1px solid #eee;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding: 2rem;
-    background: #f1f8f1;
-    border: 1px solid #d7e6d7;
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    color: #2d6b45;
-    position: relative;
-    overflow: hidden;
 }
 
 .role-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 4px 12px rgba(53, 136, 86, 0.1);
-    border-color: #55c759;
-    background: white;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    border-color: var(--primary-color);
 }
 
 .role-card i {
-    font-size: 3.5rem;
-    color: #55c759;
-    margin-bottom: 1.5rem;
-    transition: transform 0.3s ease;
-}
-
-.role-card:hover i {
-    transform: scale(1.1);
+    font-size: 2.5rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
 }
 
 .role-card h3 {
-    margin-bottom: 1rem;
-    color: #2d6b45;
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
 }
 
 .role-card p {
-    color: #456946;
-    font-size: 1rem;
-    line-height: 1.6;
+    color: #666;
+    font-size: 0.9rem;
     margin: 0;
 }
 
 .auth-footer {
     text-align: center;
-    margin-top: 2rem;
+    color: #666;
 }
 
 .auth-footer a {
-    color: #55c759;
+    color: var(--primary-color);
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.3s ease;
 }
 
 .auth-footer a:hover {
-    color: #3da042;
     text-decoration: underline;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Responsive adjustments */
+/* Mobile Responsive Styles */
 @media (max-width: 768px) {
+    .auth-container {
+        padding: 1rem;
+    }
+    
     .auth-card {
         padding: 1.5rem;
     }
     
+    .auth-header i {
+        font-size: 2.5rem;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.5rem;
+    }
+    
     .role-selection {
+        grid-template-columns: 1fr;
         gap: 1rem;
     }
     
     .role-card {
-        padding: 1.5rem;
+        padding: 1.25rem;
     }
     
     .role-card i {
-        font-size: 3rem;
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .role-card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 0.75rem;
+    }
+    
+    .auth-card {
+        padding: 1.25rem;
+        border-radius: 8px;
+    }
+    
+    .auth-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .auth-header i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.25rem;
+    }
+    
+    .role-card {
+        padding: 1rem;
     }
 }
 </style>

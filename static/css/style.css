@@ -61,7 +61,7 @@ body {
     background-color: var(--background-color);
     color: var(--text-primary);
     line-height: 1.6;
-    padding-top: 0; /* Remove top padding since navbar is gone */
+    /* Remove top padding since navbar is gone */
     min-height: 100vh;
 }
 
@@ -1264,6 +1264,7 @@ label {
     min-height: 100vh;
     position: relative;
     overflow-x: hidden;
+    padding-top: 50px;
 }
 
 .main-content {
@@ -1958,4 +1959,21 @@ li {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 1rem;
+}
+
+/* Sidebar brand and logo styling */
+.sidebar-brand .company-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-brand .company-name i {
+    font-size: 1.8rem;
+    margin-right: 5px;
 }

@@ -1,10 +1,12 @@
-from flask import Flask, session, render_template, request, jsonify
-from flask_login import LoginManager
+from flask import Flask, session, render_template, request, jsonify, flash, redirect, url_for
+from flask_login import LoginManager, current_user, logout_user
 from flask_migrate import Migrate
 from models import db, User, Admin
 from routes import auth, main, farmer_dashboard, warehouse_dashboard, admin as admin_blueprint
+from blockchain_routes import blockchain
+from blockchain import blockchain_manager as blockchain_mgr, init_blockchain
 import os
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 import requests
 from werkzeug.security import generate_password_hash
 from dotenv import load_dotenv
@@ -71,12 +73,33 @@ logger.info(f"Email User: {app.config['EMAIL_USER']}")
 logger.info(f"Email Password set: {'Yes' if app.config['EMAIL_PASSWORD'] else 'No'}")
 logger.info(f"Email Password length: {len(app.config['EMAIL_PASSWORD']) if app.config['EMAIL_PASSWORD'] else 0}")
 
+# Blockchain configuration
+app.config['BLOCKCHAIN_URL'] = os.environ.get('BLOCKCHAIN_URL', 'http://127.0.0.1:7545')
+app.config['PRIVATE_KEY'] = os.environ.get('PRIVATE_KEY', '0x0000000000000000000000000000000000000000000000000000000000000000')
+os.environ['BLOCKCHAIN_URL'] = app.config['BLOCKCHAIN_URL']
+os.environ['PRIVATE_KEY'] = app.config['PRIVATE_KEY']
+
+# Initialize blockchain manager
+if blockchain_mgr is None:
+    logger.info("Initializing blockchain manager during application startup")
+    blockchain_mgr = init_blockchain()
+    if blockchain_mgr:
+        logger.info(f"Blockchain manager initialized successfully. Connected to {blockchain_mgr.w3.provider.endpoint_uri}")
+        logger.info(f"Contract address: {blockchain_mgr.contract_address}")
+    else:
+        logger.error("Failed to initialize blockchain manager")
+
+# Log blockchain configuration (masking the private key)
+logger.info(f"Blockchain URL: {app.config['BLOCKCHAIN_URL']}")
+logger.info(f"Private Key set: {'Yes' if app.config['PRIVATE_KEY'] != '0x0000000000000000000000000000000000000000000000000000000000000000' else 'No'}")
+
 # Session security settings
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=7)  # Session expires after 7 days
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)  # Session expires after 2 hours (reduced from 7 days)
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access to session cookie
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # CSRF protection
-app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=14)  # Remember me duration
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=1)  # Remember me duration (reduced from 14 days)
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+app.config['ADMIN_SESSION_LIFETIME'] = timedelta(minutes=30)  # Admin sessions expire after 30 minutes
 
 # Set secure cookies based on environment
 if IS_PRODUCTION:
@@ -111,8 +134,14 @@ def timeago_filter(date):
     if not date:
         return ''
     
-    now = datetime.now()
-    diff = now - date
+    now = datetime.utcnow()
+    if not date.tzinfo:
+        # If the date has no timezone info, assume it's UTC
+        diff = now - date
+    else:
+        # If the date has timezone info, convert now to UTC for comparison
+        now = now.replace(tzinfo=timezone.utc)
+        diff = now - date
     
     seconds = diff.total_seconds()
     minutes = seconds / 60
@@ -148,7 +177,26 @@ def load_user(user_id):
 # Session management
 @app.before_request
 def before_request():
-    session.permanent = True  # Use permanent session with lifetime set above
+    # Only make sessions permanent if explicitly requested (via remember me)
+    if '_remember' in session and session['_remember']:
+        session.permanent = True
+    
+    # Apply shorter session lifetime for admin users
+    if current_user.is_authenticated and hasattr(current_user, 'role') and current_user.role == 'admin':
+        app.config['PERMANENT_SESSION_LIFETIME'] = app.config['ADMIN_SESSION_LIFETIME']
+        
+        # Check if the session is older than the admin timeout
+        if 'admin_login_time' in session:
+            login_time = datetime.fromisoformat(session['admin_login_time'])
+            if datetime.utcnow() - login_time > app.config['ADMIN_SESSION_LIFETIME']:
+                # Session expired, log out the user
+                session.clear()
+                logout_user()
+                flash('Your admin session has expired. Please log in again.', 'info')
+                return redirect(url_for('admin.login'))
+    else:
+        # Reset to default session lifetime for non-admin users
+        app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=2)
 
 # Register blueprints
 app.register_blueprint(auth)
@@ -156,6 +204,7 @@ app.register_blueprint(main)
 app.register_blueprint(farmer_dashboard)
 app.register_blueprint(warehouse_dashboard)
 app.register_blueprint(admin_blueprint)
+app.register_blueprint(blockchain)
 
 @app.route('/test_maps_api')
 def test_maps_api():

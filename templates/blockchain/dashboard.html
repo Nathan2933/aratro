@@ -1,0 +1,482 @@
+{% extends "blockchain/base_blockchain.html" %}
+
+{% block title %}Blockchain Dashboard - Aratro{% endblock %}
+
+{% block blockchain_content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Blockchain Dashboard</h1>
+        <p class="page-subtitle">
+            <span class="font-weight-bold">Contract Address:</span> 
+            <code>{{ contract_address }}</code>
+            <span class="text-muted">(Local Ganache Contract)</span>
+        </p>
+    </div>
+    <div>
+        <span class="admin-badge admin-badge-primary">
+            <i class="bi bi-link-45deg me-1"></i>
+            Blockchain
+        </span>
+    </div>
+</div>
+
+<div class="alert alert-info" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Local Blockchain:</strong> You are currently using a local Ganache blockchain. Transactions are not visible on public Ethereum explorers like Etherscan. Use the "View" links to see transaction details locally.
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- Overview Cards -->
+<div class="row">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Stocks</h6>
+                        <h3 class="mb-0">{{ total_stocks }}</h3>
+                    </div>
+                    <div class="icon-circle bg-primary">
+                        <i class="bi bi-box"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Requests</h6>
+                        <h3 class="mb-0">{{ total_requests }}</h3>
+                    </div>
+                    <div class="icon-circle bg-success">
+                        <i class="bi bi-list-check"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Ration Requests</h6>
+                        <h3 class="mb-0">{{ total_ration_requests }}</h3>
+                    </div>
+                    <div class="icon-circle bg-danger">
+                        <i class="bi bi-shop"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="admin-card">
+            <div class="admin-card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Confirmed Transactions</h6>
+                        <h3 class="mb-0">{{ confirmed_transactions }}</h3>
+                    </div>
+                    <div class="icon-circle bg-info">
+                        <i class="bi bi-check2-circle"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-arrow-left-right me-2"></i>
+            Recent Transactions
+        </h5>
+        <button class="btn btn-sm btn-outline-primary" id="refreshTransactions">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            Refresh
+        </button>
+    </div>
+    <div class="admin-card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Transaction Hash</th>
+                        <th>Type</th>
+                        <th>Entity</th>
+                        <th>Status</th>
+                        <th>Timestamp</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsTableBody">
+                    {% for tx in recent_transactions %}
+                    <tr>
+                        <td>
+                            <span class="text-truncate d-inline-block" style="max-width: 150px;">{{ tx.tx_hash }}</span>
+                        </td>
+                        <td>{{ tx.tx_type }}</td>
+                        <td>
+                            {% if tx.entity_type == 'stock' %}
+                            <a href="{{ url_for('blockchain.view_stock', stock_id=tx.entity_id) }}">
+                                Stock #{{ tx.entity_id }}
+                            </a>
+                            {% elif tx.entity_type == 'request' %}
+                            <a href="{{ url_for('blockchain.view_request', request_id=tx.entity_id) }}">
+                                Request #{{ tx.entity_id }}
+                            </a>
+                            {% else %}
+                            {{ tx.entity_type }} #{{ tx.entity_id }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if tx.status == 'confirmed' %}
+                            <span class="badge bg-success">Confirmed</span>
+                            {% elif tx.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif tx.status == 'failed' %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ tx.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tx.created_at|timeago }}</td>
+                        <td>
+                            <a href="{{ url_for('blockchain.view_transaction', tx_hash=tx.tx_hash) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Blocks -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-collection me-2"></i>
+            Recent Blocks
+        </h5>
+        <button class="btn btn-sm btn-outline-primary" id="refreshBlocks">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            Refresh
+        </button>
+    </div>
+    <div class="admin-card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Block Number</th>
+                        <th>Hash</th>
+                        <th>Transactions</th>
+                        <th>Gas Used</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="blocksTableBody">
+                    {% for block in recent_blocks %}
+                    <tr>
+                        <td>{{ block.number }}</td>
+                        <td>
+                            <span class="text-truncate d-inline-block" style="max-width: 150px;">{{ block.hash }}</span>
+                        </td>
+                        <td>{{ block.transactions }}</td>
+                        <td>{{ block.gasUsed }}</td>
+                        <td>{{ block.timestamp|timeago }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Ration Stock Requests -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-shop me-1"></i>
+            Recent Ration Stock Requests
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        {% if ration_stock_requests %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Blockchain ID</th>
+                        <th>Ration Shop</th>
+                        <th>Warehouse</th>
+                        <th>Stock Type</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in ration_stock_requests %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.blockchain_id }}</td>
+                        <td>{{ request.ration_shop_name }}</td>
+                        <td>{{ request.warehouse_name }}</td>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td><span class="badge bg-{{ request.status_color }}">{{ request.status }}</span></td>
+                        <td>{{ request.created_at|timeago }}</td>
+                        <td>
+                            <a href="{{ url_for('blockchain.view_ration_stock_request', request_id=request.id) }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            No ration stock requests with blockchain data found.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+    
+    .icon-circle i {
+        font-size: 1.5rem;
+    }
+    
+    .bg-primary {
+        background-color: var(--primary-color);
+    }
+    
+    .bg-success {
+        background-color: var(--success-color);
+    }
+    
+    .bg-warning {
+        background-color: var(--warning-color);
+    }
+    
+    .bg-info {
+        background-color: var(--info-color);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function formatTimeAgo(timestamp) {
+        if (!timestamp) return '';
+        
+        // Parse the ISO string or timestamp
+        let date;
+        try {
+            if (typeof timestamp === 'string') {
+                // Handle ISO string (from transactions)
+                // Append 'Z' to indicate UTC if no timezone is specified
+                if (!timestamp.endsWith('Z') && !timestamp.includes('+')) {
+                    timestamp += 'Z';
+                }
+                date = new Date(timestamp);
+            } else {
+                // Handle UNIX timestamp (from blocks)
+                date = new Date(timestamp * 1000);
+            }
+            
+            // Check if the date is valid
+            if (isNaN(date.getTime())) {
+                console.error('Invalid date:', timestamp);
+                return '';
+            }
+            
+            const now = new Date();
+            // Convert both dates to UTC for comparison
+            const utcNow = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+            const utcDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+            const diffSeconds = Math.floor((utcNow - utcDate) / 1000);
+            
+            if (diffSeconds < 60) {
+                return 'just now';
+            } else if (diffSeconds < 3600) {
+                const minutes = Math.floor(diffSeconds / 60);
+                return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            } else if (diffSeconds < 86400) {
+                const hours = Math.floor(diffSeconds / 3600);
+                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            } else if (diffSeconds < 604800) {
+                const days = Math.floor(diffSeconds / 86400);
+                return `${days} day${days > 1 ? 's' : ''} ago`;
+            } else {
+                // Format date in local timezone
+                return date.toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
+        } catch (error) {
+            console.error('Error formatting timestamp:', error, 'Value:', timestamp);
+            return '';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Refresh transactions
+        const refreshTransactionsBtn = document.getElementById('refreshTransactions');
+        if (refreshTransactionsBtn) {
+            refreshTransactionsBtn.addEventListener('click', function() {
+                fetch('{{ url_for("blockchain.api_transactions") }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        const tableBody = document.getElementById('transactionsTableBody');
+                        tableBody.innerHTML = '';
+                        
+                        data.transactions.forEach(tx => {
+                            let statusBadge = '';
+                            if (tx.status === 'confirmed') {
+                                statusBadge = '<span class="badge bg-success">Confirmed</span>';
+                            } else if (tx.status === 'pending') {
+                                statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                            } else if (tx.status === 'failed') {
+                                statusBadge = '<span class="badge bg-danger">Failed</span>';
+                            } else {
+                                statusBadge = `<span class="badge bg-secondary">${tx.status}</span>`;
+                            }
+                            
+                            let entityLink = '';
+                            if (tx.entity_type === 'stock') {
+                                entityLink = `<a href="/blockchain/stock/${tx.entity_id}">Stock #${tx.entity_id}</a>`;
+                            } else if (tx.entity_type === 'request') {
+                                entityLink = `<a href="/blockchain/request/${tx.entity_id}">Request #${tx.entity_id}</a>`;
+                            } else {
+                                entityLink = `${tx.entity_type} #${tx.entity_id}`;
+                            }
+                            
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td><span class="text-truncate d-inline-block" style="max-width: 150px;">${tx.tx_hash}</span></td>
+                                <td>${tx.tx_type}</td>
+                                <td>${entityLink}</td>
+                                <td>${statusBadge}</td>
+                                <td>${formatTimeAgo(tx.created_at)}</td>
+                                <td>
+                                    <a href="/blockchain/transaction/${tx.tx_hash}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching transactions:', error));
+            });
+        }
+        
+        // Refresh blocks
+        const refreshBlocksBtn = document.getElementById('refreshBlocks');
+        if (refreshBlocksBtn) {
+            refreshBlocksBtn.addEventListener('click', function() {
+                fetch('{{ url_for("blockchain.api_blocks") }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        const tableBody = document.getElementById('blocksTableBody');
+                        tableBody.innerHTML = '';
+                        
+                        data.blocks.forEach(block => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${block.number}</td>
+                                <td><span class="text-truncate d-inline-block" style="max-width: 150px;">${block.hash}</span></td>
+                                <td>${block.transactions}</td>
+                                <td>${block.gasUsed}</td>
+                                <td>${formatTimeAgo(block.timestamp)}</td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching blocks:', error));
+            });
+        }
+    });
+
+    function refreshDashboardStats() {
+        fetch('/blockchain/api/stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const stats = data.stats;
+                    
+                    // Update total stocks
+                    const totalStocksElement = document.querySelector('.admin-card:nth-child(1) h3');
+                    if (totalStocksElement) totalStocksElement.textContent = stats.total_stocks;
+                    
+                    // Update total requests
+                    const totalRequestsElement = document.querySelector('.admin-card:nth-child(2) h3');
+                    if (totalRequestsElement) totalRequestsElement.textContent = stats.total_requests;
+                    
+                    // Update total ration requests
+                    const totalRationRequestsElement = document.querySelector('.admin-card:nth-child(3) h3');
+                    if (totalRationRequestsElement) totalRationRequestsElement.textContent = stats.total_ration_requests;
+                    
+                    // Update confirmed transactions
+                    const confirmedTransactionsElement = document.querySelector('.admin-card:nth-child(4) h3');
+                    if (confirmedTransactionsElement) confirmedTransactionsElement.textContent = stats.confirmed_transactions;
+                } else {
+                    console.error('Error refreshing stats:', data.error);
+                }
+            })
+            .catch(error => console.error('Error refreshing dashboard stats:', error));
+    }
+
+    // Refresh stats every 30 seconds
+    setInterval(refreshDashboardStats, 30000);
+
+    // Initial refresh after 5 seconds
+    setTimeout(refreshDashboardStats, 5000);
+</script>
+{% endblock %} 

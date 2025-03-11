@@ -40,7 +40,7 @@
                                         <i class="bi bi-inbox"></i>
                                     </div>
                                     <div class="stats-info">
-                                        <h2 class="stats-number">{{ pending_requests|length }}</h2>
+                                        <h2 class="stats-number">{{ (pending_requests|length) + (ration_pending_requests|length) }}</h2>
                                         <p class="stats-label">Pending Requests</p>
                                     </div>
                                 </div>
@@ -55,7 +55,7 @@
                                         <i class="bi bi-check-circle"></i>
                                     </div>
                                     <div class="stats-info">
-                                        <h2 class="stats-number">{{ accepted_requests|length }}</h2>
+                                        <h2 class="stats-number">{{ (accepted_requests|length) + (ration_accepted_requests|length) }}</h2>
                                         <p class="stats-label">Accepted Requests</p>
                                     </div>
                                 </div>
@@ -70,7 +70,7 @@
                                         <i class="bi bi-x-circle"></i>
                                     </div>
                                     <div class="stats-info">
-                                        <h2 class="stats-number">{{ rejected_requests|length }}</h2>
+                                        <h2 class="stats-number">{{ (rejected_requests|length) + (ration_rejected_requests|length) }}</h2>
                                         <p class="stats-label">Rejected Requests</p>
                                     </div>
                                 </div>
@@ -109,38 +109,62 @@
                     <div class="dashboard-card-body p-0">
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
-                                <thead>
+                                <thead class="custom-table-header">
                                     <tr>
-                                        <th>Request ID</th>
-                                        <th>Farmer</th>
-                                        <th>Stock Type</th>
-                                        <th>Quantity</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                        <th>Actions</th>
+                                        <th class="text-uppercase fw-bold">Request ID</th>
+                                        <th class="text-uppercase fw-bold">Name</th>
+                                        <th class="text-uppercase fw-bold">Stock Type</th>
+                                        <th class="text-uppercase fw-bold">Quantity</th>
+                                        <th class="text-uppercase fw-bold">Date</th>
+                                        <th class="text-uppercase fw-bold">Status</th>
+                                        <th class="text-uppercase fw-bold">Role</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {% for request in recent_requests %}
                                     <tr>
-                                        <td>#{{ request.id }}</td>
-                                        <td>{{ request.farmer.name }}</td>
-                                        <td>{{ request.stock.type }}</td>
-                                        <td>{{ request.stock.requested_quantity }} tons</td>
+                                        <td class="fw-medium">#{{ request.id }}</td>
+                                        <td>
+                                            {% if request.__class__.__name__ == 'StockRequest' %}
+                                                {{ request.farmer.name }}
+                                            {% elif request.__class__.__name__ == 'RationStockRequest' %}
+                                                {{ request.ration_shop.name }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if request.__class__.__name__ == 'StockRequest' %}
+                                                {{ request.stock.type }}
+                                            {% elif request.__class__.__name__ == 'RationStockRequest' %}
+                                                {{ request.stock_type }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if request.__class__.__name__ == 'StockRequest' %}
+                                                {{ request.stock.requested_quantity }} tons
+                                            {% elif request.__class__.__name__ == 'RationStockRequest' %}
+                                                {{ request.quantity }} tons
+                                            {% endif %}
+                                        </td>
                                         <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
                                         <td>
                                             {% if request.status == 'pending' %}
                                             <span class="badge bg-warning text-dark">Pending</span>
-                                            {% elif request.status == 'accepted' %}
+                                            {% elif request.status == 'approved' %}
                                             <span class="badge bg-success">Accepted</span>
                                             {% elif request.status == 'rejected' %}
                                             <span class="badge bg-danger">Rejected</span>
+                                            {% elif request.status == 'canceled' %}
+                                            <span class="badge bg-secondary">Canceled</span>
+                                            {% else %}
+                                            <span class="badge bg-info">{{ request.status|capitalize }}</span>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            <a href="{{ url_for('warehouse_dashboard.request_details', request_id=request.id) }}" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-eye"></i>
-                                            </a>
+                                            {% if request.__class__.__name__ == 'StockRequest' %}
+                                                <span class="badge bg-primary text-uppercase">Farmer</span>
+                                            {% elif request.__class__.__name__ == 'RationStockRequest' %}
+                                                <span class="badge bg-info text-uppercase">Ration Shop</span>
+                                            {% endif %}
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -158,10 +182,171 @@
         </div>
     </div>
 </div>
+<style>
+    .sidebar-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* Table styling */
+.table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table thead {
+    background-color: #ffffff;
+}
+.table th{
+    background-color: #fff;
+}
+.custom-table-header {
+    background-color: #fff !important; /* Light green background */
+}
+
+.custom-table-header th {
+    color: #2e7d32 !important; /* Darker green text */
+    border-bottom: 2px solid #a5d6a7 !important; /* Medium green border */
+}
+
+.table thead th {
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 12px 15px;
+    border-bottom: 2px solid #dee2e6;
+    color: #495057;
+}
+
+.table tbody td {
+    padding: 12px 15px;
+    vertical-align: middle;
+    border-top: 1px solid #f0f0f0;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(46, 125, 50, 0.05) !important; /* Very light green hover effect */
+}
+
+.badge.bg-primary {
+    font-weight: 500;
+    padding: 6px 10px;
+    letter-spacing: 0.5px;
+}
+
+.badge.bg-info {
+    font-weight: 500;
+    padding: 6px 10px;
+    letter-spacing: 0.5px;
+}
+
+.badge.bg-success {
+    font-weight: 500;
+    padding: 6px 10px;
+    letter-spacing: 0.5px;
+}
+
+.badge.bg-warning {
+    font-weight: 500;
+    padding: 6px 10px;
+    letter-spacing: 0.5px;
+}
+
+.badge.bg-danger {
+    font-weight: 500;
+    padding: 6px 10px;
+    letter-spacing: 0.5px;
+}
+
+.badge.bg-secondary {
+    font-weight: 500;
+    padding: 6px 10px;
+    letter-spacing: 0.5px;
+}
+
+.sidebar-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.user-info {
+    text-align: center;
+}
+
+.user-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    color: #e2e8f0;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.user-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+.user-role {
+    font-size: 0.8rem;
+    color: #a0aec0;
+    text-align: center;
+}
+
+/* Remove bullet points from sidebar navigation */
+.sidebar-nav {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+/* Remove any default list styling that might be causing the white dot */
+.sidebar-nav li {
+    list-style: none;
+}
+
+.sidebar-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 10px 0;
+    list-style: none;
+}
+@media (min-width: 768px) {
+    .content-area.with-sidebar {
+        margin-left: 200px;
+        width: calc(100% - 250px);
+    }}
+    .content-wrapper{
+        
+        width: 120%;
+    }
+    @media (min-width: 768px) {
+    .content-area.with-sidebar {
+        margin-left: 0;
+        width: 85%;
+    }}
+
+</style>
 {% endblock %}
 
 {% block scripts %}
 <!-- Add Bootstrap Icons CSS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 {% endblock %}
-

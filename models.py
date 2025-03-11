@@ -9,6 +9,7 @@ class User(UserMixin, db.Model):
     phone_number = db.Column(db.String(10), unique=True, nullable=False)  # Exactly 10 digits
     password_hash = db.Column(db.String(256), nullable=False)  # Increased length for secure hash
     role = db.Column(db.String(20), nullable=False)  # 'farmer', 'warehouse_manager', or 'ration_manager'
+    eth_address = db.Column(db.String(42), unique=True, nullable=True)  # Ethereum address for blockchain
     farmer = db.relationship('Farmer', backref='user', lazy=True, uselist=False)
     warehouse = db.relationship('Warehouse', backref='user', lazy=True, uselist=False)
 
@@ -19,6 +20,7 @@ class Farmer(db.Model):
     address = db.Column(db.String(200), nullable=False)
     aadhar_number = db.Column(db.String(12), unique=True, nullable=False)  # Exactly 12 digits
     phone_number = db.Column(db.String(10), nullable=False)  # Exactly 10 digits
+    eth_address = db.Column(db.String(42), unique=True, nullable=True)  # Ethereum address for blockchain
     stocks = db.relationship('Stock', backref='farmer', lazy=True)
 
 class Warehouse(db.Model):
@@ -33,6 +35,7 @@ class Warehouse(db.Model):
     warehouse_type = db.Column(db.String(20))  # 'private' or 'government'
     capacity = db.Column(db.Float)  # in tons
     available_space = db.Column(db.Float)  # in tons
+    eth_address = db.Column(db.String(42), unique=True, nullable=True)  # Ethereum address for blockchain
     stocks = db.relationship('Stock', backref='warehouse', lazy=True)
 
 class Stock(db.Model):
@@ -45,6 +48,8 @@ class Stock(db.Model):
     warehouse_id = db.Column(db.Integer, db.ForeignKey('warehouse.id'), nullable=False)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    blockchain_id = db.Column(db.Integer, nullable=True)  # ID on the blockchain
+    blockchain_tx_hash = db.Column(db.String(66), nullable=True)  # Transaction hash on the blockchain
     
     def __repr__(self):
         return f'<Stock {self.type} - {self.quantity} tons>'
@@ -60,6 +65,8 @@ class StockRequest(db.Model):
     status = db.Column(db.String(20), default='pending')
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    blockchain_id = db.Column(db.Integer, nullable=True)  # ID on the blockchain
+    blockchain_tx_hash = db.Column(db.String(66), nullable=True)  # Transaction hash on the blockchain
     
     # Add relationships
     farmer = db.relationship('Farmer', foreign_keys=[from_id], backref='stock_requests')
@@ -79,6 +86,8 @@ class WarehouseRequest(db.Model):
     status = db.Column(db.String(20), default='open')
     date_posted = db.Column(db.DateTime, default=datetime.utcnow)
     expiry_date = db.Column(db.DateTime, nullable=False)
+    blockchain_id = db.Column(db.Integer, nullable=True)  # ID on the blockchain
+    blockchain_tx_hash = db.Column(db.String(66), nullable=True)  # Transaction hash on the blockchain
     
     # Relationships
     warehouse = db.relationship('Warehouse', backref='warehouse_requests')
@@ -107,6 +116,7 @@ class Admin(UserMixin, db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
+    eth_address = db.Column(db.String(42), unique=True, nullable=True)  # Ethereum address for blockchain
     role = 'admin'  # Add a static role attribute
     
     def get_id(self):
@@ -131,6 +141,7 @@ class RationShop(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     approved_at = db.Column(db.DateTime, nullable=True)
     admin_notes = db.Column(db.Text, nullable=True)
+    eth_address = db.Column(db.String(42), unique=True, nullable=True)  # Ethereum address for blockchain
     
     # Relationship with User
     user = db.relationship('User', backref='ration_shop', lazy=True, uselist=False)
@@ -153,6 +164,8 @@ class RationStockRequest(db.Model):
     admin_notes = db.Column(db.Text, nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    blockchain_id = db.Column(db.Integer, nullable=True)  # ID on the blockchain
+    blockchain_tx_hash = db.Column(db.String(66), nullable=True)  # Transaction hash on the blockchain
     
     # Relationships
     ration_shop = db.relationship('RationShop', backref='stock_requests')
@@ -172,3 +185,19 @@ class OTP(db.Model):
     
     def __repr__(self):
         return f'<OTP {self.id}: {self.phone_number}>'
+
+# New model for blockchain transactions
+class BlockchainTransaction(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tx_hash = db.Column(db.String(66), unique=True, nullable=False)  # Transaction hash
+    tx_type = db.Column(db.String(50), nullable=False)  # Type of transaction (e.g., 'create_stock', 'update_status')
+    entity_type = db.Column(db.String(50), nullable=False)  # Type of entity (e.g., 'stock', 'stock_request')
+    entity_id = db.Column(db.Integer, nullable=False)  # ID of the entity in the database
+    blockchain_id = db.Column(db.Integer, nullable=True)  # ID on the blockchain
+    status = db.Column(db.String(20), default='pending')  # pending, confirmed, failed
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    confirmed_at = db.Column(db.DateTime, nullable=True)  # When the transaction was confirmed
+    data = db.Column(db.Text, nullable=True)  # Additional data in JSON format
+    
+    def __repr__(self):
+        return f'<BlockchainTransaction {self.id}: {self.tx_type} for {self.entity_type} {self.entity_id}>'

@@ -27,3 +27,10 @@ wtforms==3.2.1
 psycopg2-binary==2.9.10
 gunicorn==21.2.0
 twilio==8.13.0
+
+# Blockchain dependencies
+web3==5.31.1
+eth-utils==1.10.0
+eth-account==0.5.9
+py-solc-x==1.1.1
+toolz>=0.11.2

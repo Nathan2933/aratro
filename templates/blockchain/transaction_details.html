@@ -1,0 +1,283 @@
+{% extends "blockchain/base_blockchain.html" %}
+
+{% block title %}Transaction Details - Aratro{% endblock %}
+
+{% block blockchain_content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Transaction Details</h1>
+        <p class="page-subtitle">Transaction Hash: <code>{{ tx.hash }}</code></p>
+    </div>
+    <div>
+        <a href="{{ url_for('blockchain.dashboard') }}" class="btn btn-sm btn-outline-primary">
+            <i class="bi bi-arrow-left me-2"></i> Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="alert alert-info" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    This transaction exists on your local Ganache blockchain and is not visible on public Ethereum explorers like Etherscan.
+</div>
+
+{% if blockchain_tx_not_found %}
+<div class="alert alert-warning" role="alert">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    <strong>Transaction not found on blockchain!</strong> This transaction exists in the database but could not be found on the blockchain. This may happen if:
+    <ul class="mt-2">
+        <li>The blockchain was reset or restarted</li>
+        <li>The transaction hash is invalid or malformed</li>
+        <li>The transaction was never successfully submitted to the blockchain</li>
+    </ul>
+    <p class="mt-2 mb-0">Only database information is shown below.</p>
+</div>
+{% endif %}
+
+<!-- Debug Information - Always show -->
+<div class="alert alert-secondary" role="alert">
+    <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">Debug Information</h6>
+    <ul>
+        <li><strong>blockchain_tx_not_found:</strong> {{ blockchain_tx_not_found }}</li>
+        <li><strong>has_raw_tx:</strong> {{ raw_tx is not none }}</li>
+        <li><strong>has_raw_receipt:</strong> {{ raw_receipt is not none }}</li>
+        <li><strong>has_block_data:</strong> {{ block is not none }}</li>
+        {% if debug_info is defined %}
+        <li><strong>tx_data_keys:</strong> {{ debug_info.tx_data_keys }}</li>
+        <li><strong>block_data_keys:</strong> {{ debug_info.block_data_keys }}</li>
+        {% if debug_info.exception is defined %}
+        <li><strong>exception:</strong> {{ debug_info.exception }}</li>
+        <li><strong>exception_type:</strong> {{ debug_info.exception_type }}</li>
+        {% endif %}
+        {% endif %}
+    </ul>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-info-circle me-2"></i>
+            Transaction Overview
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <th>Transaction Hash</th>
+                        <td><code>{{ tx.hash }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>
+                            {% if tx.status == 'Success' %}
+                            <span class="badge bg-success">Success</span>
+                            {% elif tx.status == 'Failed' %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">{{ tx.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Block</th>
+                        <td>{{ tx.blockNumber }}</td>
+                    </tr>
+                    <tr>
+                        <th>Timestamp</th>
+                        <td>{{ tx.timestamp }}</td>
+                    </tr>
+                    <tr>
+                        <th>From</th>
+                        <td><code>{{ tx.from }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>To</th>
+                        <td><code>{{ tx.to }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Value</th>
+                        <td>{{ tx.value }} ETH</td>
+                    </tr>
+                    <tr>
+                        <th>Gas Price</th>
+                        <td>{{ tx.gasPrice }} Gwei</td>
+                    </tr>
+                    <tr>
+                        <th>Gas Limit</th>
+                        <td>{{ tx.gas }}</td>
+                    </tr>
+                    <tr>
+                        <th>Nonce</th>
+                        <td>{{ tx.nonce }}</td>
+                    </tr>
+                    {% if tx.type is defined %}
+                    <tr>
+                        <th>Transaction Type</th>
+                        <td>{{ tx.type }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if tx.entity_type is defined %}
+                    <tr>
+                        <th>Entity Type</th>
+                        <td>{{ tx.entity_type }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if tx.entity_id is defined %}
+                    <tr>
+                        <th>Entity ID</th>
+                        <td>{{ tx.entity_id }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if tx.blockchain_id is defined %}
+                    <tr>
+                        <th>Blockchain ID</th>
+                        <td>{{ tx.blockchain_id }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if tx.created_at is defined %}
+                    <tr>
+                        <th>Created At</th>
+                        <td>{{ tx.created_at }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if tx.confirmed_at is defined %}
+                    <tr>
+                        <th>Confirmed At</th>
+                        <td>{{ tx.confirmed_at }}</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if tx.entity_details is defined %}
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-card-list me-2"></i>
+            Entity Details
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        <div class="table-responsive">
+            <table class="table">
+                <tbody>
+                    {% if tx.entity_details %}
+                        {% for key, value in tx.entity_details.items() %}
+                        <tr>
+                            <th>{{ key|replace('_', ' ')|title }}</th>
+                            <td>{{ value }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="2" class="text-center">No entity details available</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-collection me-2"></i>
+            Block Information
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        {% if not blockchain_tx_not_found and block %}
+        <div class="table-responsive">
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <th>Block Number</th>
+                        <td>{{ block.number }}</td>
+                    </tr>
+                    <tr>
+                        <th>Block Hash</th>
+                        <td><code>{{ block.hash }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Parent Hash</th>
+                        <td><code>{{ block.parentHash }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Timestamp</th>
+                        <td>{{ block.timestamp }}</td>
+                    </tr>
+                    <tr>
+                        <th>Transactions</th>
+                        <td>{{ block.transactions }}</td>
+                    </tr>
+                    <tr>
+                        <th>Gas Used</th>
+                        <td>{{ block.gasUsed }}</td>
+                    </tr>
+                    <tr>
+                        <th>Gas Limit</th>
+                        <td>{{ block.gasLimit }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Block information is not available for this transaction.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-code-slash me-2"></i>
+            Transaction Input Data
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        <div class="form-group">
+            <textarea class="form-control" rows="5" readonly>{{ tx.input }}</textarea>
+        </div>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-link-45deg me-2"></i>
+            Blockchain Data
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        {% if raw_tx %}
+        <div class="form-group">
+            <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">Raw Transaction Data</h6>
+            <textarea class="form-control" rows="10" readonly>{{ raw_tx }}</textarea>
+        </div>
+        {% endif %}
+        
+        {% if raw_receipt %}
+        <div class="form-group mt-4">
+            <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">Transaction Receipt</h6>
+            <textarea class="form-control" rows="10" readonly>{{ raw_receipt }}</textarea>
+        </div>
+        {% endif %}
+        
+        {% if not raw_tx and not raw_receipt %}
+        <div class="alert alert-warning" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Blockchain data is not available for this transaction.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

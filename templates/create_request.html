@@ -9,15 +9,12 @@
         <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper" id="farmerSidebar">
             <div class="position-sticky">
                 <div class="sidebar-header">
-                    
                     <h5 class="sidebar-brand">
-                        <span class="company-name" style="color: white; text-align: center; width: 100%;">Aratro</span>
-                        
-                        
+                        <span class="company-name" style="font-size: 1.5rem; font-weight: 600; color: white; text-align: center; width: 100%;">
+                            <i class="bi bi-link-45deg" style="font-size: 1.8rem; margin-right: 5px;"></i>
+                            Aratro
+                        </span>
                     </h5>
-                    <button type="button" class="btn-close-sidebar d-md-none" id="closeSidebarBtn">
-                        <i class="fas fa-times"></i>
-                    </button>
                 </div>
                 <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
                     <div class="user-avatar">
@@ -50,6 +47,13 @@
                         <a class="nav-link" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
                             <i class="bi bi-check-circle-fill me-2"></i>
                             <span>Accepted Requests</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.pending_requests') }}">
+                            <i class="bi bi-clock-fill me-2"></i>
+                            <span>Pending Requests</span>
                         </a>
                     </li>
                     
@@ -143,7 +147,7 @@
                                     <option value="Other" {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}selected{% endif %}>Other</option>
                                 </select>
                             </div>
-                            <div class="form-group mb-3" id="otherStockTypeGroup" style="display: {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}block{% else %}none{% endif %};">
+                            <div class="form-group mb-3" id="otherStockTypeGroup" {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}style="display: block;"{% else %}style="display: none;"{% endif %}>
                                 <label for="otherStockType" class="form-label">Specify Stock Type</label>
                                 <input type="text" id="otherStockType" name="other_stock_type" class="form-control" placeholder="Enter stock type" {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}value="{{ warehouse_request.stock_type }}"{% endif %}>
                             </div>
@@ -246,6 +250,13 @@
 </div>
 
 <style>
+    body{
+        margin-top: 50px;
+        padding-top: 0px;
+        margin-right: 0px;
+        padding-right:0px;
+        margin-left: 100px;
+    }
     /* Dashboard Layout */
     .farmer-dashboard {
         background-color: #f5f7fa;
@@ -254,7 +265,9 @@
         display: flex;
         flex-direction: column;
     }
-    
+    .content-area{
+        margin-left: 80px;
+    }
     .main-content {
         padding: 2rem;
         transition: all 0.3s;
@@ -263,6 +276,7 @@
         width: 100%;
         height: fit-content;
         overflow: visible;
+        padding-left: 100px;
     }
     
     .content-wrapper {
@@ -506,7 +520,174 @@
             width: 100%;
         }
     }
+    @media screen and (max-width: 768px) {
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .content-area{
+        margin-left: 0px;
+    }
+        .main-content {
+            padding: 0;
+            margin: 0;
+            width: 100vw;
+        }
+
+        .content-wrapper {
+            padding: 0.5rem;
+            width: 100%;
+        }
+
+        .dashboard-header {
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .dashboard-title {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+            width: 100%;
+            text-align: center;
+        }
+
+        .dashboard-subtitle {
+            font-size: 0.9rem;
+            margin: 0.5rem 0;
+            width: 100%;
+        }
+
+        .dashboard-card {
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-card-header {
+            padding: 1rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .search-container {
+            margin: 0.75rem 0;
+            padding: 0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-group input {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            flex: 1;
+        }
+
+        .rejected-requests-grid {
+            padding: 0.5rem;
+            margin: 0;
+        }
+
+        .rejected-request-card {
+            margin: 0.75rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .card-header {
+            padding: 0.75rem 0;
+            margin-bottom: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .request-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .request-info strong {
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-bottom: 0.25rem;
+        }
+
+        .badge-error {
+            align-self: flex-start;
+            margin-top: 0.25rem;
+        }
+
+        .view-details-btn {
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background-color: #f7fafc;
+        }
+
+        .stock-details,
+        .warehouse-details {
+            padding: 1rem;
+            margin: 0.75rem 0;
+            border-radius: 8px;
+        }
+
+        .detail-group {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .detail-group:last-child {
+            border-bottom: none;
+        }
+
+        .warehouse-details h4 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .action-buttons {
+            margin-top: 1rem;
+            padding-top: 0.5rem;
+        }
+
+        .btn-primary {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        /* Improve spacing between elements */
+        * + * {
+            margin-top: 0.5rem;
+        }
+
+        /* Reset margin for specific elements */
+        .dashboard-card > *:first-child {
+            margin-top: 0;
+        }
+    }
     
+
     @media (max-width: 768px) {
         .main-content {
             padding: 1.5rem 1rem;

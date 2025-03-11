@@ -9,6 +9,7 @@ Aratro is a comprehensive platform designed to streamline the agricultural suppl
 - **Ration Shop Portal**: Order and distribute agricultural products
 - **Admin Dashboard**: Oversee all operations and approve registrations
 - **SMS Notifications**: Send OTP and notifications via SMS using Twilio
+- **Blockchain Integration**: Track and verify agricultural transactions on the blockchain
 
 ## Setup Instructions
 
@@ -16,6 +17,7 @@ Aratro is a comprehensive platform designed to streamline the agricultural suppl
 
 - Python 3.8 or higher
 - pip (Python package manager)
+- Ganache (for blockchain functionality)
 
 ### Installation
 
@@ -47,6 +49,8 @@ Aratro is a comprehensive platform designed to streamline the agricultural suppl
    TWILIO_ACCOUNT_SID=your-twilio-account-sid
    TWILIO_AUTH_TOKEN=your-twilio-auth-token
    TWILIO_PHONE_NUMBER=your-twilio-phone-number
+   BLOCKCHAIN_URL=http://127.0.0.1:7545
+   PRIVATE_KEY=your-ethereum-private-key
    ```
 
 ### Email Configuration
@@ -90,6 +94,38 @@ python test_sms.py +1234567890
 ```
 Replace `+1234567890` with your actual phone number (including country code).
 
+### Blockchain Configuration
+
+For blockchain functionality to work properly, you need to set up Ganache:
+
+1. Download and install Ganache from [Ganache](https://trufflesuite.com/ganache/)
+2. Start Ganache and create a new workspace
+3. Note the RPC Server URL (usually http://127.0.0.1:7545)
+4. Click on the key icon next to any account to get its private key
+5. Add these details to your `.env` file:
+   ```
+   BLOCKCHAIN_URL=http://127.0.0.1:7545
+   PRIVATE_KEY=your-ethereum-private-key
+   ```
+
+6. Initialize the blockchain environment:
+   ```
+   python init_blockchain.py
+   ```
+
+7. Run the blockchain migration:
+   ```
+   python migrations/blockchain_migration.py
+   ```
+
+8. Sync existing data to the blockchain (optional):
+   ```
+   python blockchain_integration.py sync_stocks
+   python blockchain_integration.py sync_requests
+   ```
+
+For more detailed information about the blockchain integration, see [blockchain_README.md](blockchain_README.md).
+
 ### Running the Application
 
 1. Initialize the database:
@@ -111,6 +147,26 @@ Replace `+1234567890` with your actual phone number (including country code).
 - Email: admin@aratro.com
 - Password: admin123
 
+## Blockchain Features
+
+The blockchain integration provides the following features:
+
+- **Transparent Transactions**: All stock creations and transfers are recorded on the blockchain
+- **Immutable Records**: Once recorded, transaction data cannot be altered
+- **Verification**: Compare database records with blockchain records to ensure data integrity
+- **Visualization**: View blockchain blocks and transactions in the dashboard
+
+To access the blockchain dashboard, navigate to `/blockchain/dashboard` after logging in.
+
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+### Python Version Compatibility
+
+The application has been tested with:
+
+- Python 3.11 (recommended)
+- Python 3.13 (requires additional setup)
+
+For Python 3.13 compatibility, please refer to [python_compatibility.md](python_compatibility.md) for detailed instructions.

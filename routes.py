@@ -1,13 +1,18 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, session
 from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop, RationStockRequest, OTP
+from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop, RationStockRequest, OTP, BlockchainTransaction
 import re
 from datetime import datetime, timedelta
 from functools import wraps
 from email_utils import send_credentials_email, send_rejection_email, send_password_reset_email, generate_otp, send_otp_via_email, send_otp_via_sms
 import uuid
 import os
+import logging
+import traceback
+from sqlalchemy import func
+
+logger = logging.getLogger(__name__)
 
 auth = Blueprint('auth', __name__)
 main = Blueprint('main', __name__)
@@ -521,7 +526,7 @@ def resend_otp():
             dummy_email = f"{phone_number}@example.com"
             send_otp_via_email(dummy_email, phone_number, otp_code)
     
-    # If user is a ration shop manager, also send OTP via email
+    # If user is a ration shop manager, also send OTP via email if available
     elif role == 'ration_manager':
         ration_shop = RationShop.query.filter_by(user_id=user.id).first()
         if ration_shop and ration_shop.email:
@@ -790,7 +795,32 @@ def submit_request():
         db.session.add(new_request)
         db.session.commit()
         
-        flash('Stock request submitted successfully', 'success')
+        # Add blockchain integration
+        try:
+            # Import the blockchain integration functions
+            from blockchain_integration import create_stock_on_blockchain, create_stock_request_on_blockchain
+            
+            # Create stock on blockchain
+            stock_blockchain_success = create_stock_on_blockchain(stock.id)
+            if stock_blockchain_success:
+                # Create stock request on blockchain
+                request_blockchain_success = create_stock_request_on_blockchain(new_request.id)
+                if request_blockchain_success:
+                    flash('Stock request submitted and recorded on blockchain successfully', 'success')
+                else:
+                    # Log the error for debugging
+                    logger.error(f"Failed to create stock request {new_request.id} on blockchain")
+                    flash('Stock request submitted but failed to record on blockchain', 'warning')
+            else:
+                # Log the error for debugging
+                logger.error(f"Failed to create stock {stock.id} on blockchain")
+                flash('Stock request submitted but failed to record stock on blockchain', 'warning')
+        except Exception as e:
+            # Log the exception for debugging
+            logger.error(f"Blockchain integration failed: {str(e)}")
+            logger.error(f"Exception traceback: {traceback.format_exc()}")
+            flash(f'Stock request submitted but blockchain integration failed: {str(e)}', 'warning')
+        
         return redirect(url_for('farmer_dashboard.farmer_home'))
         
     except ValueError:
@@ -863,27 +893,31 @@ def cancel_request(request_id):
         return jsonify({'success': False, 'message': 'Access denied'})
     
     farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    if not farmer:
+        return jsonify({'success': False, 'message': 'Farmer profile not found'})
     
-    # Try to get request using new schema
     try:
-        stock_request = StockRequest.query.filter_by(id=request_id, farmer_id=farmer.id, status='pending').first()
+        stock_request = StockRequest.query.filter_by(id=request_id, from_id=farmer.id, status='pending').first()
         if stock_request:
             stock_request.status = 'canceled'
+            stock_request.stock.status = 'canceled'  # Update the associated stock status
+            
+            # Create notification for warehouse manager
+            notification = Notification(
+                user_id=stock_request.warehouse.user.id,
+                title='Stock Request Canceled',
+                message=f'Stock request for {stock_request.stock.requested_quantity} tons of {stock_request.stock.type} has been canceled by {farmer.name}',
+                type='request_canceled'
+            )
+            db.session.add(notification)
+            
             db.session.commit()
-            return jsonify({'success': True})
+            return jsonify({'success': True, 'message': 'Request canceled successfully'})
+        else:
+            return jsonify({'success': False, 'message': 'Request not found or cannot be canceled'})
     except Exception as e:
         db.session.rollback()
-        # If new schema fails, try old schema
-        try:
-            stock_request = StockRequest.query.filter_by(id=request_id, to_id=farmer.id, status='pending').first()
-            if stock_request:
-                stock_request.status = 'canceled'
-                db.session.commit()
-                return jsonify({'success': True})
-        except Exception as inner_e:
-            db.session.rollback()
-    
-    return jsonify({'success': False, 'message': 'Request not found or cannot be canceled'})
+        return jsonify({'success': False, 'message': str(e)})
 
 @farmer_dashboard.route('/rejected-requests')
 @login_required
@@ -942,6 +976,33 @@ def accepted_requests():
     
     return render_template('accepted_requests.html', accepted_requests=accepted_requests)
 
+@farmer_dashboard.route('/pending-requests')
+@login_required
+def pending_requests():
+    """
+    Display pending requests for the farmer
+    """
+    if current_user.role != 'farmer':
+        flash('Access denied. You must be a farmer to view this page.', 'error')
+        return redirect(url_for('main.index'))
+    
+    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    if not farmer:
+        flash('Farmer profile not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get pending requests for this farmer
+    pending_requests = StockRequest.query.filter_by(
+        from_id=farmer.id, 
+        status='pending'
+    ).order_by(StockRequest.request_date.desc()).all()
+    
+    return render_template(
+        'pending_requests.html',
+        pending_requests=pending_requests,
+        user_farmer=farmer
+    )
+
 # Warehouse Dashboard Routes
 @warehouse_dashboard.route('/')
 @login_required
@@ -959,11 +1020,33 @@ def warehouse_home():
     
     # Get all stock requests for this warehouse
     pending_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='pending').all()
-    approved_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='approved').all()
+    accepted_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='approved').all()
+    rejected_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='rejected').all()
     
     # Get all ration shop stock requests for this warehouse
     ration_pending_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='pending').all()
-    ration_approved_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='approved').all()
+    ration_accepted_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='approved').all()
+    ration_rejected_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='rejected').all()
+    
+    # Get recent requests (both farmer and ration shop)
+    farmer_recent_requests = StockRequest.query.filter_by(to_id=warehouse.id).order_by(StockRequest.request_date.desc()).limit(5).all()
+    ration_recent_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id).order_by(RationStockRequest.request_date.desc()).limit(5).all()
+    
+    # Debug logging
+    print(f"Farmer recent requests: {len(farmer_recent_requests)}")
+    print(f"Ration recent requests: {len(ration_recent_requests)}")
+    
+    # Combine and sort recent requests
+    recent_requests = sorted(
+        farmer_recent_requests + ration_recent_requests,
+        key=lambda x: x.request_date,
+        reverse=True
+    )[:5]  # Get the 5 most recent requests
+    
+    # Debug logging
+    print(f"Combined recent requests: {len(recent_requests)}")
+    for i, req in enumerate(recent_requests):
+        print(f"Request {i+1}: {req.__class__.__name__} {req.id}, Status: {req.status}, Date: {req.request_date}")
     
     # Calculate total allocated space
     total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
@@ -974,11 +1057,14 @@ def warehouse_home():
     return render_template('warehouse_dashboard.html',
                          warehouse=warehouse,
                          pending_requests=pending_requests,
-                          approved_requests=approved_requests,
-                          ration_pending_requests=ration_pending_requests,
-                          ration_approved_requests=ration_approved_requests,
-                          total_allocated_space=total_allocated_space,
-                          notifications=notifications)
+                         accepted_requests=accepted_requests,
+                         rejected_requests=rejected_requests,
+                         ration_pending_requests=ration_pending_requests,
+                         ration_accepted_requests=ration_accepted_requests,
+                         ration_rejected_requests=ration_rejected_requests,
+                         recent_requests=recent_requests,
+                         total_allocated_space=total_allocated_space,
+                         notifications=notifications)
 
 @warehouse_dashboard.route('/respond_to_ration_request', methods=['POST'])
 @login_required
@@ -1008,6 +1094,11 @@ def respond_to_ration_request():
 
     if stock_request.status != 'pending':
         return jsonify({'success': False, 'message': 'Request has already been processed'}), 400
+
+    # Get ration shop
+    ration_shop = RationShop.query.get(stock_request.ration_shop_id)
+    if not ration_shop:
+        return jsonify({'success': False, 'message': 'Ration shop not found'}), 404
 
     # Process the request based on action
     if action == 'approve':
@@ -1049,7 +1140,7 @@ def respond_to_ration_request():
         
         # Create notification for ration shop
         notification = Notification(
-            user_id=RationShop.query.get(stock_request.ration_shop_id).user_id,
+            user_id=ration_shop.user_id,
             title='Stock Request Approved',
             message=f'Your request for {stock_request.quantity} tons of {stock_request.stock_type} has been approved by {warehouse.name}.',
             type='ration_stock_request_approved'
@@ -1064,7 +1155,7 @@ def respond_to_ration_request():
         
         # Create notification for ration shop
         notification = Notification(
-            user_id=RationShop.query.get(stock_request.ration_shop_id).user_id,
+            user_id=ration_shop.user_id,
             title='Stock Request Rejected',
             message=f'Your request for {stock_request.quantity} tons of {stock_request.stock_type} has been rejected by {warehouse.name}.',
             type='ration_stock_request_rejected'
@@ -1075,7 +1166,56 @@ def respond_to_ration_request():
     
     try:
         db.session.commit()
-        return jsonify({'success': True, 'message': f'Request {action}d successfully'}), 200
+        
+        # Add blockchain integration
+        try:
+            # Import the blockchain integration functions
+            from blockchain_integration import update_ration_stock_request_status_on_blockchain
+            
+            # Update ration stock request status on blockchain
+            blockchain_success = update_ration_stock_request_status_on_blockchain(
+                stock_request.id, 
+                stock_request.status, 
+                stock_request.admin_notes or ""
+            )
+            
+            if blockchain_success:
+                # Create blockchain notification for ration shop
+                blockchain_notification = Notification(
+                    user_id=ration_shop.user_id,
+                    title='Blockchain Update',
+                    message=f'Your request status update to "{stock_request.status}" has been recorded on the blockchain.',
+                    type='blockchain_notification'
+                )
+                db.session.add(blockchain_notification)
+                db.session.commit()
+                
+                return jsonify({
+                    'success': True, 
+                    'message': f'Request {action}d and recorded on blockchain successfully',
+                    'blockchain': True,
+                    'request_id': stock_request.id
+                }), 200
+            else:
+                # Log the error for debugging
+                logger.error(f"Failed to update ration stock request {stock_request.id} status on blockchain")
+                return jsonify({
+                    'success': True, 
+                    'message': f'Request {action}d but failed to record on blockchain. The system will retry automatically.',
+                    'blockchain': False,
+                    'request_id': stock_request.id
+                }), 200
+        except Exception as e:
+            # Log the exception for debugging
+            logger.error(f"Blockchain integration failed: {str(e)}")
+            logger.error(f"Exception traceback: {traceback.format_exc()}")
+            return jsonify({
+                'success': True, 
+                'message': f'Request {action}d but blockchain integration failed: {str(e)}. The system will retry automatically.',
+                'blockchain': False,
+                'request_id': stock_request.id
+            }), 200
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error processing request: {str(e)}'}), 500
@@ -1102,10 +1242,10 @@ def respond_to_request():
     
     if request.method == 'GET':
         # Get all pending requests for this warehouse
-        pending_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='pending').all()
+        pending_requests = StockRequest.query.filter_by(to_id=warehouse.id, status='pending').order_by(StockRequest.created_at.desc()).all()
         
         # Get all pending ration shop requests for this warehouse
-        ration_pending_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='pending').all()
+        ration_pending_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='pending').order_by(RationStockRequest.created_at.desc()).all()
         
         # Calculate total allocated space
         total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
@@ -1115,91 +1255,113 @@ def respond_to_request():
                               pending_requests=pending_requests,
                               ration_pending_requests=ration_pending_requests,
                               total_allocated_space=total_allocated_space)
-    else:
-        # Handle both form data and JSON data
-        data = request.json if request.is_json else request.form
-        request_id = data.get('request_id')
-        approved_quantity = float(data.get('approved_quantity', 0))
-        notes = data.get('notes', '')
-        action = data.get('action')
+    
+    # Handle both form data and JSON data
+    data = request.json if request.is_json else request.form
+    request_id = data.get('request_id')
+    approved_quantity = float(data.get('approved_quantity', 0))
+    notes = data.get('notes', '')
+    action = data.get('action')
+    
+    if not request_id:
+        return jsonify({'success': False, 'message': 'Request ID is required'}), 400
+    
+    try:
+        stock_request = StockRequest.query.get(request_id)
+        if not stock_request or stock_request.to_id != warehouse.id:
+            return jsonify({'success': False, 'message': 'Request not found'}), 404
         
-        if not request_id:
-            return jsonify({'success': False, 'message': 'Request ID is required'}), 400
+        # Debug the status
+        print(f"Request status: '{stock_request.status}'")
         
+        # Check if the request can be modified
+        if stock_request.status in ['approved', 'rejected']:
+            return jsonify({'success': False, 'message': f"Request cannot be modified. Current status: '{stock_request.status}'"}), 400
+        
+        if action == 'approve':
+            # Validate the approved quantity
+            if approved_quantity <= 0:
+                return jsonify({'success': False, 'message': 'Approved quantity must be greater than zero'}), 400
+            
+            # Check if warehouse has enough remaining space
+            total_allocated = sum([
+                s.quantity for s in Stock.query.filter_by(
+                    warehouse_id=warehouse.id, 
+                    status='stored'
+                ).all()
+            ])
+            
+            remaining_space = warehouse.capacity - total_allocated
+            
+            if approved_quantity > remaining_space:
+                return jsonify({
+                    'success': False, 
+                    'message': f'Insufficient warehouse space. Only {remaining_space:.2f} tons available.'
+                }), 400
+            
+            # Update the stock with approved quantity
+            stock_request.stock.quantity = approved_quantity
+            
+            # Update request status and stock status
+            stock_request.status = 'approved'
+            stock_request.stock.status = 'stored'
+            
+            # Create notification for the farmer
+            notification = Notification(
+                user_id=stock_request.stock.farmer.user_id,
+                title='Stock Request Approved',
+                message=f'Your stock request has been approved for {approved_quantity} tons of {stock_request.stock.type}.',
+                type='approved'
+            )
+            db.session.add(notification)
+            
+        elif action == 'reject':
+            # Update request status and stock status
+            stock_request.status = 'rejected'
+            stock_request.stock.status = 'rejected'
+            
+            # Create notification for the farmer
+            notification = Notification(
+                user_id=stock_request.stock.farmer.user_id,
+                title='Stock Request Rejected',
+                message=f'Your stock request for {stock_request.stock.requested_quantity} tons of {stock_request.stock.type} has been rejected.',
+                type='rejected'
+            )
+            db.session.add(notification)
+        else:
+            return jsonify({'success': False, 'message': 'Invalid action'}), 400
+        
+        # Update notes
+        stock_request.admin_notes = notes
+        
+        db.session.commit()
+        
+        # Add blockchain integration
         try:
-            stock_request = StockRequest.query.get(request_id)
-            if not stock_request or stock_request.to_id != warehouse.id:
-                return jsonify({'success': False, 'message': 'Request not found'}), 404
+            # Import the blockchain integration functions
+            from blockchain_integration import update_stock_status_on_blockchain, update_stock_request_status_on_blockchain
             
-            # Debug the status
-            print(f"Request status: '{stock_request.status}'")
+            # Update stock status on blockchain
+            stock_status = 'stored' if action == 'approve' else 'rejected'
+            stock_blockchain_success = update_stock_status_on_blockchain(stock_request.stock.id, stock_status)
             
-            # Check if the request can be modified
-            if stock_request.status in ['approved', 'rejected']:
-                return jsonify({'success': False, 'message': f"Request cannot be modified. Current status: '{stock_request.status}'"}), 400
+            # Update stock request status on blockchain
+            request_status = 'approved' if action == 'approve' else 'rejected'
+            request_blockchain_success = update_stock_request_status_on_blockchain(stock_request.id, request_status)
             
-            if action == 'approve':
-                # Validate the approved quantity
-                if approved_quantity <= 0:
-                    return jsonify({'success': False, 'message': 'Approved quantity must be greater than zero'}), 400
-                
-                # Check if warehouse has enough remaining space
-                total_allocated = sum([
-                    s.quantity for s in Stock.query.filter_by(
-                        warehouse_id=warehouse.id, 
-                        status='stored'
-                    ).all()
-                ])
-                
-                remaining_space = warehouse.capacity - total_allocated
-                
-                if approved_quantity > remaining_space:
-                    return jsonify({
-                        'success': False, 
-                        'message': f'Insufficient warehouse space. Only {remaining_space:.2f} tons available.'
-                    }), 400
-                
-                # Update the stock with approved quantity
-                stock_request.stock.quantity = approved_quantity
-                
-                # Update request status and stock status
-                stock_request.status = 'approved'
-                stock_request.stock.status = 'stored'
-                
-                # Create notification for the farmer
-                notification = Notification(
-                    user_id=stock_request.stock.farmer.user_id,
-                    title='Stock Request Approved',
-                    message=f'Your stock request has been approved for {approved_quantity} tons of {stock_request.stock.type}.',
-                    type='approved'
-                )
-                db.session.add(notification)
-                
-            elif action == 'reject':
-                # Update request status and stock status
-                stock_request.status = 'rejected'
-                stock_request.stock.status = 'rejected'
-                
-                # Create notification for the farmer
-                notification = Notification(
-                    user_id=stock_request.stock.farmer.user_id,
-                    title='Stock Request Rejected',
-                    message=f'Your stock request for {stock_request.stock.requested_quantity} tons of {stock_request.stock.type} has been rejected.',
-                    type='rejected'
-                )
-                db.session.add(notification)
-            else:
-                return jsonify({'success': False, 'message': 'Invalid action'}), 400
-            
-            # Update notes
-            stock_request.admin_notes = notes
-            
-            db.session.commit()
-            return jsonify({'success': True, 'message': f'Request {action}d successfully'}), 200
-            
+            if not stock_blockchain_success or not request_blockchain_success:
+                logger.warning(f"Request {action}d but blockchain update failed")
         except Exception as e:
-            db.session.rollback()
-            return jsonify({'success': False, 'message': str(e)}), 500
+            logger.error(f"Blockchain integration error: {str(e)}")
+        
+        return jsonify({'success': True, 'message': f'Request {action}d successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+    
+    # Default response in case no other return statement is reached
+    return jsonify({'success': False, 'message': 'Invalid request'}), 400
 
 @warehouse_dashboard.route('/accepted_requests')
 @login_required
@@ -1336,6 +1498,8 @@ def inject_user_data():
                 data['user_warehouse'] = Warehouse.query.filter_by(user_id=current_user.id).first()
             elif current_user.role == 'farmer':
                 data['user_farmer'] = Farmer.query.filter_by(user_id=current_user.id).first()
+            elif current_user.role == 'ration_shop':
+                data['shop'] = RationShop.query.filter_by(user_id=current_user.id).first()
             elif current_user.role == 'ration_manager':
                 # Add ration shop data if needed
                 pass
@@ -1408,6 +1572,10 @@ def login():
         
         # Log in the admin
         login_user(admin_user)
+        
+        # Set admin login time in session for timeout tracking
+        session['admin_login_time'] = datetime.utcnow().isoformat()
+        
         print(f"Admin logged in successfully: {admin_user.id}")
         flash('Logged in successfully!', 'success')
         return redirect(url_for('admin.dashboard'))
@@ -1696,10 +1864,21 @@ def ration_dashboard():
         return redirect(url_for('main.index'))
     
     # Get statistics
-    pending_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id, status='pending').count()
-    approved_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id, status='approved').count()
-    rejected_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id, status='rejected').count()
-    total_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id).count()
+    pending_requests = db.session.query(func.count(RationStockRequest.id)).filter(
+        RationStockRequest.ration_shop_id == shop.id,
+        RationStockRequest.status == 'pending'
+    ).scalar()
+    approved_requests = db.session.query(func.count(RationStockRequest.id)).filter(
+        RationStockRequest.ration_shop_id == shop.id,
+        RationStockRequest.status == 'approved'
+    ).scalar()
+    rejected_requests = db.session.query(func.count(RationStockRequest.id)).filter(
+        RationStockRequest.ration_shop_id == shop.id,
+        RationStockRequest.status == 'rejected'
+    ).scalar()
+    total_requests = db.session.query(func.count(RationStockRequest.id)).filter(
+        RationStockRequest.ration_shop_id == shop.id
+    ).scalar()
     
     # Calculate total inventory
     total_inventory = 0  # This would be calculated from actual inventory
@@ -1720,61 +1899,97 @@ def ration_dashboard():
     # Get all stock requests made by this ration shop
     stock_requests = RationStockRequest.query.filter_by(ration_shop_id=shop.id).order_by(RationStockRequest.request_date.desc()).all()
     
-    # Get warehouse stock data for the first warehouse (default selection)
-    default_warehouse = warehouses[0] if warehouses else None
-    warehouse_stock = []
+    # Get blockchain transactions for this ration shop's requests
+    blockchain_transactions = []
+    for request in stock_requests:
+        if request.blockchain_id:
+            transactions = BlockchainTransaction.query.filter_by(entity_type='ration_stock_request', entity_id=request.id).all()
+            for tx in transactions:
+                blockchain_transactions.append({
+                    'request_id': request.id,
+                    'tx_hash': tx.tx_hash,
+                    'tx_type': tx.tx_type,
+                    'status': tx.status,
+                    'created_at': tx.created_at
+                })
     
-    if default_warehouse:
-        warehouse_stock = Stock.query.filter_by(
-            warehouse_id=default_warehouse.id,
-            status='stored'
-        ).all()
+    # Sort blockchain transactions by created_at
+    blockchain_transactions = sorted(blockchain_transactions, key=lambda x: x['created_at'], reverse=True)
     
-    return render_template('ration/dashboard.html', 
-                          shop=shop, 
-                          stats=stats, 
+    # Get recent activities
+    recent_activities = []
+    
+    # Add recent request activities
+    for request in sorted(stock_requests, key=lambda x: x.created_at if hasattr(x, 'created_at') else x.request_date, reverse=True)[:5]:
+        warehouse_name = Warehouse.query.get(request.warehouse_id).name if Warehouse.query.get(request.warehouse_id) else 'Unknown'
+        
+        if request.status == 'pending':
+            activity_type = 'request_created'
+            description = f"Created a new request for {request.quantity} tons of {request.stock_type} to {warehouse_name}"
+            timestamp = request.created_at if hasattr(request, 'created_at') else request.request_date
+        elif request.status == 'approved':
+            activity_type = 'request_approved'
+            description = f"Request #{request.id} for {request.stock_type} was approved by {warehouse_name}"
+            timestamp = request.updated_at if hasattr(request, 'updated_at') else request.processed_date or request.request_date
+        elif request.status == 'rejected':
+            activity_type = 'request_rejected'
+            description = f"Request #{request.id} for {request.stock_type} was rejected by {warehouse_name}"
+            timestamp = request.updated_at if hasattr(request, 'updated_at') else request.processed_date or request.request_date
+        elif request.status == 'canceled':
+            activity_type = 'request_canceled'
+            description = f"Request #{request.id} for {request.stock_type} was canceled"
+            timestamp = request.updated_at if hasattr(request, 'updated_at') else request.processed_date or request.request_date
+        else:
+            activity_type = 'request_updated'
+            description = f"Request #{request.id} status updated to {request.status}"
+            timestamp = request.updated_at if hasattr(request, 'updated_at') else request.processed_date or request.request_date
+            
+        recent_activities.append({
+            'type': activity_type,
+            'description': description,
+            'timestamp': timestamp
+        })
+    
+    # Add blockchain activities
+    for tx in blockchain_transactions[:5]:
+        if 'create_ration_stock_request' in tx['tx_type']:
+            activity_type = 'blockchain_create'
+            description = f"Request #{tx['request_id']} for stock was recorded on blockchain"
+        elif 'update_ration_stock_request_status' in tx['tx_type']:
+            activity_type = 'blockchain_update'
+            description = f"Request #{tx['request_id']} status update was recorded on blockchain"
+        else:
+            activity_type = 'blockchain_transaction'
+            description = f"Blockchain transaction for request #{tx['request_id']}: {tx['tx_type']}"
+        
+        recent_activities.append({
+            'type': activity_type,
+            'description': description,
+            'timestamp': tx['created_at'],
+            'blockchain': True,
+            'tx_hash': tx['tx_hash']
+        })
+    
+    # Sort activities by timestamp
+    recent_activities = sorted(recent_activities, key=lambda x: x['timestamp'], reverse=True)
+    
+    # Add current date and time for the dashboard
+    now = datetime.utcnow()
+    
+    return render_template('ration/dashboard.html',
+                          shop=shop,
+                          stats=stats,
                           notifications=notifications,
                           warehouses=warehouses,
-                          stock_requests=stock_requests,
+                          stock_requests=stock_requests[:5],  # Limit to 5 most recent
+                          blockchain_transactions=blockchain_transactions[:5],  # Limit to 5 most recent
+                          recent_activities=recent_activities,
                           pending_count=pending_requests,
                           approved_count=approved_requests,
                           rejected_count=rejected_requests,
                           total_count=total_requests,
-                          default_warehouse=default_warehouse,
-                          warehouse_stock=warehouse_stock)
-
-@main.route('/ration/available_stock')
-@login_required
-def ration_available_stock():
-    # Check if user is a ration shop manager
-    if not current_user.is_authenticated or current_user.role != 'ration_shop':
-        flash('You need to be logged in as a ration shop manager to access this page.', 'error')
-        return redirect(url_for('auth.login'))
-    
-    # Get the ration shop data
-    shop = RationShop.query.filter_by(user_id=current_user.id).first()
-    if not shop:
-        flash('Ration shop not found.', 'error')
-        return redirect(url_for('main.index'))
-    
-    # Get all warehouses for viewing stock
-    warehouses = Warehouse.query.all()
-    
-    # Get default warehouse (first one or None if no warehouses)
-    default_warehouse = warehouses[0] if warehouses else None
-    warehouse_stock = []
-    
-    if default_warehouse:
-        warehouse_stock = Stock.query.filter_by(
-            warehouse_id=default_warehouse.id,
-            status='stored'
-        ).all()
-    
-    return render_template('ration/available_stock.html', 
-                          shop=shop,
-                          warehouses=warehouses,
-                          default_warehouse=default_warehouse,
-                          warehouse_stock=warehouse_stock)
+                          now=now,
+                          maps_api_key=current_app.config['GOOGLE_MAPS_API_KEY'])
 
 @main.route('/ration/request_stock')
 @login_required
@@ -1922,7 +2137,51 @@ def ration_make_request():
         db.session.add(notification)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Stock request submitted successfully'}), 200
+        # Add blockchain integration
+        try:
+            # Import the blockchain integration functions
+            from blockchain_integration import create_ration_stock_request_on_blockchain
+            
+            # Create ration stock request on blockchain
+            blockchain_success = create_ration_stock_request_on_blockchain(stock_request.id)
+            
+            if blockchain_success:
+                # Create notification for ration shop manager about blockchain
+                blockchain_notification = Notification(
+                    user_id=current_user.id,
+                    title='Blockchain Integration',
+                    message=f'Your request for {quantity} tons of {stock_type} has been successfully recorded on the blockchain.',
+                    type='blockchain_notification'
+                )
+                db.session.add(blockchain_notification)
+                db.session.commit()
+                
+                return jsonify({
+                    'success': True, 
+                    'message': 'Stock request submitted and recorded on blockchain successfully',
+                    'blockchain': True,
+                    'request_id': stock_request.id
+                }), 200
+            else:
+                # Log the error for debugging
+                logger.error(f"Failed to create ration stock request {stock_request.id} on blockchain")
+                return jsonify({
+                    'success': True, 
+                    'message': 'Stock request submitted but failed to record on blockchain. The system will retry automatically.',
+                    'blockchain': False,
+                    'request_id': stock_request.id
+                }), 200
+        except Exception as e:
+            # Log the exception for debugging
+            logger.error(f"Blockchain integration failed: {str(e)}")
+            logger.error(f"Exception traceback: {traceback.format_exc()}")
+            return jsonify({
+                'success': True, 
+                'message': f'Stock request submitted but blockchain integration failed: {str(e)}. The system will retry automatically.',
+                'blockchain': False,
+                'request_id': stock_request.id
+            }), 200
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error creating request: {str(e)}'}), 500
@@ -1960,7 +2219,55 @@ def ration_cancel_request(request_id):
         db.session.add(notification)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Request canceled successfully'}), 200
+        # Add blockchain integration
+        try:
+            # Import the blockchain integration functions
+            from blockchain_integration import update_ration_stock_request_status_on_blockchain
+            
+            # Update ration stock request status on blockchain
+            blockchain_success = update_ration_stock_request_status_on_blockchain(
+                stock_request.id, 
+                'rejected',  # Use 'rejected' status for canceled requests on blockchain
+                "Canceled by ration shop"
+            )
+            
+            if blockchain_success:
+                # Create blockchain notification for ration shop
+                blockchain_notification = Notification(
+                    user_id=current_user.id,
+                    title='Blockchain Update',
+                    message=f'Your request cancellation has been recorded on the blockchain.',
+                    type='blockchain_notification'
+                )
+                db.session.add(blockchain_notification)
+                db.session.commit()
+                
+                return jsonify({
+                    'success': True, 
+                    'message': 'Request canceled and recorded on blockchain successfully',
+                    'blockchain': True,
+                    'request_id': stock_request.id
+                }), 200
+            else:
+                # Log the error for debugging
+                logger.error(f"Failed to update ration stock request {stock_request.id} status on blockchain")
+                return jsonify({
+                    'success': True, 
+                    'message': 'Request canceled but failed to record on blockchain. The system will retry automatically.',
+                    'blockchain': False,
+                    'request_id': stock_request.id
+                }), 200
+        except Exception as e:
+            # Log the exception for debugging
+            logger.error(f"Blockchain integration failed: {str(e)}")
+            logger.error(f"Exception traceback: {traceback.format_exc()}")
+            return jsonify({
+                'success': True, 
+                'message': f'Request canceled but blockchain integration failed: {str(e)}. The system will retry automatically.',
+                'blockchain': False,
+                'request_id': stock_request.id
+            }), 200
+        
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Error canceling request: {str(e)}'}), 500
@@ -2044,3 +2351,48 @@ def reset_ration_shop_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)})
+
+@main.route('/ration/request_details/<int:request_id>')
+@login_required
+def ration_request_details(request_id):
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        return jsonify({'success': False, 'message': 'Ration shop not found'}), 404
+    
+    # Find the request
+    stock_request = RationStockRequest.query.filter_by(id=request_id, ration_shop_id=shop.id).first()
+    if not stock_request:
+        return jsonify({'success': False, 'message': 'Request not found'}), 404
+    
+    # Get warehouse name
+    warehouse_name = Warehouse.query.get(stock_request.warehouse_id).name if Warehouse.query.get(stock_request.warehouse_id) else 'Unknown'
+    
+    # Format request data
+    request_data = {
+        'id': stock_request.id,
+        'warehouse_id': stock_request.warehouse_id,
+        'warehouse_name': warehouse_name,
+        'stock_type': stock_request.stock_type,
+        'quantity': stock_request.quantity,
+        'status': stock_request.status,
+        'request_date': stock_request.request_date.strftime('%Y-%m-%d %H:%M:%S'),
+        'processed_date': stock_request.processed_date.strftime('%Y-%m-%d %H:%M:%S') if stock_request.processed_date else None,
+        'notes': stock_request.notes,
+        'admin_notes': stock_request.admin_notes,
+        'blockchain_id': stock_request.blockchain_id,
+        'blockchain_tx_hash': stock_request.blockchain_tx_hash
+    }
+    
+    # Add blockchain URL if available
+    if stock_request.blockchain_id:
+        request_data['blockchain_url'] = url_for('blockchain.view_ration_stock_request', request_id=stock_request.id)
+    
+    return jsonify({
+        'success': True,
+        'request': request_data
+    })

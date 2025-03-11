@@ -1,0 +1,492 @@
+{% extends "base.html" %}
+
+{% block title %}Pending Requests{% endblock %}
+
+{% block content %}
+<div class="container-fluid farmer-dashboard p-0">
+    <div class="row g-0">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper" id="farmerSidebar">
+            <div class="position-sticky">
+                <div class="sidebar-header">
+                    <h5 class="sidebar-brand">
+                        <span class="company-name" style="font-size: 1.5rem; font-weight: 600; color: white; text-align: center; width: 100%;">
+                            <i class="bi bi-link-45deg" style="font-size: 1.8rem; margin-right: 5px;"></i>
+                            Aratro
+                        </span>
+                    </h5>
+                </div>
+                <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                    <div class="user-avatar">
+                        <i class="bi bi-person-circle" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{% if user_farmer %}{{ user_farmer.name }}{% elif current_user.is_authenticated %}{{ current_user.username }}{% elif farmer %}{{ farmer.name }}{% else %}Farmer{% endif %}</span>
+                        <span class="user-role">Farmer</span>
+                    </div>
+                </div>
+                
+                <ul class="nav flex-column sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.farmer_home') }}">
+                            <i class="bi bi-grid-1x2-fill me-2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.create_request_page') }}">
+                            <i class="bi bi-file-earmark-plus-fill me-2"></i>
+                            <span>Create Request</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-heading">Request Status</li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span>Accepted Requests</span>
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('farmer_dashboard.pending_requests') }}">
+                            <i class="bi bi-clock-fill me-2"></i>
+                            <span>Pending Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.rejected_requests') }}">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            <span>Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-footer">
+                    <!-- User info moved to header -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header text-center">
+                    <h1 class="dashboard-title">Pending Requests</h1>
+                    <p class="dashboard-subtitle">View requests that are awaiting approval</p>
+                    
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Pending Requests Card -->
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-clock-fill me-2"></i>
+                            Pending Stock Requests
+                        </h5>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="header">
+                        </div>
+                        
+                        <input type="text" class="search-bar" placeholder="Search requests..." onkeyup="searchRequests()">
+
+                        <div id="requests-container">
+                            {% for request in pending_requests %}
+                            <div class="request-item" data-request-id="{{ request.id }}">
+                                <div class="request-summary">
+                                    <div>
+                                        <strong>Stock Type:</strong> {{ request.stock.type }}<br>
+                                        <strong>Quantity:</strong> {{ request.stock.requested_quantity }} tons<br>
+                                        <strong>Warehouse:</strong> {{ request.warehouse.name }}
+                                    </div>
+                                    <div>
+                                        <div class="status-badge status-pending">
+                                            <i class="bi bi-clock-fill"></i>
+                                            Pending
+                                        </div>
+                                        <button class="btn btn-danger btn-sm mt-2" onclick="cancelRequest({{ request.id }})">
+                                            <i class="bi bi-x-circle"></i> Cancel Request
+                                        </button>
+                                    </div>
+                                </div>
+                                <button class="view-details-btn" onclick="toggleDetails(this)">View Details</button>
+                                <div class="request-details" style="display: none;">
+                                    <div class="detail-row"><strong>Request ID:</strong> {{ request.id }}</div>
+                                    <div class="detail-row"><strong>Request Date:</strong> {{ request.created_at.strftime('%Y-%m-%d') }}</div>
+                                    <div class="detail-row"><strong>Status:</strong> Pending</div>
+                                    
+                                    <div class="warehouse-section">
+                                        <h4 class="section-title">Warehouse Details</h4>
+                                        <div class="detail-row"><strong>Warehouse Name:</strong> {{ request.warehouse.name }}</div>
+                                        <div class="detail-row"><strong>Location:</strong> {{ request.warehouse.location }}</div>
+                                        <div class="detail-row"><strong>Contact:</strong> {{ request.warehouse.contact_number }}</div>
+                                        <div class="detail-row"><strong>Email:</strong> {{ request.warehouse.email }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    body{
+        margin-top: 50px;
+        padding-top: 0px;
+        margin-right: 0px;
+        padding-right:0px;
+        margin-left: 100px;
+    }
+    /* Dashboard Layout */
+    .farmer-dashboard {
+        background-color: #f5f7fa;
+        position: relative;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .content-area{
+        margin-left: 80px;
+    }
+    .main-content {
+        padding: 2rem;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: fit-content;
+        overflow: visible;
+        padding-left: 100px;
+    }
+    
+    .content-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: fit-content;
+        overflow: visible;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        gap: 0.5rem;
+    }
+
+    .status-pending {
+        background-color: rgba(236, 201, 75, 0.1);
+        color: #b7791f;
+    }
+
+    .request-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Request Container Styles */
+    .request-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .request-item:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .request-summary {
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 15px;
+    }
+
+    .request-summary strong {
+        color: #4a5568;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+
+    .view-details-btn {
+        background: none;
+        border: 1px solid #e2e8f0;
+        color: #4299e1;
+        cursor: pointer;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+        padding: 10px 0;
+    }
+    
+    .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-info {
+        text-align: center;
+    }
+    
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #e2e8f0;
+    }
+    
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+        text-align: center;
+    }
+    
+    .user-role {
+        font-size: 0.8rem;
+        color: #a0aec0;
+        text-align: center;
+    }
+    
+    .view-details-btn:hover {
+        background-color: #f7fafc;
+        color: #2b6cb0;
+    }
+
+    .request-details {
+        background-color: #f7fafc;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+    }
+
+    .detail-row {
+        margin: 8px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .detail-row strong {
+        color: #4a5568;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+
+    .search-bar {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+    }
+
+    .search-bar:focus {
+        outline: none;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+
+    .warehouse-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .section-title {
+        color: #2d3748;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .content-area{
+            margin-left: 0px;
+        }
+        .main-content {
+            padding: 1rem;
+        }
+
+        .request-item {
+            margin: 0.75rem 0;
+            padding: 1rem;
+        }
+
+        .view-details-btn {
+            padding: 12px;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mobile sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('farmerSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.add('show');
+            document.body.classList.add('sidebar-open');
+        });
+        
+        if (closeSidebarBtn) {
+            closeSidebarBtn.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            });
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggle = sidebarToggle.contains(event.target);
+            
+            if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+    }
+});
+
+function toggleDetails(button) {
+    const details = button.nextElementSibling;
+    if (details.style.display === "none" || !details.style.display) {
+        details.style.display = "block";
+        button.textContent = "Hide Details";
+    } else {
+        details.style.display = "none";
+        button.textContent = "View Details";
+    }
+}
+
+function searchRequests() {
+    const input = document.querySelector('.search-bar');
+    const filter = input.value.toLowerCase();
+    const requests = document.getElementsByClassName('request-item');
+
+    for (let request of requests) {
+        const text = request.textContent.toLowerCase();
+        request.style.display = text.includes(filter) ? "" : "none";
+    }
+}
+
+function cancelRequest(requestId) {
+    if (confirm('Are you sure you want to cancel this request?')) {
+        fetch(`/farmer/cancel_request/${requestId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Remove the request item from the UI
+                const requestElement = document.querySelector(`.request-item[data-request-id="${requestId}"]`);
+                if (requestElement) {
+                    requestElement.remove();
+                }
+                // Show success message
+                alert(data.message || 'Request cancelled successfully');
+                // Reload the page to update the list
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to cancel request');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while cancelling the request');
+        });
+    }
+}
+</script>
+{% endblock %} 

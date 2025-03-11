@@ -472,6 +472,17 @@
             
             <div class="sidebar-divider"></div>
             
+            <div class="sidebar-heading">Blockchain</div>
+            
+            <div class="sidebar-item">
+                <a href="{{ url_for('blockchain.dashboard') }}" class="sidebar-link {% if request.endpoint == 'blockchain.dashboard' %}active{% endif %}">
+                    <i class="bi bi-diagram-3"></i>
+                    <span>Blockchain Dashboard</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-divider"></div>
+            
             <div class="sidebar-heading">Account</div>
             
             <div class="sidebar-item">

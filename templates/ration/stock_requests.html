@@ -25,8 +25,8 @@
 
 /* Page layout */
 .main-container {
-    padding: 2rem;
-    max-width: 1400px;
+    padding: 1.5rem;
+    max-width: 100%;
     margin: 0 auto;
     opacity: 0;
     transform: translateY(10px);
@@ -48,30 +48,62 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: linear-gradient(145deg, var(--primary), var(--primary-dark));
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    color: white;
+    box-shadow: var(--shadow-md);
 }
 
 .page-header::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 100px;
-    height: 3px;
-    background: var(--primary);
-    border-radius: 3px;
+    content: none;
 }
 
 .page-header h1 {
     margin-bottom: 0.5rem;
-    color: var(--primary);
+    color: white;
     font-weight: 700;
     letter-spacing: -0.5px;
     transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.page-header h1 i {
+    font-size: 1.75rem;
+    opacity: 0.9;
 }
 
 .page-header p {
-    color: var(--text-light);
+    color: rgba(255, 255, 255, 0.8);
     font-size: 1.1rem;
+    margin-bottom: 0;
+}
+
+.page-header .btn {
+    margin-left: 0.5rem;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.page-header .btn-secondary {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: none;
+}
+
+.page-header .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.page-header .btn-primary {
+    background-color: var(--accent);
+    color: var(--text-dark);
+    border: none;
+}
+
+.page-header .btn-primary:hover {
+    background-color: #ffce3a;
 }
 
 .card {
@@ -79,7 +111,7 @@
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-md);
     padding: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     transition: var(--transition);
     border: 1px solid rgba(0,0,0,0.03);
     overflow: hidden;
@@ -98,8 +130,8 @@
     left: 0;
     width: 4px;
     height: 100%;
-    background: var(--primary);
-    opacity: 0.7;
+    background: linear-gradient(to bottom, var(--primary), var(--primary-light));
+    opacity: 0.9;
 }
 
 .card h2 {
@@ -112,16 +144,13 @@
     padding-bottom: 0.75rem;
     display: flex;
     align-items: center;
+    gap: 0.75rem;
 }
 
-.card h2::before {
-    content: '';
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background: var(--primary);
-    border-radius: 50%;
-    margin-right: 10px;
+.card h2 i {
+    font-size: 1.25rem;
+    color: var(--primary);
+    opacity: 0.9;
 }
 
 /* Table styles */
@@ -130,6 +159,8 @@
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-sm);
     transition: var(--transition);
+    margin: -0.5rem -1rem;
+    padding: 0.5rem 1rem;
 }
 
 .table-container:hover {
@@ -143,18 +174,36 @@
 }
 
 .table th, .table td {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid rgba(0,0,0,0.05);
+    vertical-align: middle;
 }
 
 .table th {
-    background-color: var(--secondary);
+    background-color: var(--primary);
     font-weight: 600;
-    color: var(--text-dark);
+    color: white;
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.table th i {
+    margin-right: 0.5rem;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.table th:first-child {
+    border-top-left-radius: 8px;
+}
+
+.table th:last-child {
+    border-top-right-radius: 8px;
 }
 
 .table tr {
@@ -162,11 +211,15 @@
 }
 
 .table tr:hover td {
-    background-color: rgba(0,0,0,0.01);
+    background-color: rgba(0,0,0,0.02);
 }
 
 .table tr:last-child td {
     border-bottom: none;
+}
+
+.table tr:nth-child(even) {
+    background-color: rgba(0,0,0,0.01);
 }
 
 /* Button styles */
@@ -259,7 +312,7 @@
 
 /* Status badges */
 .badge {
-    padding: 0.35rem 0.75rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 50px;
     font-size: 0.75rem;
     font-weight: 600;
@@ -267,51 +320,60 @@
     letter-spacing: 0.5px;
     display: inline-flex;
     align-items: center;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .badge::before {
     content: '';
     display: inline-block;
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
-    margin-right: 6px;
+    margin-right: 8px;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.3);
 }
 
 .badge-warning {
-    background-color: rgba(255, 193, 7, 0.15);
-    color: #d39e00;
+    background: linear-gradient(145deg, #ffc107, #ffcd39);
+    color: #856404;
 }
 
 .badge-warning::before {
-    background-color: #d39e00;
+    background-color: #856404;
 }
 
 .badge-success {
-    background-color: rgba(40, 167, 69, 0.15);
-    color: #28a745;
+    background: linear-gradient(145deg, #28a745, #34ce57);
+    color: #fff;
 }
 
 .badge-success::before {
-    background-color: #28a745;
+    background-color: #fff;
 }
 
 .badge-danger {
-    background-color: rgba(220, 53, 69, 0.15);
-    color: #dc3545;
+    background: linear-gradient(145deg, #dc3545, #e4606d);
+    color: #fff;
 }
 
 .badge-danger::before {
-    background-color: #dc3545;
+    background-color: #fff;
 }
 
 .badge-secondary {
-    background-color: rgba(108, 117, 125, 0.15);
-    color: #6c757d;
+    background: linear-gradient(145deg, #6c757d, #868e96);
+    color: #fff;
 }
 
 .badge-secondary::before {
-    background-color: #6c757d;
+    background-color: #fff;
 }
 
 /* Alert styles */
@@ -358,29 +420,59 @@
 .filter-controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 1rem;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
 
 .filter-btn {
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.2rem;
     border-radius: var(--border-radius);
     background-color: var(--secondary);
     color: var(--text-dark);
     border: 1px solid rgba(0,0,0,0.1);
     cursor: pointer;
     transition: var(--transition);
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    font-weight: 500;
 }
 
 .filter-btn:hover {
     background-color: #e2e6ea;
     transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .filter-btn.active {
     background-color: var(--primary);
     color: white;
     border-color: var(--primary);
+    box-shadow: 0 4px 8px rgba(45, 107, 69, 0.2);
+}
+
+.filter-btn i {
+    font-size: 1rem;
+}
+
+.filter-btn .count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255,255,255,0.3);
+    border-radius: 50%;
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.filter-btn:not(.active) .count {
+    background-color: rgba(0,0,0,0.05);
+    color: var(--primary);
 }
 
 /* Responsive adjustments */
@@ -407,6 +499,345 @@
         gap: 0.5rem;
     }
 }
+
+/* Action buttons */
+.btn-group-actions {
+    display: flex;
+    gap: 0.7rem;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    padding: 0.3rem;
+    background-color: rgba(0,0,0,0.03);
+    border-radius: 8px;
+}
+
+.btn-action {
+    width: 2.6rem;
+    height: 2.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+    border: none;
+}
+
+.btn-action:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.25);
+}
+
+.btn-action:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+.btn-action::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 10px;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    background-color: rgba(0,0,0,0.85);
+    color: white;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.25s ease;
+    pointer-events: none;
+    font-weight: 500;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+    z-index: 100;
+}
+
+.btn-action:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(-3px);
+}
+
+.btn-action i {
+    font-size: 1.2rem;
+    transition: all 0.25s ease;
+}
+
+.btn-action:hover i {
+    transform: scale(1.15);
+}
+
+/* View button - eye icon */
+.btn-action-view {
+    background-color: #2ecc71;
+    background-image: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+.btn-action-view i {
+    color: white;
+}
+
+.btn-action-view:hover {
+    background-image: linear-gradient(135deg, #27ae60, #2ecc71);
+}
+
+/* Cancel button - X icon */
+.btn-action-cancel {
+    background-color: #e74c3c;
+    background-image: linear-gradient(135deg, #e74c3c, #c0392b);
+}
+
+.btn-action-cancel i {
+    color: white;
+}
+
+.btn-action-cancel:hover {
+    background-image: linear-gradient(135deg, #c0392b, #e74c3c);
+}
+
+/* Blockchain button - cube icon */
+.btn-action-blockchain {
+    background-color: #3498db;
+    background-image: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.btn-action-blockchain i {
+    color: white;
+}
+
+.btn-action-blockchain:hover {
+    background-image: linear-gradient(135deg, #2980b9, #3498db);
+}
+
+/* Make sure the actions column is properly aligned */
+.table th:last-child, .table td:last-child {
+    text-align: center;
+    padding: 0.75rem;
+}
+
+/* Responsive adjustments for action buttons */
+@media (max-width: 768px) {
+    .btn-action {
+        width: 2.3rem;
+        height: 2.3rem;
+    }
+    
+    .btn-action i {
+        font-size: 1rem;
+    }
+}
+
+/* Animation for modals */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translate3d(0, -20px, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes fadeOutUp {
+    from {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+    to {
+        opacity: 0;
+        transform: translate3d(0, -20px, 0);
+    }
+}
+
+.animate__animated {
+    animation-duration: 0.3s;
+    animation-fill-mode: both;
+}
+
+.animate__fadeInDown {
+    animation-name: fadeInDown;
+}
+
+.animate__fadeOutUp {
+    animation-name: fadeOutUp;
+}
+
+/* Dashboard grid and stats */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    padding: 1.25rem;
+    transition: var(--transition);
+    border-left: 4px solid var(--primary);
+    display: flex;
+    align-items: center;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card.pending {
+    border-left-color: var(--warning);
+}
+
+.stat-card.approved {
+    border-left-color: var(--success);
+}
+
+.stat-card.rejected {
+    border-left-color: var(--danger);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(45, 107, 69, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.stat-card.pending .stat-icon {
+    background: rgba(255, 193, 7, 0.1);
+    color: var(--warning);
+}
+
+.stat-card.approved .stat-icon {
+    background: rgba(40, 167, 69, 0.1);
+    color: var(--success);
+}
+
+.stat-card.rejected .stat-icon {
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--danger);
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+    color: var(--text-dark);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Row animations */
+@keyframes fadeInRow {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-row {
+    animation: fadeInRow 0.3s ease-out forwards;
+}
+
+.request-row {
+    transition: background-color 0.2s ease;
+}
+
+.request-row:hover {
+    background-color: rgba(45, 107, 69, 0.03);
+}
+
+/* Empty state */
+.empty-state {
+    padding: 3rem 2rem;
+    text-align: center;
+    background-color: rgba(0,0,0,0.01);
+    border-radius: var(--border-radius);
+}
+
+.empty-state-icon {
+    font-size: 3.5rem;
+    color: #ddd;
+    margin-bottom: 1.5rem;
+    display: block;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0.7;
+    }
+}
+
+.empty-state h3 {
+    margin-bottom: 0.75rem;
+    color: var(--text-dark);
+    font-weight: 600;
+}
+
+.empty-state p {
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.empty-state .btn {
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    box-shadow: var(--shadow-md);
+}
 </style>
 {% endblock %}
 
@@ -415,9 +846,10 @@
     <!-- Page Header -->
     <div class="page-header">
         <div>
-            <h1>Your Stock Requests</h1>
-            <p>View and manage your stock requests</p>
+            <h1><i class="fas fa-clipboard-list"></i> Your Stock Requests</h1>
+            <p>View and manage your stock requests from warehouses</p>
         </div>
+        <br>
         <div>
             <a href="{{ url_for('main.ration_dashboard') }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Dashboard
@@ -427,35 +859,24 @@
             </a>
         </div>
     </div>
-
+    
     <!-- Alerts container for displaying messages -->
     <div id="alerts-container"></div>
 
-    <!-- Filter Controls -->
-    <div class="card">
-        <h2>Filter Requests</h2>
-        <div class="filter-controls">
-            <button class="filter-btn active" data-filter="all">All Requests</button>
-            <button class="filter-btn" data-filter="pending">Pending</button>
-            <button class="filter-btn" data-filter="approved">Approved</button>
-            <button class="filter-btn" data-filter="rejected">Rejected</button>
-            <button class="filter-btn" data-filter="canceled">Canceled</button>
-        </div>
-    </div>
-
+    <br>
     <!-- Requests Table -->
     <div class="card">
-        <h2>Stock Requests</h2>
+        <h2><i class="fas fa-table"></i> Stock Requests</h2>
         <div class="table-container">
             <table class="table">
                 <thead>
                     <tr>
-                        <th>Warehouse</th>
-                        <th>Stock Type</th>
-                        <th>Quantity</th>
-                        <th>Request Date</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th><i class="fas fa-warehouse"></i> Warehouse</th>
+                        <th><i class="fas fa-box"></i> Stock Type</th>
+                        <th><i class="fas fa-weight"></i> Quantity</th>
+                        <th><i class="fas fa-calendar-alt"></i> Request Date</th>
+                        <th><i class="fas fa-info-circle"></i> Status</th>
+                        <th style="width: 150px;"><i class="fas fa-cogs"></i> Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -477,15 +898,38 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if request.status == 'pending' %}
-                            <button class="btn btn-sm btn-danger" onclick="cancelRequest('{{ request.id }}')">Cancel</button>
-                            {% endif %}
+                            <div class="btn-group-actions" style="display: flex; gap: 0.6rem; justify-content: center; align-items: center; padding: 0.25rem; background-color: rgba(0,0,0,0.03); border-radius: 6px;">
+                                <button class="btn-action btn-action-view" onclick="viewRequestDetails('{{ request.id }}')" data-tooltip="View Details" style="width: 2.2rem; height: 2.2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); border: none; background-color: #2ecc71; background-image: linear-gradient(135deg, #2ecc71, #27ae60); color: white; cursor: pointer;">
+                                    <i class="fas fa-eye" style="font-size: 1rem; color: white;"></i>
+                                </button>
+                                
+                                {% if request.status == 'pending' %}
+                                <button class="btn-action btn-action-cancel" onclick="cancelRequest('{{ request.id }}')" data-tooltip="Cancel Request" style="width: 2.2rem; height: 2.2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); border: none; background-color: #e74c3c; background-image: linear-gradient(135deg, #e74c3c, #c0392b); color: white; cursor: pointer;">
+                                    <i class="fas fa-times" style="font-size: 1rem; color: white;"></i>
+                                </button>
+                                {% endif %}
+                                
+                                {% if request.blockchain_id %}
+                                <a href="{{ url_for('blockchain.view_ration_stock_request', request_id=request.id) }}" class="btn-action btn-action-blockchain" target="_blank" data-tooltip="View on Blockchain" style="width: 2.2rem; height: 2.2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); border: none; background-color: #3498db; background-image: linear-gradient(135deg, #3498db, #2980b9); color: white; cursor: pointer; text-decoration: none;">
+                                    <i class="fas fa-cube" style="font-size: 1rem; color: white;"></i>
+                                </a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
                     {% if not stock_requests %}
                     <tr>
-                        <td colspan="6" class="text-center">No stock requests found.</td>
+                        <td colspan="6" class="text-center">
+                            <div class="empty-state">
+                                <i class="empty-state-icon fas fa-inbox"></i>
+                                <h3>No Stock Requests Found</h3>
+                                <p>You haven't made any stock requests yet.</p>
+                                <a href="{{ url_for('main.ration_request_stock') }}" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i> Create New Request
+                                </a>
+                            </div>
+                        </td>
                     </tr>
                     {% endif %}
                 </tbody>
@@ -500,6 +944,62 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Filter functionality
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const requestRows = document.querySelectorAll('.request-row');
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Remove active class from all buttons
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            
+            // Add active class to clicked button
+            this.classList.add('active');
+            
+            // Get filter value
+            const filter = this.getAttribute('data-filter');
+            
+            // Show/hide rows based on filter
+            let visibleCount = 0;
+            requestRows.forEach(row => {
+                if (filter === 'all' || row.getAttribute('data-status') === filter) {
+                    row.style.display = '';
+                    row.classList.add('animate-row');
+                    setTimeout(() => {
+                        row.classList.remove('animate-row');
+                    }, 500);
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Update the table message if no visible rows
+            const tableBody = document.querySelector('.table tbody');
+            const existingEmptyMessage = document.querySelector('.no-filtered-results');
+            
+            if (visibleCount === 0 && !existingEmptyMessage && requestRows.length > 0) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.className = 'no-filtered-results';
+                emptyRow.innerHTML = `
+                    <td colspan="6" class="text-center">
+                        <div class="empty-state">
+                            <i class="empty-state-icon fas fa-filter"></i>
+                            <h3>No ${filter.charAt(0).toUpperCase() + filter.slice(1)} Requests Found</h3>
+                            <p>Try a different filter to see more results.</p>
+                            <button class="btn btn-secondary" onclick="document.querySelector('.filter-btn[data-filter=\\'all\\']').click()">
+                                <i class="fas fa-list"></i> Show All Requests
+                            </button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(emptyRow);
+            } else if (visibleCount > 0 && existingEmptyMessage) {
+                existingEmptyMessage.remove();
+            }
+        });
+    });
+    
     // Function to show alerts
     window.showAlert = function(message, type) {
         const alertsContainer = document.getElementById('alerts-container');
@@ -517,41 +1017,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     };
     
-    // Handle filter buttons
-    const filterButtons = document.querySelectorAll('.filter-btn');
-    const requestRows = document.querySelectorAll('.request-row');
-    
-    filterButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Remove active class from all buttons
-            filterButtons.forEach(btn => btn.classList.remove('active'));
-            
-            // Add active class to clicked button
-            this.classList.add('active');
-            
-            // Get filter value
-            const filter = this.getAttribute('data-filter');
-            
-            // Filter rows
-            requestRows.forEach(row => {
-                if (filter === 'all' || row.getAttribute('data-status') === filter) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-        });
-    });
-    
-    // Check if there's a filter parameter in the URL
+    // Check URL parameters for filter
     const urlParams = new URLSearchParams(window.location.search);
-    const filterParam = urlParams.get('filter');
-    
-    if (filterParam) {
-        // Find the button with the matching filter
-        const filterButton = document.querySelector(`.filter-btn[data-filter="${filterParam}"]`);
+    const statusFilter = urlParams.get('status');
+    if (statusFilter) {
+        const filterButton = document.querySelector(`.filter-btn[data-filter="${statusFilter}"]`);
         if (filterButton) {
-            // Trigger a click on the button
             filterButton.click();
         }
     }
@@ -559,12 +1030,25 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Function to cancel a request
 function cancelRequest(requestId) {
-    if (confirm('Are you sure you want to cancel this request?')) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, cancel it!'
+    }).then((result) => {
+        if (result.isConfirmed) {
         // Show loading state
-        const btn = event.target;
-        const originalBtnText = btn.textContent;
-        btn.textContent = 'Canceling...';
-        btn.disabled = true;
+            Swal.fire({
+                title: 'Canceling...',
+                text: 'Please wait while we process your request.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
         
         fetch("{{ url_for('main.ration_cancel_request', request_id=0) }}".replace('0', requestId), {
             method: 'POST',
@@ -579,44 +1063,168 @@ function cancelRequest(requestId) {
             return response.json();
         })
         .then(data => {
-            // Reset button state
-            btn.textContent = originalBtnText;
-            btn.disabled = false;
-            
-            if (data.success) {
-                // Show success message
-                showAlert('Request canceled successfully', 'success');
-                
-                // Update the row status
-                const row = btn.closest('.request-row');
-                row.setAttribute('data-status', 'canceled');
-                
-                // Update the status badge
-                const statusCell = row.querySelector('td:nth-child(5)');
-                statusCell.innerHTML = '<span class="badge badge-secondary">Canceled</span>';
-                
-                // Remove the cancel button
-                btn.remove();
-                
-                // If a filter is active, check if the row should be hidden
-                const activeFilter = document.querySelector('.filter-btn.active').getAttribute('data-filter');
-                if (activeFilter !== 'all' && activeFilter !== 'canceled') {
-                    row.style.display = 'none';
+                if (data.success) {
+                    // Show success message
+                    Swal.fire({
+                        title: 'Canceled!',
+                        text: 'Your request has been canceled.',
+                        icon: 'success',
+                        confirmButtonColor: '#2d6b45'
+                    }).then(() => {
+                        // Reload page
+                        location.reload();
+                    });
+                } else {
+                    // Show error message
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to cancel request',
+                        icon: 'error',
+                        confirmButtonColor: '#2d6b45'
+                    });
                 }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An unexpected error occurred',
+                    icon: 'error',
+                    confirmButtonColor: '#2d6b45'
+                });
+            });
+        }
+    });
+}
+
+// Function to view request details
+function viewRequestDetails(requestId) {
+    // Show loading state
+    Swal.fire({
+        title: 'Loading...',
+        text: 'Please wait while we fetch the request details.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Fetch request details
+    fetch(`/ration/request_details/${requestId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const request = data.request;
+                
+                // Format status badge
+                let statusBadge = '';
+                if (request.status === 'pending') {
+                    statusBadge = '<span class="badge badge-warning">Pending</span>';
+                } else if (request.status === 'approved') {
+                    statusBadge = '<span class="badge badge-success">Approved</span>';
+                } else if (request.status === 'rejected') {
+                    statusBadge = '<span class="badge badge-danger">Rejected</span>';
+                } else if (request.status === 'canceled') {
+                    statusBadge = '<span class="badge badge-secondary">Canceled</span>';
+                }
+                
+                // Format blockchain info
+                let blockchainInfo = '';
+                if (request.blockchain_id) {
+                    blockchainInfo = `
+                        <tr>
+                            <th>Blockchain ID:</th>
+                            <td>${request.blockchain_id}</td>
+                        </tr>
+                        <tr>
+                            <th>Blockchain Transaction:</th>
+                            <td>
+                                <a href="${request.blockchain_url}" target="_blank" class="btn btn-sm btn-info">
+                                    <i class="fas fa-cube"></i> View on Blockchain
+                                </a>
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                // Show request details in a modal
+                Swal.fire({
+                    title: `Request #${request.id} Details`,
+                    html: `
+                        <div class="table-container">
+                            <table class="table">
+                                <tbody>
+                                    <tr>
+                                        <th>Warehouse:</th>
+                                        <td>${request.warehouse_name}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Stock Type:</th>
+                                        <td>${request.stock_type}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Quantity:</th>
+                                        <td>${request.quantity} tons</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Request Date:</th>
+                                        <td>${request.request_date}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Status:</th>
+                                        <td>${statusBadge}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Processed Date:</th>
+                                        <td>${request.processed_date || 'Not processed yet'}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Notes:</th>
+                                        <td>${request.notes || 'No notes'}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Admin Notes:</th>
+                                        <td>${request.admin_notes || 'No admin notes'}</td>
+                                    </tr>
+                                    ${blockchainInfo}
+                                </tbody>
+                            </table>
+                        </div>
+                    `,
+                    width: '600px',
+                    confirmButtonColor: '#2d6b45',
+                    confirmButtonText: 'Close',
+                    showClass: {
+                        popup: 'animate__animated animate__fadeInDown'
+                    },
+                    hideClass: {
+                        popup: 'animate__animated animate__fadeOutUp'
+                    }
+                });
             } else {
                 // Show error message
-                showAlert(data.message || 'Failed to cancel request', 'error');
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message || 'Failed to fetch request details',
+                    icon: 'error',
+                    confirmButtonColor: '#2d6b45'
+                });
             }
         })
         .catch(error => {
-            // Reset button state
-            btn.textContent = originalBtnText;
-            btn.disabled = false;
-            
             console.error('Error:', error);
-            showAlert('An unexpected error occurred', 'error');
+            Swal.fire({
+                title: 'Error!',
+                text: 'An unexpected error occurred while fetching request details',
+                icon: 'error',
+                confirmButtonColor: '#2d6b45'
+            });
         });
-    }
 }
 </script>
 {% endblock %} 

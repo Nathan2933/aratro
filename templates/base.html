@@ -441,6 +441,29 @@
             padding: 2rem;
             color: #777;
         }
+
+        .user-details {
+            text-align: center;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        .user-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.25rem;
+            display: block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: capitalize;
+        }
     </style>
     {% block style %}{% endblock %}
 </head>
@@ -453,7 +476,11 @@
                 <h5 class="sidebar-brand">
                     <a href="{{ url_for('main.index') }}" class="brand-link">
                         <i class="bi bi-link-45deg"></i>
+                        {% if current_user.is_authenticated and current_user.role == 'ration_shop' %}
+                        Ration Shop
+                        {% else %}
                         Aratro
+                        {% endif %}
                     </a>
                 </h5>
                
@@ -468,6 +495,8 @@
                         {{ user_warehouse.manager_name }}
                     {% elif current_user.role == 'admin' %}
                         Administrator
+                    {% elif current_user.role == 'ration_shop' and shop %}
+                        {{ shop.name }}
                     {% else %}
                         {{ current_user.role|replace('_', ' ')|title }}
                     {% endif %}
@@ -516,6 +545,25 @@
                             <span>Admin Panel</span>
                         </a>
                     </li>
+                    {% elif current_user.role == 'ration_shop' %}
+                    <li>
+                        <a href="{{ url_for('main.ration_dashboard') }}" class="{% if request.endpoint == 'main.ration_dashboard' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2-fill"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('main.ration_request_stock') }}" class="{% if request.endpoint == 'main.ration_request_stock' %}active{% endif %}">
+                            <i class="bi bi-cart-plus"></i>
+                            <span>Request Stock</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('main.ration_stock_requests') }}" class="{% if request.endpoint == 'main.ration_stock_requests' %}active{% endif %}">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Your Requests</span>
+                        </a>
+                    </li>
                     {% else %}
                     <li>
                         <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
@@ -543,8 +591,8 @@
         </div>
         {% endif %}
         
-        {% if not current_user.is_authenticated %}
-        <!-- Sidebar for non-authenticated users -->
+        {% if not current_user.is_authenticated and 'register' not in request.endpoint %}
+        <!-- Sidebar for non-authenticated users (hidden on register pages) -->
         <div class="sidebar-wrapper" id="mainSidebar">
             <div class="sidebar-header">
                 <h5 class="sidebar-brand">
@@ -589,7 +637,7 @@
         </div>
         {% endif %}
 
-        <div class="content-area {% if current_user.is_authenticated and current_user.role != 'farmer' or not current_user.is_authenticated %}with-sidebar{% endif %}">
+        <div class="content-area {% if (current_user.is_authenticated and current_user.role != 'farmer') or (not current_user.is_authenticated and 'register' not in request.endpoint) %}with-sidebar{% endif %}">
             {% if current_user.is_authenticated and current_user.role != 'farmer' %}
             <div class="welcome-banner" id="welcomeBanner">
                 <div class="welcome-banner-content">

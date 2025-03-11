@@ -25,7 +25,7 @@
 
 /* Dashboard layout */
 .main-container {
-    padding: 2rem;
+    padding: 1.5rem;
     max-width: 1400px;
     margin: 0 auto;
     opacity: 0;
@@ -41,213 +41,235 @@
 }
 
 .dashboard-header {
-    margin-bottom: 2rem;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
     position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
 }
 
-.dashboard-header::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    width: 100px;
-    height: 3px;
-    background: var(--primary);
-    border-radius: 1.5px;
-}
-
-.dashboard-header h1 {
-    margin-bottom: 0.5rem;
+.dashboard-title {
+    margin: 0;
     color: var(--primary);
     font-weight: 700;
     letter-spacing: -0.5px;
     transition: var(--transition);
 }
 
-.dashboard-header p {
+.dashboard-subtitle {
     color: var(--text-light);
-    font-size: 1.1rem;
+    margin: 0.25rem 0 0 0;
+    font-size: 1rem;
 }
 
+.dashboard-date {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+/* Stats summary row */
+.stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.stat-card {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-md);
+    padding: 1.25rem;
+    transition: var(--transition);
+    border-left: 4px solid var(--primary);
+    display: flex;
+    align-items: center;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card.pending {
+    border-left-color: var(--warning);
+}
+
+.stat-card.approved {
+    border-left-color: var(--success);
+}
+
+.stat-card.rejected {
+    border-left-color: var(--danger);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(45, 107, 69, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.5rem;
+    color: var(--primary);
+}
+
+.stat-card.pending .stat-icon {
+    background: rgba(255, 193, 7, 0.1);
+    color: var(--warning);
+}
+
+.stat-card.approved .stat-icon {
+    background: rgba(40, 167, 69, 0.1);
+    color: var(--success);
+}
+
+.stat-card.rejected .stat-icon {
+    background: rgba(220, 53, 69, 0.1);
+    color: var(--danger);
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    line-height: 1.2;
+    color: var(--text-dark);
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
+/* Dashboard grid layout */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.grid-col-8 {
+    grid-column: span 8;
+}
+
+.grid-col-4 {
+    grid-column: span 4;
+}
+
+.grid-col-6 {
+    grid-column: span 6;
+}
+
+.grid-col-12 {
+    grid-column: span 12;
+}
+
+@media (max-width: 1200px) {
+    .grid-col-8, .grid-col-4 {
+        grid-column: span 12;
+    }
+}
+
+@media (max-width: 768px) {
+    .grid-col-6 {
+        grid-column: span 12;
+    }
+    
+    .dashboard-grid {
+        gap: 1rem;
+    }
+    
+    .stats-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Card styles */
 .card {
     background: white;
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-md);
     padding: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 0;
     transition: var(--transition);
     border: 1px solid rgba(0,0,0,0.03);
     overflow: hidden;
     position: relative;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .card:hover {
     box-shadow: var(--shadow-lg);
-    transform: translateY(-3px);
 }
 
-.card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 4px;
-    height: 100%;
-    background: var(--primary);
-    opacity: 0.7;
-}
-
-.card h2 {
-    margin-top: 0;
-    margin-bottom: 1.5rem;
-    color: var(--primary);
-    font-size: 1.5rem;
-    font-weight: 600;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    padding-bottom: 0.75rem;
+.card-header {
     display: flex;
     align-items: center;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
-.card h2::before {
-    content: '';
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    background: var(--primary);
+.card-icon {
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
-    margin-right: 10px;
+    background: rgba(45, 107, 69, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0.75rem;
+    font-size: 1rem;
+    color: var(--primary);
+    flex-shrink: 0;
 }
 
-/* Storage stats */
-.storage-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 0.75rem;
-    margin-bottom: 1rem;
-}
-
-.stat-item {
-    padding: 0.5rem 0.75rem;
-    background: var(--secondary);
-    border-radius: var(--border-radius);
-    transition: var(--transition);
-    position: relative;
-    overflow: hidden;
-    border: 1px solid rgba(0,0,0,0.03);
-}
-
-.stat-item:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-sm);
-}
-
-.stat-item::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: var(--primary-light);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.3s ease;
-}
-
-.stat-item:hover::after {
-    transform: scaleX(1);
-}
-
-.stat-item h3 {
+.card-title {
     margin: 0;
-    font-size: 0.8rem;
-    color: var(--text-light);
-    font-weight: 500;
-    display: inline-block;
-}
-
-.stat-item p {
-    margin: 0;
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--primary);
-    transition: var(--transition);
-    display: inline-block;
-    margin-left: 0.5rem;
+    flex: 1;
 }
 
-.stat-item:hover p {
-    color: var(--primary-dark);
+.card-body {
+    flex: 1;
+    overflow: hidden;
 }
 
-/* Storage chart */
-.storage-chart-container {
-    height: 180px;
+.card-footer {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+/* Chart container */
+.chart-container {
+    height: 250px;
     position: relative;
     margin-top: 0.5rem;
-    animation: fadeIn 0.8s ease;
-}
-
-/* Tabs */
-.tabs {
-    display: flex;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(0,0,0,0.05);
-    position: relative;
-}
-
-.tabs::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 0;
-    height: 1px;
-    width: 100%;
-    background: rgba(0,0,0,0.05);
-}
-
-.tab {
-    padding: 0.75rem 1.5rem;
-    cursor: pointer;
-    font-weight: 500;
-    color: var(--text-light);
-    border-bottom: 3px solid transparent;
-    transition: var(--transition);
-    position: relative;
-    z-index: 1;
-}
-
-.tab:hover {
-    color: var(--primary);
-}
-
-.tab.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
-}
-
-.tab-content {
-    display: none;
-    animation: fadeIn 0.5s ease;
-}
-
-.tab-content.active {
-    display: block;
 }
 
 /* Table styles */
 .table-container {
     overflow-x: auto;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition);
-}
-
-.table-container:hover {
-    box-shadow: var(--shadow-md);
+    margin: -0.5rem -1rem;
+    padding: 0.5rem 1rem;
 }
 
 .table {
@@ -257,7 +279,7 @@
 }
 
 .table th, .table td {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid rgba(0,0,0,0.05);
 }
@@ -269,6 +291,9 @@
     font-size: 0.875rem;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
 }
 
 .table tr {
@@ -283,115 +308,93 @@
     border-bottom: none;
 }
 
-/* Form styles */
-.form-group {
-    margin-bottom: 1.5rem;
+/* Activity list */
+.activity-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: var(--text-dark);
+.activity-list::-webkit-scrollbar {
+    width: 6px;
 }
 
-.form-control {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid rgba(0,0,0,0.1);
-    border-radius: var(--border-radius);
-    font-size: 1rem;
-    transition: var(--transition);
+.activity-list::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.03);
+    border-radius: 3px;
 }
 
-.form-control:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(45, 107, 69, 0.1);
+.activity-list::-webkit-scrollbar-thumb {
+    background: rgba(0,0,0,0.1);
+    border-radius: 3px;
 }
 
-.form-text {
-    font-size: 0.875rem;
-    color: var(--text-light);
-    margin-top: 0.25rem;
+.activity-list::-webkit-scrollbar-thumb:hover {
+    background: rgba(0,0,0,0.2);
 }
 
-.btn {
-    padding: 0.75rem 1.5rem;
-    border: none;
-    border-radius: var(--border-radius);
-    font-weight: 500;
-    cursor: pointer;
-    transition: var(--transition);
-    display: inline-flex;
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.activity-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: rgba(45, 107, 69, 0.1);
+    display: flex;
     align-items: center;
     justify-content: center;
-    position: relative;
-    overflow: hidden;
+    margin-right: 1rem;
+    font-size: 1rem;
+    color: var(--primary);
+    flex-shrink: 0;
 }
 
-.btn::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 5px;
-    height: 5px;
-    background: rgba(255, 255, 255, 0.5);
-    opacity: 0;
-    border-radius: 100%;
-    transform: scale(1, 1) translate(-50%);
-    transform-origin: 50% 50%;
+.activity-details {
+    flex: 1;
 }
 
-.btn:active::after {
-    animation: ripple 0.6s ease-out;
+.activity-text {
+    margin: 0 0 0.25rem;
+    color: var(--text-dark);
+    font-size: 0.9rem;
 }
 
-@keyframes ripple {
-    0% {
-        transform: scale(0, 0);
-        opacity: 0.5;
-    }
-    100% {
-        transform: scale(20, 20);
-        opacity: 0;
-    }
+.activity-time {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-light);
 }
 
-.btn-primary {
-    background-color: var(--primary);
-    color: white;
+.no-activity {
+    text-align: center;
+    padding: 2rem 1rem;
 }
 
-.btn-primary:hover {
-    background-color: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(45, 107, 69, 0.2);
+.no-activity-icon {
+    font-size: 2.5rem;
+    color: rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
 }
 
-.btn-primary:active {
-    transform: translateY(0);
-    box-shadow: none;
+.no-activity p {
+    color: var(--text-light);
+    margin: 0;
 }
 
-.btn-sm {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.875rem;
-}
-
-.btn-danger {
-    background-color: var(--danger);
-    color: white;
-}
-
-.btn-danger:hover {
-    background-color: #c82333;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.2);
-}
-
-/* Status badges */
+/* Badge styles */
 .badge {
     padding: 0.35rem 0.75rem;
     border-radius: 50px;
@@ -448,1183 +451,520 @@
     background-color: #6c757d;
 }
 
-/* Warehouse stock section */
-.warehouse-stock {
-    margin-top: 1.5rem;
-}
-
-.warehouse-selector {
-    margin-bottom: 1.5rem;
-    position: relative;
-}
-
-.warehouse-selector select {
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%232d6b45' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 1rem center;
-    background-size: 16px 12px;
-    padding-right: 2.5rem;
-}
-
-.warehouse-info {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-    padding: 1.5rem;
-    background: var(--secondary);
+/* Button styles */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
     border-radius: var(--border-radius);
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition);
-    border: 1px solid rgba(0,0,0,0.03);
-    position: relative;
-    overflow: hidden;
-}
-
-.warehouse-info::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(45, 107, 69, 0.05) 0%, rgba(45, 107, 69, 0) 100%);
-    z-index: 0;
-}
-
-.warehouse-info:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
-}
-
-.warehouse-info-item {
-    text-align: center;
-    position: relative;
-    z-index: 1;
-}
-
-.warehouse-info-item h4 {
-    margin: 0;
-    font-size: 0.875rem;
-    color: var(--text-light);
     font-weight: 500;
-    margin-bottom: 0.5rem;
-}
-
-.warehouse-info-item p {
-    margin: 0;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--primary);
-    transition: var(--transition);
-}
-
-.warehouse-info:hover .warehouse-info-item p {
-    transform: scale(1.05);
-}
-
-/* Map styles */
-.map-container {
-    height: 400px;
-    width: 100%;
-    border-radius: var(--border-radius);
-    margin-bottom: 1.5rem;
-    border: 1px solid rgba(0,0,0,0.05);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-    transition: var(--transition);
-    position: relative;
-}
-
-.map-container:hover {
-    box-shadow: var(--shadow-lg);
-}
-
-.map-container::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
-    border-radius: var(--border-radius);
-}
-
-.warehouse-marker {
     cursor: pointer;
-    transition: transform 0.3s ease;
-}
-
-.warehouse-marker:hover {
-    transform: scale(1.2);
-}
-
-.warehouse-marker-selected {
-    border: 3px solid var(--primary);
-    border-radius: 50%;
-    box-shadow: 0 0 0 2px white, 0 0 10px rgba(0,0,0,0.3);
-    animation: pulse 1.5s infinite;
-}
-
-@keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(45, 107, 69, 0.7);
-    }
-    70% {
-        box-shadow: 0 0 0 10px rgba(45, 107, 69, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(45, 107, 69, 0);
-    }
-}
-
-/* Alert styles */
-.alert {
-    padding: 1rem 1.25rem;
-    margin-bottom: 1rem;
-    border-radius: var(--border-radius);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: var(--shadow-sm);
-    animation: slideIn 0.3s ease;
-    border-left: 4px solid transparent;
-}
-
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.alert-success {
-    background-color: rgba(40, 167, 69, 0.1);
-    color: #28a745;
-    border-left-color: #28a745;
-}
-
-.alert-error {
-    background-color: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-    border-left-color: #dc3545;
-}
-
-.text-center {
-    text-align: center;
-}
-
-/* Loading animations */
-.loading {
-    position: relative;
-}
-
-.loading::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(255, 255, 255, 0.7);
-    display: flex;
+    transition: var(--transition);
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    z-index: 10;
-    border-radius: var(--border-radius);
-}
-
-.loading::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 30px;
-    height: 30px;
-    border: 3px solid rgba(45, 107, 69, 0.1);
-    border-top-color: var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    z-index: 11;
-}
-
-@keyframes spin {
-    to {
-        transform: translate(-50%, -50%) rotate(360deg);
-    }
-}
-
-/* Info window styles for map */
-.info-window {
-    padding: 0.5rem;
-    max-width: 250px;
-}
-
-.info-window h3 {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-    color: var(--primary);
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.info-window p {
-    margin-bottom: 0.5rem;
-    font-size: 0.875rem;
-}
-
-.info-window ul {
-    margin: 0.5rem 0;
-    padding-left: 1.25rem;
-    font-size: 0.875rem;
-}
-
-.info-window .btn {
-    margin-top: 0.5rem;
-    width: 100%;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .main-container {
-        padding: 1rem;
-    }
-    
-    .card {
-        padding: 1rem;
-    }
-    
-    .storage-stats {
-        grid-template-columns: repeat(2, 1fr);
         gap: 0.5rem;
     }
     
-    .stat-item {
-        padding: 0.4rem 0.6rem;
-    }
-    
-    .stat-item h3 {
-        font-size: 0.75rem;
-    }
-    
-    .stat-item p {
-        font-size: 1rem;
-        margin-left: 0.3rem;
-    }
-    
-    .storage-chart-container {
-        height: 160px;
-    }
-    
-    .tabs {
-        flex-wrap: wrap;
-    }
-    
-    .tab {
-        padding: 0.5rem 1rem;
-    }
-    
-    .warehouse-info {
-        flex-direction: column;
-        gap: 1rem;
-    }
-    
-    .map-container {
-        height: 300px;
-    }
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
 }
 
-@media (max-width: 480px) {
-    .storage-stats {
-        grid-template-columns: 1fr;
-    }
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(45, 107, 69, 0.2);
 }
 
-/* Navigation cards */
-.nav-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.nav-card {
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: var(--shadow-md);
-    padding: 1.5rem;
-    transition: var(--transition);
-    border: 1px solid rgba(0,0,0,0.03);
-    overflow: hidden;
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-    text-decoration: none;
+.btn-secondary {
+    background-color: var(--secondary);
     color: var(--text-dark);
+    border: 1px solid rgba(0,0,0,0.1);
 }
 
-.nav-card:hover {
-    box-shadow: var(--shadow-lg);
-    transform: translateY(-5px);
+.btn-secondary:hover {
+    background-color: #e9ecef;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
-.nav-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
-    background: var(--primary);
-    opacity: 0.7;
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
 }
 
-.nav-card-icon {
-    font-size: 2.5rem;
+.blockchain-link {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-size: 0.8rem;
     color: var(--primary);
-    margin-bottom: 1rem;
+    text-decoration: none;
+    padding: 0.2rem 0.5rem;
+    background-color: rgba(45, 107, 69, 0.1);
+    border-radius: 0.25rem;
+    transition: all 0.2s ease;
 }
 
-.nav-card h3 {
-    margin: 0 0 0.5rem 0;
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--primary);
-}
-
-.nav-card p {
-    margin: 0;
-    color: var(--text-light);
-    font-size: 0.9rem;
-}
-
-/* Dashboard option cards */
-.dashboard-option-card {
-    flex: 1;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.dashboard-option-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
-.card-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.text-xl {
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.py-6 {
-    padding-top: 1.5rem;
-    padding-bottom: 1.5rem;
-}
-
-.px-4 {
-    padding-left: 1rem;
-    padding-right: 1rem;
-}
-
-.w-full {
-    width: 100%;
-}
-
-/* Flex utilities */
-.flex {
-    display: flex;
-}
-
-.gap-4 {
-    gap: 1rem;
-}
-
-.mt-6 {
-    margin-top: 1.5rem;
-}
-
-.mb-3 {
-    margin-bottom: 0.75rem;
-}
-
-.mb-4 {
-    margin-bottom: 1rem;
+.blockchain-link:hover {
+    background-color: rgba(45, 107, 69, 0.2);
+    color: var(--primary-dark);
 }
 
 @media (max-width: 768px) {
     .flex {
         flex-direction: column;
     }
+    
+    .main-container {
+        padding: 1rem;
+    }
+    
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .dashboard-date {
+        text-align: left;
+        margin-top: 0.5rem;
+    }
+}
+
+.stats-cards-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);  /* 2 columns */
+    grid-template-rows: repeat(2, 1fr);     /* 2 rows */
+    gap: 1rem;
+    padding: 1rem;
+}
+
+.stats-card {
+    flex: none;  /* Remove flex behavior */
+    width: 100%;  /* Take full width of grid cell */
+    min-width: 0;  /* Remove min-width constraint */
+    max-width: none;  /* Remove max-width constraint */
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.stats-card-content {
+    padding: 1.25rem;
+    display: flex;
+    align-items: center;
+}
+
+.stats-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    font-size: 1.5rem;
+}
+
+.stats-number {
+    font-size: 1.5rem;
+}
+
+.stats-card-footer {
+    padding: 0.75rem 1.25rem;
+}
+
+/* Adjust responsive behavior for smaller screens */
+@media (max-width: 768px) {
+    .stats-cards-container {
+        grid-template-columns: 1fr;  /* Stack cards vertically on mobile */
+        grid-template-rows: repeat(4, 1fr);
+    }
+    
+    .stats-card {
+        margin-bottom: 0;  /* Remove margin since grid gap handles spacing */
+    }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="main-container">
+<div class="container-fluid ration-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="content-wrapper">
+                <!-- Dashboard Header -->
     <div class="dashboard-header">
-        <h1>Ration Shop Dashboard</h1>
-        <p>Welcome back, {{ current_user.username }}! Here's an overview of your ration shop.</p>
+            <h1 class="dashboard-title">Ration Shop Dashboard</h1>
+                    <p class="dashboard-subtitle">Welcome, {{ shop.name }}</p>
     </div>
-
-    <!-- Navigation Cards -->
-    
-    
-    <!-- Dashboard option cards -->
-    <div class="flex gap-4 mt-6">
-        <div class="card dashboard-option-card">
-            <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-warehouse fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">Available Stock</h2>
-                <p class="mb-4">View and manage warehouse stock levels</p>
-                <a href="{{ url_for('main.ration_available_stock') }}" class="btn btn-primary w-full">
-                    <i class="fas fa-eye"></i>
-                    View Available Stock
-                </a>
-            </div>
-        </div>
-
-        <div class="card dashboard-option-card">
-            <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-shopping-cart fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">Request Stock</h2>
-                <p class="mb-4">Request stock from available warehouses</p>
-                <a href="{{ url_for('main.ration_request_stock') }}" class="btn btn-primary w-full">
-                    <i class="fas fa-plus"></i>
-                    Request Stock
-                </a>
-            </div>
-        </div>
-        
-        <div class="card dashboard-option-card">
-            <div class="card-content text-center py-6 px-4">
-                <i class="fas fa-clipboard-list fa-5x mb-4" style="color: var(--primary-color);"></i>
-                <h2 class="text-xl mb-3">Your Requests</h2>
-                <p class="mb-4">View and manage your stock requests</p>
-                <a href="{{ url_for('main.ration_stock_requests') }}" class="btn btn-primary w-full">
-                    <i class="fas fa-eye"></i>
-                    View Requests
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- Overview Section -->
-    <div class="card">
-        <h2>Overview</h2>
-        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
-            <div class="storage-stats" style="flex: 1; min-width: 250px;">
-                <div class="stat-item">
-                    <h3>Total Requests: {{ total_count }}</h3>
                 
-                </div>
-                <div class="stat-item">
-                    <h3>Pending: {{ pending_count }}</h3>
-            
-                </div>
-                <div class="stat-item">
-                    <h3>Approved: {{ approved_count }}</h3>
-            
-                </div>
-                <div class="stat-item">
-                    <h3>Rejected: {{ rejected_count }}</h3>
-                
-                </div>image.png
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <div class="storage-chart-container" style="flex: 1; min-width: 250px;">
-                <canvas id="requestsChart"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Activity Section -->
-    <div class="card">
-        <h2>Recent Activity</h2>
-        <div class="table-container">
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Warehouse</th>
-                        <th>Stock Type</th>
-                        <th>Quantity</th>
-                        <th>Request Date</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for request in stock_requests %}
-                    <tr>
-                        <td>{{ request.warehouse.name }}</td>
-                        <td>{{ request.stock_type }}</td>
-                        <td>{{ request.quantity }} tons</td>
-                        <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
-                        <td>
-                            {% if request.status == 'pending' %}
-                            <span class="badge badge-warning">Pending</span>
-                            {% elif request.status == 'approved' %}
-                            <span class="badge badge-success">Approved</span>
-                            {% elif request.status == 'rejected' %}
-                            <span class="badge badge-danger">Rejected</span>
-                            {% elif request.status == 'canceled' %}
-                            <span class="badge badge-secondary">Canceled</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if not stock_requests %}
-                    <tr>
-                        <td colspan="5" class="text-center">No recent activity found.</td>
-                    </tr>
+                        {% endfor %}
                     {% endif %}
-                </tbody>
-            </table>
+                {% endwith %}
+
+                <!-- Statistics Cards -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-bar-chart-fill me-2"></i>
+                            Overview
+                        </h5>
+            </div>
+                    <div class="dashboard-card-body">
+                        <div class="stats-cards-container">
+                            <div class="stats-card green">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-inbox"></i>
         </div>
-        <div class="text-center" style="margin-top: 1rem;">
-            <a href="{{ url_for('main.ration_stock_requests') }}" class="btn btn-secondary">View All Requests</a>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ pending_count }}</h2>
+                                        <p class="stats-label">Pending Requests</p>
+                    </div>
+            </div>
+                                <div class="stats-card-footer">
+                                    <a href="{{ url_for('main.ration_stock_requests') }}" class="view-details">View Details <i class="bi bi-chevron-right"></i></a>
+        </div>
+    </div>
+
+                            <div class="stats-card blue">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-check-circle"></i>
+                </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ approved_count }}</h2>
+                                        <p class="stats-label">Approved Requests</p>
+                </div>
+                </div>
+                                <div class="stats-card-footer">
+                                    <a href="{{ url_for('main.ration_stock_requests') }}" class="view-details">View Details <i class="bi bi-chevron-right"></i></a>
+            </div>
+            </div>
+                            
+                            <div class="stats-card yellow">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-x-circle"></i>
+                        </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ rejected_count }}</h2>
+                                        <p class="stats-label">Rejected Requests</p>
+                            </div>
+                        </div>
+                                <div class="stats-card-footer">
+                                    <a href="{{ url_for('main.ration_stock_requests') }}" class="view-details">View Details <i class="bi bi-chevron-right"></i></a>
+                </div>
+                </div>
+                            
+                            <div class="stats-card red">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ warehouses|length }}</h2>
+                                        <p class="stats-label">Available Warehouses</p>
+                                    </div>
+                                </div>
+                                <div class="stats-card-footer">
+                                    <a href="{{ url_for('main.ration_request_stock') }}" class="view-details">Request Stock <i class="bi bi-chevron-right"></i></a>
+                                </div>
+                            </div>
+                        </div>
+        </div>
+    </div>
+
+        
+    
+
+                <!-- Quick Actions -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-lightning-fill me-2"></i>
+                            Quick Actions
+                        </h5>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6 col-lg-3">
+                                <a href="{{ url_for('main.ration_request_stock') }}" class="quick-action-card">
+                                    <div class="quick-action-icon">
+                                        <i class="bi bi-plus-circle"></i>
+                </div>
+                                    <div class="quick-action-text">
+                                        <h5>Request Stock</h5>
+                                        <p>Create a new stock request</p>
+                                    </div>
+                                </a>
+        </div>
+                            <div class="col-md-6 col-lg-3">
+                                <a href="{{ url_for('main.ration_stock_requests') }}" class="quick-action-card">
+                                    <div class="quick-action-icon">
+                                        <i class="bi bi-list-check"></i>
+                </div>
+                                    <div class="quick-action-text">
+                                        <h5>View Requests</h5>
+                                        <p>Manage your stock requests</p>
+                                    </div>
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cancel Request Modal -->
+
+
+<style>
+    .stats-cards-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);  /* 2 columns */
+        grid-template-rows: repeat(2, 1fr);     /* 2 rows */
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .stats-card {
+        flex: none;  /* Remove flex behavior */
+        width: 100%;  /* Take full width of grid cell */
+        min-width: 0;  /* Remove min-width constraint */
+        max-width: none;  /* Remove max-width constraint */
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .stats-card.green {
+        border-left: 4px solid #28a745;
+    }
+    
+    .stats-card.blue {
+        border-left: 4px solid #007bff;
+    }
+    
+    .stats-card.yellow {
+        border-left: 4px solid #ffc107;
+    }
+    
+    .stats-card.red {
+        border-left: 4px solid #dc3545;
+    }
+    
+    .stats-card-content {
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .stats-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+    }
+    
+    .stats-card.blue .stats-icon {
+        background-color: rgba(0, 123, 255, 0.1);
+        color: #007bff;
+    }
+    
+    .stats-card.yellow .stats-icon {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #ffc107;
+    }
+    
+    .stats-card.red .stats-icon {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: #dc3545;
+    }
+    
+    .stats-info {
+        flex: 1;
+    }
+    
+    .stats-number {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .stats-label {
+        color: #6c757d;
+        margin: 0;
+        font-size: 0.875rem;
+    }
+    
+    .stats-card-footer {
+        padding: 0.75rem 1.25rem;
+        background-color: #f8f9fa;
+        border-top: 1px solid #e9ecef;
+    }
+    
+    .view-details {
+        color: #6c757d;
+        text-decoration: none;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .view-details:hover {
+        color: #343a40;
+    }
+    
+    .dashboard-card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .dashboard-card-header {
+        padding: 1rem 1.25rem;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .dashboard-card-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #343a40;
+    }
+    
+    .dashboard-card-body {
+        padding: 1.25rem;
+    }
+    
+    .quick-action-card {
+        display: flex;
+        align-items: center;
+        padding: 1.25rem;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: #343a40;
+        transition: all 0.3s ease;
+    }
+    
+    .quick-action-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .quick-action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: rgba(40, 167, 69, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+        color: #28a745;
+    }
+    
+    .quick-action-text h5 {
+        margin: 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+    
+    .quick-action-text p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .table thead {
+        background-color: #ffffff;
+    }
+    
+    .table th {
+        background-color: #fff;
+    }
+    
+    .custom-table-header {
+        background-color: #fff !important;
+    }
+    
+    .custom-table-header th {
+        color: #2e7d32 !important;
+        border-bottom: 2px solid #a5d6a7 !important;
+    }
+    
+    .table thead th {
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        padding: 12px 15px;
+        border-bottom: 2px solid #dee2e6;
+        color: #495057;
+    }
+    
+    .table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-top: 1px solid #f0f0f0;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(46, 125, 50, 0.05) !important;
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 6px 10px;
+        letter-spacing: 0.5px;
+    }
+</style>
+
+<script>
+    function confirmCancel(requestId) {
+        const modal = new bootstrap.Modal(document.getElementById('cancelModal'));
+        const confirmBtn = document.getElementById('confirmCancelBtn');
+        
+        confirmBtn.onclick = function() {
+            window.location.href = "{{ url_for('main.ration_cancel_request', request_id=0) }}".replace('0', requestId);
+        };
+        
+        modal.show();
+    }
+</script>
 {% endblock %}
 
 {% block scripts %}
-{{ super() }}
-<!-- Include Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- Include SweetAlert2 -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- Include Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&libraries=places&callback=initMap" async defer></script>
-<script>
-// Global variables
-let map;
-let warehouseMarkers = [];
-let selectedWarehouseId = null;
-let warehouseStockData = {};
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Requests chart
-    const requestsCtx = document.getElementById('requestsChart').getContext('2d');
-    const requestsChart = new Chart(requestsCtx, {
-        type: 'doughnut',
-        data: {
-            labels: ['Pending', 'Approved', 'Rejected'],
-            datasets: [{
-                data: ["{{ pending_count }}", "{{ approved_count }}", "{{ rejected_count }}"],
-                backgroundColor: [
-                    '#ffeaa7',
-                    '#d4f5d4',
-                    '#ffebee'
-                ],
-                borderColor: [
-                    '#d35400',
-                    '#27ae60',
-                    '#e53935'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        boxWidth: 10,
-                        padding: 8,
-                        font: {
-                            size: 10
-                        }
-                    }
-                },
-                tooltip: {
-                    displayColors: false,
-                    titleFont: {
-                        size: 10
-                    },
-                    bodyFont: {
-                        size: 10
-                    },
-                    callbacks: {
-                        label: function(context) {
-                            return context.label + ': ' + context.raw;
-                        }
-                    }
-                }
-            }
-        }
-    });
-    
-    // Load warehouse stock data
-    const warehouseSelector = document.getElementById('warehouse_selector');
-    
-    // Function to load warehouse stock data
-    function loadWarehouseStock(warehouseId) {
-        fetch(`/ration/get_warehouse_stock/${warehouseId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Store the warehouse stock data for later use
-                    warehouseStockData[warehouseId] = data;
-                    
-                    // Update warehouse info
-                    document.getElementById('warehouse-capacity').textContent = `${data.warehouse.capacity} tons`;
-                    document.getElementById('warehouse-allocated').textContent = `${data.warehouse.total_allocated.toFixed(2)} tons`;
-                    document.getElementById('warehouse-available').textContent = `${data.warehouse.available_space.toFixed(2)} tons`;
-                    
-                    // Update stock table
-                    const stockBody = document.getElementById('warehouse-stock-body');
-                    stockBody.innerHTML = '';
-                    
-                    if (data.stocks.length === 0) {
-                        const row = document.createElement('tr');
-                        row.innerHTML = '<td colspan="4" class="text-center">No stock available in this warehouse.</td>';
-                        stockBody.appendChild(row);
-                    } else {
-                        data.stocks.forEach(stock => {
-                            const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td>${stock.type}</td>
-                                <td>${stock.quantity} tons</td>
-                                <td>${stock.farmer_name}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-primary" onclick="requestStock(${stock.id}, '${stock.type}')">Request</button>
-                                </td>
-                            `;
-                            stockBody.appendChild(row);
-                        });
-                    }
-                } else {
-                    console.error('Error loading warehouse stock:', data.message);
-                    showAlert('Error loading warehouse stock data', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('Error loading warehouse stock data', 'error');
-            });
-    }
-    
-    // Load initial warehouse stock data
-    if (warehouseSelector.value) {
-        loadWarehouseStock(warehouseSelector.value);
-    }
-    
-    // Handle warehouse selection change
-    warehouseSelector.addEventListener('change', function() {
-        loadWarehouseStock(this.value);
-    });
-    
-    // Function to request stock directly from the warehouse stock tab
-    window.requestStock = function(stockId, stockType) {
-        // Pre-fill the stock request form
-        document.getElementById('warehouse_id').value = warehouseSelector.value;
-        updateStockTypeOptions(warehouseSelector.value);
-        document.getElementById('stock_type').value = stockType;
-        document.getElementById('quantity').focus();
-        
-        // Scroll to the make request section
-        const makeRequestHeading = Array.from(document.querySelectorAll('h2')).find(h => h.textContent === 'Request Stock from Warehouse');
-        if (makeRequestHeading) {
-            makeRequestHeading.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'start' 
-            });
-        }
-        
-        // Update the map to show the selected warehouse
-        selectWarehouseOnMap(warehouseSelector.value);
-    };
-    
-    // Function to show alerts
-    window.showAlert = function(message, type) {
-        const alertsContainer = document.getElementById('alerts-container');
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type}`;
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" onclick="this.parentElement.remove()">×</button>
-        `;
-        alertsContainer.appendChild(alertDiv);
-        
-        // Auto-remove after 5 seconds
-        setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
-    };
-    
-    // Stock request form submission
-    const stockRequestForm = document.getElementById('stockRequestForm');
-    stockRequestForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const formData = new FormData(stockRequestForm);
-        
-        // Show loading state
-        const submitBtn = stockRequestForm.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.textContent;
-        submitBtn.textContent = 'Submitting...';
-        submitBtn.disabled = true;
-        
-        fetch("{{ url_for('main.ration_make_request') }}", {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Reset button state
-            submitBtn.textContent = originalBtnText;
-            submitBtn.disabled = false;
-            
-            if (data.success) {
-                // Show success message
-                showAlert('Stock request submitted successfully', 'success');
-                
-                // Reset form
-                stockRequestForm.reset();
-                
-                // Reload page after a short delay
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-            } else {
-                // Show error message
-                showAlert(data.message || 'Failed to submit request', 'error');
-            }
-        })
-        .catch(error => {
-            // Reset button state
-            submitBtn.textContent = originalBtnText;
-            submitBtn.disabled = false;
-            
-            console.error('Error:', error);
-            showAlert('An unexpected error occurred', 'error');
-        });
-    });
-    
-    // Handle warehouse selection in the form
-    const warehouseIdSelect = document.getElementById('warehouse_id');
-    warehouseIdSelect.addEventListener('change', function() {
-        updateStockTypeOptions(this.value);
-    });
-    
-    // Function to update stock type options based on selected warehouse
-    function updateStockTypeOptions(warehouseId) {
-        const stockTypeSelect = document.getElementById('stock_type');
-        stockTypeSelect.innerHTML = '<option value="">-- Loading Stock Types --</option>';
-        
-        if (!warehouseId) {
-            stockTypeSelect.innerHTML = '<option value="">-- Select Warehouse First --</option>';
-            return;
-        }
-        
-        // Check if we already have the data
-        if (warehouseStockData[warehouseId]) {
-            populateStockTypes(warehouseStockData[warehouseId]);
-        } else {
-            // Fetch the warehouse stock data
-            fetch(`/ration/get_warehouse_stock/${warehouseId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        warehouseStockData[warehouseId] = data;
-                        populateStockTypes(data);
-                    } else {
-                        console.error('Error loading warehouse stock:', data.message);
-                        stockTypeSelect.innerHTML = '<option value="">-- Error Loading Stock Types --</option>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    stockTypeSelect.innerHTML = '<option value="">-- Error Loading Stock Types --</option>';
-                });
-        }
-    }
-    
-    // Function to populate stock types dropdown
-    function populateStockTypes(data) {
-        const stockTypeSelect = document.getElementById('stock_type');
-        stockTypeSelect.innerHTML = '<option value="">-- Select Stock Type --</option>';
-        
-        if (data.stocks.length === 0) {
-            stockTypeSelect.innerHTML = '<option value="">-- No Stock Available --</option>';
-            return;
-        }
-        
-        // Create a map to aggregate quantities by stock type
-        const stockTypeMap = {};
-        
-        data.stocks.forEach(stock => {
-            if (!stockTypeMap[stock.type]) {
-                stockTypeMap[stock.type] = {
-                    quantity: 0,
-                    stocks: []
-                };
-            }
-            stockTypeMap[stock.type].quantity += stock.quantity;
-            stockTypeMap[stock.type].stocks.push(stock);
-        });
-        
-        // Add options for each stock type
-        Object.keys(stockTypeMap).forEach(type => {
-            const option = document.createElement('option');
-            option.value = type;
-            option.textContent = `${type} (${stockTypeMap[type].quantity.toFixed(2)} tons available)`;
-            option.dataset.maxQuantity = stockTypeMap[type].quantity;
-            stockTypeSelect.appendChild(option);
-        });
-        
-        // Add event listener to stock type select
-        stockTypeSelect.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const maxQuantity = selectedOption.dataset.maxQuantity || 0;
-            
-            // Update max quantity info
-            document.getElementById('max-quantity').textContent = maxQuantity;
-            
-            // Update quantity input max value
-            const quantityInput = document.getElementById('quantity');
-            quantityInput.max = maxQuantity;
-            
-            if (parseFloat(quantityInput.value) > parseFloat(maxQuantity)) {
-                quantityInput.value = maxQuantity;
-            }
-        });
-    }
-
-    // Add hover effect and click functionality to cards
-    const cards = document.querySelectorAll('.dashboard-option-card');
-    cards.forEach(card => {
-        // Find the link inside the card
-        const link = card.querySelector('a.btn');
-        if (link) {
-            const href = link.getAttribute('href');
-            
-            // Make the entire card clickable
-            card.addEventListener('click', function(e) {
-                if (!e.target.closest('a.btn')) {
-                    window.location.href = href;
-                }
-            });
-            
-            // Add hover effect
-            card.addEventListener('mouseenter', function() {
-                this.style.transform = 'translateY(-5px)';
-                this.style.boxShadow = '0 10px 20px rgba(45, 107, 69, 0.1)';
-            });
-            
-            card.addEventListener('mouseleave', function() {
-                this.style.transform = '';
-                this.style.boxShadow = '';
-            });
-        }
-    });
-});
-
-// Function to cancel a request
-function cancelRequest(requestId) {
-    if (confirm('Are you sure you want to cancel this request?')) {
-        // Show loading state
-        const btn = event.target;
-        const originalBtnText = btn.textContent;
-        btn.textContent = 'Canceling...';
-        btn.disabled = true;
-        
-        fetch("{{ url_for('main.ration_cancel_request', request_id=0) }}".replace('0', requestId), {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Reset button state
-            btn.textContent = originalBtnText;
-            btn.disabled = false;
-            
-            if (data.success) {
-                // Show success message
-                showAlert('Request canceled successfully', 'success');
-                
-                // Reload page after a short delay
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-            } else {
-                // Show error message
-                showAlert(data.message || 'Failed to cancel request', 'error');
-            }
-        })
-        .catch(error => {
-            // Reset button state
-            btn.textContent = originalBtnText;
-            btn.disabled = false;
-            
-            console.error('Error:', error);
-            showAlert('An unexpected error occurred', 'error');
-        });
-    }
-}
-
-// Initialize Google Maps
-function initMap() {
-    // Create the map centered on India
-    map = new google.maps.Map(document.getElementById('warehouse-map'), {
-        center: { lat: 20.5937, lng: 78.9629 }, // Center of India
-        zoom: 5,
-        mapTypeControl: true,
-        fullscreenControl: true,
-        streetViewControl: false
-    });
-    
-    // Try to get user's current location
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                userLocation = {
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude
-                };
-                
-                // Add marker for user location
-                new google.maps.Marker({
-                    position: userLocation,
-                    map: map,
-                    icon: {
-                        path: google.maps.SymbolPath.CIRCLE,
-                        scale: 10,
-                        fillColor: "#4285F4",
-                        fillOpacity: 1,
-                        strokeColor: "#FFFFFF",
-                        strokeWeight: 2,
-                    },
-                    title: "Your Location"
-                });
-                
-                // Center map on user location and zoom in
-                map.setCenter(userLocation);
-                map.setZoom(10);
-                
-                // Load warehouses after getting user location
-                loadWarehousesOnMap();
-            },
-            () => {
-                // If geolocation fails, just load warehouses with default center
-                loadWarehousesOnMap();
-            }
-        );
-    } else {
-        // Browser doesn't support geolocation
-        loadWarehousesOnMap();
-    }
-}
-
-// Function to load warehouses on the map
-function loadWarehousesOnMap() {
-    // Get warehouse data from the select options
-    const warehouseOptions = document.querySelectorAll('#warehouse_id option');
-    const warehouses = [];
-    
-    warehouseOptions.forEach(option => {
-        if (option.value) {
-            warehouses.push({
-                id: option.value,
-                name: option.textContent,
-                lat: parseFloat(option.getAttribute('data-lat')),
-                lng: parseFloat(option.getAttribute('data-lng'))
-            });
-        }
-    });
-    
-    // If no warehouses, show message
-    if (warehouses.length === 0) {
-        showAlert('No warehouses available', 'error');
-        return;
-    }
-    
-    // Create bounds to fit all markers
-    const bounds = new google.maps.LatLngBounds();
-    
-    // Add markers for each warehouse
-    warehouses.forEach(warehouse => {
-        if (warehouse.lat && warehouse.lng) {
-            const position = {
-                lat: warehouse.lat,
-                lng: warehouse.lng
-            };
-            
-            // Create marker
-            const marker = new google.maps.Marker({
-                position: position,
-                map: map,
-                title: warehouse.name,
-                animation: google.maps.Animation.DROP,
-                icon: {
-                    path: google.maps.SymbolPath.CIRCLE,
-                    fillColor: '#2d6b45',
-                    fillOpacity: 0.8,
-                    strokeColor: '#ffffff',
-                    strokeWeight: 2,
-                    scale: 10
-                }
-            });
-            
-            // Store marker with warehouse ID
-            warehouseMarkers.push({
-                id: warehouse.id,
-                marker: marker
-            });
-            
-            // Fetch warehouse details for info window
-            fetch(`/ration/get_warehouse_stock/${warehouse.id}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Store the warehouse data
-                        warehouseStockData[warehouse.id] = data;
-                        
-                        // Create stock list for info window
-                        const stockList = data.stocks.map(stock => 
-                            `<li>${stock.type}: ${stock.quantity} tons</li>`
-                        ).join('');
-                        
-                        const contentString = `
-                            <div class="info-window">
-                                <h3>${data.warehouse.name}</h3>
-                                <p><strong>Location:</strong> ${data.warehouse.location}</p>
-                                <p><strong>Capacity:</strong> ${data.warehouse.capacity} tons</p>
-                                <p><strong>Available Space:</strong> ${data.warehouse.available_space.toFixed(2)} tons</p>
-                                <h4>Available Stock:</h4>
-                                <ul>${stockList.length ? stockList : '<li>No stock available</li>'}</ul>
-                                <button class="btn btn-sm btn-primary select-warehouse-btn" 
-                                        onclick="selectWarehouse('${warehouse.id}')">
-                                    Select This Warehouse
-                                </button>
-                            </div>
-                        `;
-                        
-                        const infoWindow = new google.maps.InfoWindow({
-                            content: contentString
-                        });
-                        
-                        // Add click event to marker
-                        marker.addListener('click', () => {
-                            // Close all other info windows
-                            warehouseMarkers.forEach(wm => {
-                                if (wm.infoWindow && wm.infoWindow !== infoWindow) {
-                                    wm.infoWindow.close();
-                                }
-                            });
-                            
-                            infoWindow.open(map, marker);
-                        });
-                        
-                        // Store info window with marker
-                        const markerObj = warehouseMarkers.find(wm => wm.id === warehouse.id);
-                        if (markerObj) {
-                            markerObj.infoWindow = infoWindow;
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading warehouse data:', error);
-                });
-            
-            // Extend bounds to include this marker
-            bounds.extend(position);
-        }
-    });
-    
-    // Fit map to bounds after all markers are added
-    if (!bounds.isEmpty()) {
-        map.fitBounds(bounds);
-        
-        // Don't zoom in too far
-        const listener = google.maps.event.addListener(map, "idle", () => {
-            if (map.getZoom() > 12) {
-                map.setZoom(12);
-            }
-            google.maps.event.removeListener(listener);
-        });
-    }
-}
-
-// Function to select a warehouse from the map
-window.selectWarehouse = function(warehouseId) {
-    // Update the warehouse select
-    const warehouseSelect = document.getElementById('warehouse_id');
-    warehouseSelect.value = warehouseId;
-    
-    // Trigger change event to update stock types
-    const event = new Event('change');
-    warehouseSelect.dispatchEvent(event);
-    
-    // Update selected warehouse on map
-    selectWarehouseOnMap(warehouseId);
-    
-    // Show success message
-    showAlert('Warehouse selected', 'success');
-};
-
-// Function to update the map to show the selected warehouse
-function selectWarehouseOnMap(warehouseId) {
-    // Reset all markers to default
-    warehouseMarkers.forEach(wm => {
-        wm.marker.setIcon({
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: '#2d6b45',
-            fillOpacity: 0.8,
-            strokeColor: '#ffffff',
-            strokeWeight: 2,
-            scale: 10
-        });
-    });
-    
-    // Highlight the selected warehouse
-    const selectedMarker = warehouseMarkers.find(wm => wm.id === warehouseId);
-    if (selectedMarker) {
-        selectedMarker.marker.setIcon({
-            path: google.maps.SymbolPath.CIRCLE,
-            fillColor: '#e53935',
-            fillOpacity: 0.8,
-            strokeColor: '#ffffff',
-            strokeWeight: 3,
-            scale: 12
-        });
-        
-        // Center map on selected warehouse
-        map.setCenter(selectedMarker.marker.getPosition());
-        map.setZoom(10);
-        
-        // Store selected warehouse ID
-        selectedWarehouseId = warehouseId;
-    }
-}
-</script>
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 {% endblock %}

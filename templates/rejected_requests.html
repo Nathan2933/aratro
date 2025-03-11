@@ -9,15 +9,12 @@
         <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper" id="farmerSidebar">
             <div class="position-sticky">
                 <div class="sidebar-header">
-                    
                     <h5 class="sidebar-brand">
-                        <span class="company-name" style="color: white; text-align: center; width: 100%;">Aratro</span>
-                        
-                        
+                        <span class="company-name" style="font-size: 1.5rem; font-weight: 600; color: white; text-align: center; width: 100%;">
+                            <i class="bi bi-link-45deg" style="font-size: 1.8rem; margin-right: 5px;"></i>
+                            Aratro
+                        </span>
                     </h5>
-                    <button type="button" class="btn-close-sidebar d-md-none" id="closeSidebarBtn">
-                        <i class="fas fa-times"></i>
-                    </button>
                 </div>
                 <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
                     <div class="user-avatar">
@@ -50,6 +47,13 @@
                         <a class="nav-link" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
                             <i class="bi bi-check-circle-fill me-2"></i>
                             <span>Accepted Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.pending_requests') }}">
+                            <i class="bi bi-clock-fill me-2"></i>
+                            <span>Pending Requests</span>
                         </a>
                     </li>
                     
@@ -111,86 +115,54 @@
                             Rejected Stock Requests
                         </h5>
                     </div>
-                    
-                    <div class="card-body">
-                        <div class="search-container mb-4">
-                            <div class="input-group">
-                                <input type="text" id="rejectedRequestSearchInput" class="form-control" placeholder="Search rejected requests...">
-                                <div class="input-group-append">
-                                    <button class="btn btn-outline-secondary" type="button">
-                                        <i class="fas fa-search"></i>
-                                    </button>
-                                </div>
-                            </div>
+                    <div class="dashboard-card-body">
+                        <div class="header">
+                            
                         </div>
                         
-                        {% if requests %}
-                            <div class="rejected-requests-grid">
-                                {% for request in requests %}
-                                <div class="rejected-request-card">
-                                    <div class="card-header">
-                                        <div class="request-info">
-                                            <h3>Stock Request #{{ request.id }}</h3>
-                                            <span class="date">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
-                                        </div>
-                                        <span class="badge badge-error">Rejected</span>
-                                    </div>
+                        <input type="text" class="search-bar" placeholder="Search rejected requests..." onkeyup="searchRequests()">
 
-                                    <div class="stock-details">
-                                        <div class="detail-group">
-                                            <span class="label">Stock Type</span>
-                                            <span class="value">{{ request.stock.type }}</span>
-                                        </div>
-                                        <div class="detail-group">
-                                            <span class="label">Requested Quantity</span>
-                                            <span class="value">{{ request.stock.requested_quantity }} tons</span>
-                                        </div>
+                        <div id="requests-container">
+                            {% for request in requests %}
+                            <div class="request-item">
+                                <div class="request-summary">
+                                    <div>
+                                        <strong>Stock Type:</strong> {{ request.stock.type }}<br>
+                                        <strong>Quantity:</strong> {{ request.stock.requested_quantity }} tons<br>
+                                        <strong>Warehouse:</strong> {{ request.warehouse.name }}
                                     </div>
-
-                                    <div class="warehouse-details">
-                                        <h4>Rejected By</h4>
-                                        <div class="detail-group">
-                                            <span class="label">Warehouse</span>
-                                            <span class="value">{{ request.warehouse.name }}</span>
-                                        </div>
-                                        <div class="detail-group">
-                                            <span class="label">Location</span>
-                                            <span class="value">{{ request.warehouse.location }}</span>
-                                        </div>
-                                        <div class="detail-group">
-                                            <span class="label">Rejection Date</span>
-                                            <span class="value">{{ request.updated_at.strftime('%Y-%m-%d') }}</span>
-                                        </div>
-                                        {% if request.admin_notes %}
-                                        <div class="detail-group">
-                                            <span class="label">Rejection Reason</span>
-                                            <span class="value">{{ request.admin_notes }}</span>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-
-                                    <div class="action-buttons">
-                                        <a href="{{ url_for('farmer_dashboard.create_request_page', stock_type=request.stock.type, quantity=request.stock.requested_quantity) }}" class="btn btn-primary">
-                                            <i class="fas fa-sync"></i>
-                                            Request Again
-                                        </a>
+                                    <div class="status-badge status-rejected">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                        Rejected
                                     </div>
                                 </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="empty-state">
-                                <div class="empty-state-icon">
-                                    <i class="fas fa-check-circle"></i>
+                                <div class="button-group">
+                                    <button class="view-details-btn" onclick="toggleDetails(this, 'details-{{ request.id }}')">View Details</button>
+                                    <a href="{{ url_for('farmer_dashboard.create_request_page', stock_type=request.stock.type, quantity=request.stock.requested_quantity) }}" class="request-again-btn">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                        Request Again
+                                    </a>
                                 </div>
-                                <h3>No Rejected Requests</h3>
-                                <p>You don't have any rejected requests at the moment.</p>
-                                <a href="{{ url_for('farmer_dashboard.create_request_page') }}" class="btn btn-primary">
-                                    <i class="fas fa-plus"></i>
-                                    Create New Request
-                                </a>
+                                <div class="request-details" id="details-{{ request.id }}" style="display: none;">
+                                    <div class="detail-row"><strong>Request ID:</strong> {{ request.id }}</div>
+                                    <div class="detail-row"><strong>Request Date:</strong> {{ request.created_at.strftime('%Y-%m-%d') }}</div>
+                                    <div class="detail-row"><strong>Requested Quantity:</strong> {{ request.stock.requested_quantity }} tons</div>
+                                    <div class="detail-row"><strong>Status:</strong> Rejected</div>
+                                    {% if request.admin_notes %}
+                                    <div class="detail-row"><strong>Rejection Reason:</strong> {{ request.admin_notes }}</div>
+                                    {% endif %}
+                                    
+                                    <div class="warehouse-section">
+                                        <h4 class="section-title">Warehouse Details</h4>
+                                        <div class="detail-row"><strong>Warehouse Name:</strong> {{ request.warehouse.name }}</div>
+                                        <div class="detail-row"><strong>Location:</strong> {{ request.warehouse.location }}</div>
+                                        <div class="detail-row"><strong>Contact:</strong> {{ request.warehouse.contact_number }}</div>
+                                        <div class="detail-row"><strong>Email:</strong> {{ request.warehouse.email }}</div>
+                                    </div>
+                                </div>
                             </div>
-                        {% endif %}
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -199,6 +171,13 @@
 </div>
 
 <style>
+    body{
+        margin-top: 50px;
+        padding-top: 0px;
+        margin-right: 0px;
+        padding-right:0px;
+        margin-left: 100px;
+    }
     /* Dashboard Layout */
     .farmer-dashboard {
         background-color: #f5f7fa;
@@ -207,7 +186,9 @@
         display: flex;
         flex-direction: column;
     }
-    
+    .content-area{
+        margin-left: 80px;
+    }
     .main-content {
         padding: 2rem;
         transition: all 0.3s;
@@ -216,6 +197,7 @@
         width: 100%;
         height: fit-content;
         overflow: visible;
+        padding-left: 100px;
     }
     
     .content-wrapper {
@@ -389,6 +371,561 @@
             padding: 1.5rem 1rem;
         }
     }
+
+    /* Request Container Styles */
+    .rejected-request-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .rejected-request-card:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .card-header {
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .request-info h3 {
+        color: #2d3748;
+        margin: 0 0 5px 0;
+        font-size: 1.1rem;
+    }
+
+    .date {
+        color: #718096;
+        font-size: 0.9rem;
+    }
+
+    .badge-error {
+        background-color: #fed7d7;
+        color: #e53e3e;
+        padding: 5px 12px;
+        border-radius: 12px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+
+    .stock-details, .warehouse-details {
+        background-color: #f7fafc;
+        padding: 15px;
+        border-radius: 6px;
+        margin: 15px 0;
+    }
+
+    .detail-group {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+    }
+
+    .label {
+        color: #4a5568;
+        font-weight: 500;
+    }
+
+    .value {
+        color: #2d3748;
+        font-weight: 600;
+    }
+
+    .warehouse-details h4 {
+        color: #2d3748;
+        margin: 0 0 10px 0;
+        font-size: 1rem;
+    }
+
+    .action-buttons {
+        margin-top: 20px;
+        text-align: right;
+    }
+
+    .btn-primary {
+        background-color: #4299e1;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #3182ce;
+    }
+
+    .search-container {
+        padding: 0 15px;
+    }
+
+    .rejected-requests-grid {
+        padding: 15px;
+        background-color: #f8fafc;
+        border-radius: 8px;
+    }
+
+    /* Empty state styling */
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        background-color: #f8fafc;
+        border-radius: 8px;
+    }
+
+    .empty-state-icon {
+        color: #a0aec0;
+        font-size: 3rem;
+        margin-bottom: 20px;
+    }
+
+    .empty-state h3 {
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+
+    .empty-state p {
+        color: #718096;
+        margin-bottom: 20px;
+    }
+
+    /* Mobile Optimizations */
+    @media screen and (max-width: 768px) {
+        body {
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        .content-area{
+        margin-left: 0px;
+        }
+        .main-content {
+            padding: 0;
+            margin: 0;
+            width: 100vw;
+        }
+
+        .content-wrapper {
+            padding: 0.5rem;
+            width: 100%;
+        }
+
+        .dashboard-header {
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .dashboard-title {
+            font-size: 1.4rem;
+            margin-bottom: 0.5rem;
+            width: 100%;
+            text-align: center;
+        }
+
+        .dashboard-subtitle {
+            font-size: 0.9rem;
+            margin: 0.5rem 0;
+            width: 100%;
+        }
+
+        .dashboard-card {
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-card-header {
+            padding: 1rem;
+        }
+
+        .card-body {
+            padding: 1rem;
+        }
+
+        .search-container {
+            margin: 0.75rem 0;
+            padding: 0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .input-group input {
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            flex: 1;
+        }
+
+        .rejected-requests-grid {
+            padding: 0.5rem;
+            margin: 0;
+        }
+
+        .rejected-request-card {
+            margin: 0.75rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+        }
+
+        .card-header {
+            padding: 0.75rem 0;
+            margin-bottom: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .request-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .request-info strong {
+            font-size: 0.9rem;
+            display: inline-block;
+            margin-bottom: 0.25rem;
+        }
+
+        .badge-error {
+            align-self: flex-start;
+            margin-top: 0.25rem;
+        }
+
+        .view-details-btn {
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background-color: #f7fafc;
+        }
+
+        .stock-details,
+        .warehouse-details {
+            padding: 1rem;
+            margin: 0.75rem 0;
+            border-radius: 8px;
+        }
+
+        .detail-group {
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .detail-group:last-child {
+            border-bottom: none;
+        }
+
+        .warehouse-details h4 {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .action-buttons {
+            margin-top: 1rem;
+            padding-top: 0.5rem;
+        }
+
+        .btn-primary {
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem;
+            font-size: 0.9rem;
+        }
+
+        /* Improve spacing between elements */
+        * + * {
+            margin-top: 0.5rem;
+        }
+
+        /* Reset margin for specific elements */
+        .dashboard-card > *:first-child {
+            margin-top: 0;
+        }
+    }
+
+    /* Extra Small Mobile Devices */
+    @media screen and (max-width: 375px) {
+        .dashboard-title {
+            font-size: 1.2rem;
+        }
+
+        .request-info strong,
+        .detail-group {
+            font-size: 0.85rem;
+        }
+
+        .view-details-btn {
+            font-size: 0.85rem;
+            padding: 0.6rem;
+        }
+
+        .btn-primary {
+            font-size: 0.85rem;
+            padding: 0.6rem;
+        }
+    }
+
+    /* Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        gap: 0.5rem;
+    }
+
+    .status-rejected {
+        background-color: rgba(229, 62, 62, 0.1);
+        color: #e53e3e;
+    }
+
+    .request-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Request Container Styles */
+    .request-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .request-item:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+
+    .request-summary {
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 15px;
+    }
+
+    .request-summary strong {
+        color: #4a5568;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+
+    .view-details-btn {
+        background: none;
+        border: none;
+        color: #4299e1;
+        cursor: pointer;
+        padding: 8px 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        text-decoration: underline;
+        transition: color 0.2s ease;
+    }
+
+    .view-details-btn:hover {
+        color: #2b6cb0;
+    }
+
+    .request-details {
+        background-color: #f7fafc;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+    }
+
+    .detail-row {
+        margin: 8px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .detail-row strong {
+        color: #4a5568;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+
+    .search-bar {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+    }
+
+    .search-bar:focus {
+        outline: none;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 0 15px;
+    }
+
+    #requests-container {
+        padding: 15px;
+        background-color: #f8fafc;
+        border-radius: 8px;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        margin-top: 20px;
+        text-align: right;
+    }
+
+    .btn-primary {
+        background-color: #4299e1;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: background-color 0.2s ease;
+    }
+
+    .btn-primary:hover {
+        background-color: #3182ce;
+    }
+
+    /* Add these styles */
+    .button-group {
+        display: flex;
+        gap: 20px;
+        align-items: center;
+        margin: 15px 0;
+    }
+
+    .view-details-btn, .request-again-btn {
+        flex: 1;
+        text-align: center;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .view-details-btn {
+        background: none;
+        border: 1px solid #e2e8f0;
+        color: #4299e1;
+    }
+
+    .view-details-btn:hover {
+        background-color: #f7fafc;
+        color: #2b6cb0;
+    }
+
+    .request-again-btn {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        text-decoration: none;
+    }
+
+    .request-again-btn:hover {
+        background-color: #45a049;
+    }
+
+    .request-again-btn i {
+        font-size: 1rem;
+    }
+
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        .button-group {
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .view-details-btn, .request-again-btn {
+            width: 100%;
+            padding: 12px;
+        }
+    }
+
+    /* Add these styles if not already present */
+    .warehouse-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .section-title {
+        color: #2d3748;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+    }
+
+    .detail-row {
+        margin: 8px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .detail-row strong {
+        color: #4a5568;
+        font-weight: 600;
+        margin-right: 8px;
+    }
+
+    .request-details {
+        background-color: #f7fafc;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+    }
 </style>
 
 <script>
@@ -449,5 +986,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+function toggleDetails(button, detailsId) {
+    const details = document.getElementById(detailsId);
+    if (details.style.display === "none" || !details.style.display) {
+        details.style.display = "block";
+        button.textContent = "Hide Details";
+    } else {
+        details.style.display = "none";
+        button.textContent = "View Details";
+    }
+}
 </script>
 {% endblock %} 

@@ -125,8 +125,13 @@
         overflow-x: hidden;
         display: flex;
         flex-direction: column;
+        width:130%;
     }
-    
+    .content-area{
+        margin-left: 300px;
+        margin-right: 400px;
+        width:200%;
+    }
     .main-content {
         padding: 2rem;
         transition: all 0.3s;
@@ -323,7 +328,96 @@
         .main-content {
             padding: 1.5rem 1rem;
         }
+
     }
+    
+    .sidebar-brand {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.sidebar-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.user-info {
+    text-align: center;
+}
+
+.user-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    color: #e2e8f0;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.user-name {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+.user-role {
+    font-size: 0.8rem;
+    color: #a0aec0;
+    text-align: center;
+}
+
+/* Remove bullet points from sidebar navigation */
+.sidebar-nav {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+/* Remove any default list styling that might be causing the white dot */
+.sidebar-nav li {
+    list-style: none;
+}
+
+.sidebar-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    margin: 10px 0;
+    list-style: none;
+}
+@media (min-width: 768px) {
+    .content-area.with-sidebar {
+        margin-left: 0;
+        width: 85%;
+    }}
+    .content-wrapper{
+        
+        width: 100%;
+    }
+    @media (min-width: 768px) {
+    .content-area.with-sidebar {
+        
+        width: 90%;
+    }
+
+
+
 </style>
 
 <script>
