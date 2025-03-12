@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Warehouse Announcements{% endblock %}
+
+{% block content %}
+<div class="container-fluid warehouse-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12 d-flex justify-content-center">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="dashboard-title">Warehouse Announcements</h1>
+                        <p class="dashboard-subtitle">Manage your stock requests to farmers</p>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('warehouse_dashboard.create_announcement') }}" class="btn btn-primary">
+                            <i class="fas fa-plus-circle me-1"></i>
+                            Create New Announcement
+                        </a>
+                    </div>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-megaphone-fill me-2"></i>
+                            Your Announcements
+                        </h5>
+                    </div>
+                    <div class="dashboard-card-body">
+                        {% if announcements %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="custom-table-header">
+                                    <tr>
+                                        <th class="text-uppercase fw-bold">Stock Type</th>
+                                        <th class="text-uppercase fw-bold">Quantity</th>
+                                        <th class="text-uppercase fw-bold">Price Per Ton</th>
+                                        <th class="text-uppercase fw-bold">Status</th>
+                                        <th class="text-uppercase fw-bold">Posted Date</th>
+                                        <th class="text-uppercase fw-bold">Expiry Date</th>
+                                        <th class="text-uppercase fw-bold">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for announcement in announcements %}
+                                    <tr>
+                                        <td>{{ announcement.stock_type }}</td>
+                                        <td>{{ announcement.quantity }} tons</td>
+                                        <td>₹{{ announcement.price_per_ton }}</td>
+                                        <td>
+                                            {% if announcement.status == 'open' %}
+                                                <span class="badge bg-success">Open</span>
+                                            {% elif announcement.status == 'closed' %}
+                                                <span class="badge bg-secondary">Closed</span>
+                                            {% elif announcement.status == 'expired' %}
+                                                <span class="badge bg-warning">Expired</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ announcement.date_posted.strftime('%Y-%m-%d') }}</td>
+                                        <td>{{ announcement.expiry_date.strftime('%Y-%m-%d') }}</td>
+                                        <td>
+                                            <div class="action-buttons">
+                                                <a href="{{ url_for('warehouse_dashboard.edit_announcement', announcement_id=announcement.id) }}" class="btn btn-sm btn-primary action-btn">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                <form action="{{ url_for('warehouse_dashboard.delete_announcement', announcement_id=announcement.id) }}" method="POST" style="display: inline;">
+                                                    <button type="submit" class="btn btn-sm btn-danger action-btn" onclick="return confirm('Are you sure you want to delete this announcement? This action cannot be undone.');">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <p class="mb-0">You haven't created any announcements yet.</p>
+                        </div>
+                        <div class="text-center mt-3">
+                            <a href="{{ url_for('warehouse_dashboard.create_announcement') }}" class="btn btn-primary">
+                                <i class="fas fa-plus-circle me-1"></i>
+                                Create Your First Announcement
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Center content and set width */
+    .content-wrapper {
+        width: 85%;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .table thead {
+        background-color: #ffffff;
+    }
+    
+    .table th {
+        background-color: #fff;
+    }
+    
+    .custom-table-header {
+        background-color: #fff !important;
+    }
+    .content-area.with-sidebar{
+    margin-left: 0;
+    width: 120%;
+}
+    
+    .custom-table-header th {
+        color: #2e7d32 !important;
+        border-bottom: 2px solid #a5d6a7 !important;
+    }
+    
+    .table thead th {
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        padding: 12px 15px;
+        border-bottom: 2px solid #dee2e6;
+        color: #495057;
+    }
+    
+    .table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-top: 1px solid #f0f0f0;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(46, 125, 50, 0.05) !important;
+    }
+    
+    /* Badge styling */
+    .badge {
+        font-weight: 500;
+        padding: 6px 10px;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Dashboard card styling */
+    .dashboard-card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .dashboard-card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .dashboard-card-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .dashboard-card-body {
+        padding: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .content-wrapper {
+            width: 95%;
+        }
+    }
+    
+</style>
+{% endblock %}
+
+{% block scripts %}
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+{% endblock %} 

@@ -3,9 +3,38 @@
 {% block title %}Warehouse Dashboard{% endblock %}
 
 {% block content %}
+<style>
+    /* Force 2x3 grid layout for overview section (2 rows, 3 columns) */
+    .overview-grid-2x3 {
+        display: grid !important;
+        grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-rows: repeat(2, auto) !important;
+        gap: 20px !important;
+    }
+    
+    /* Override any existing responsive styles */
+    @media (max-width: 992px) {
+        .overview-grid-2x3 {
+            grid-template-columns: repeat(2, 1fr) !important;
+            grid-template-rows: repeat(3, auto) !important;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .overview-grid-2x3 {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: repeat(6, auto) !important;
+        }
+    }
+    
+    /* Hide the original stats-cards-container styles */
+    .stats-cards-container {
+        display: none !important;
+    }
+</style>
 <div class="container-fluid warehouse-dashboard p-0">
     <div class="row g-0">
-        <div class="col-12">
+        <div class="col-12 d-flex justify-content-center">
             <div class="content-wrapper">
                 <!-- Dashboard Header -->
                 <div class="dashboard-header">
@@ -33,7 +62,8 @@
                         </h5>
                     </div>
                     <div class="dashboard-card-body">
-                        <div class="stats-cards-container">
+                        <div class="overview-grid-2x3">
+                            <!-- Card 1: Pending Requests -->
                             <div class="stats-card green">
                                 <div class="stats-card-content">
                                     <div class="stats-icon">
@@ -49,6 +79,7 @@
                                 </div>
                             </div>
                             
+                            <!-- Card 2: Accepted Requests -->
                             <div class="stats-card blue">
                                 <div class="stats-card-content">
                                     <div class="stats-icon">
@@ -64,6 +95,7 @@
                                 </div>
                             </div>
                             
+                            <!-- Card 3: Rejected Requests -->
                             <div class="stats-card yellow">
                                 <div class="stats-card-content">
                                     <div class="stats-icon">
@@ -79,18 +111,51 @@
                                 </div>
                             </div>
                             
+                            <!-- Card 4: Total Capacity -->
                             <div class="stats-card red">
                                 <div class="stats-card-content">
                                     <div class="stats-icon">
                                         <i class="bi bi-building"></i>
                                     </div>
                                     <div class="stats-info">
-                                        <h2 class="stats-number">{{ warehouse.capacity }}</h2>
-                                        <p class="stats-label">Total Capacity (kg)</p>
+                                        <h2 class="stats-number">{{ "%.2f"|format(warehouse.capacity) }}</h2>
+                                        <p class="stats-label">Total Capacity (tons)</p>
                                     </div>
                                 </div>
                                 <div class="stats-card-footer">
                                     <a href="#" class="view-details">Warehouse Capacity <i class="bi bi-chevron-right"></i></a>
+                                </div>
+                            </div>
+                            
+                            <!-- Card 5: Available Space -->
+                            <div class="stats-card blue">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-box-seam"></i>
+                                    </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ "%.2f"|format(warehouse.available_space) }}</h2>
+                                        <p class="stats-label">Available Space (tons)</p>
+                                    </div>
+                                </div>
+                                <div class="stats-card-footer">
+                                    <a href="#" class="view-details">Available Storage <i class="bi bi-chevron-right"></i></a>
+                                </div>
+                            </div>
+                            
+                            <!-- Card 6: Allocated Space -->
+                            <div class="stats-card yellow">
+                                <div class="stats-card-content">
+                                    <div class="stats-icon">
+                                        <i class="bi bi-archive"></i>
+                                    </div>
+                                    <div class="stats-info">
+                                        <h2 class="stats-number">{{ "%.2f"|format(total_allocated_space) }}</h2>
+                                        <p class="stats-label">Allocated Space (tons)</p>
+                                    </div>
+                                </div>
+                                <div class="stats-card-footer">
+                                    <a href="#" class="view-details">Allocated Storage <i class="bi bi-chevron-right"></i></a>
                                 </div>
                             </div>
                         </div>
@@ -328,21 +393,47 @@
     margin: 10px 0;
     list-style: none;
 }
-@media (min-width: 768px) {
-    .content-area.with-sidebar {
-        margin-left: 200px;
-        width: calc(100% - 250px);
-    }}
-    .content-wrapper{
-        
-        width: 120%;
-    }
-    @media (min-width: 768px) {
-    .content-area.with-sidebar {
-        margin-left: 0;
-        width: 85%;
-    }}
 
+/* Center content and set width */
+.content-wrapper {
+    width: 85%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Stats card colors */
+.stats-card.purple {
+    background: linear-gradient(135deg, #9c27b0, #673ab7);
+    color: white;
+}
+
+.stats-card.purple .stats-card-footer {
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.stats-card.purple .view-details {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.stats-card.purple .view-details:hover {
+    color: white;
+}
+
+/* Make stats cards container responsive */
+.stats-cards-container {
+    display: none !important;
+}
+
+/* We're using the CSS defined at the top of the file for the overview grid */
+@media (max-width: 768px) {
+    .content-wrapper {
+        width: 95%;
+    }
+}
+.content-area.with-sidebar{
+    margin-left: 0;
+    width: 120%;
+}
 </style>
 {% endblock %}
 

@@ -1,0 +1,635 @@
+{% extends "base.html" %}
+
+{% block title %}Warehouse Announcements{% endblock %}
+
+{% block content %}
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<div class="container-fluid farmer-dashboard p-0">
+    <div class="row g-0">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper" id="farmerSidebar">
+            <div class="position-sticky">
+                <div class="sidebar-header">
+                    <h5 class="sidebar-brand">
+                        <span class="company-name" style="font-size: 1.5rem; font-weight: 600; color: white; text-align: center; width: 100%;">
+                            <i class="bi bi-link-45deg" style="font-size: 1.8rem; margin-right: 5px;"></i>
+                            Aratro
+                        </span>
+                    </h5>
+                </div>
+                <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                    <div class="user-avatar">
+                        <i class="bi bi-person-circle" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{% if user_farmer %}{{ user_farmer.name }}{% elif current_user.is_authenticated %}{{ current_user.username }}{% elif farmer %}{{ farmer.name }}{% else %}Farmer{% endif %}</span>
+                        <span class="user-role">Farmer</span>
+                    </div>
+                </div>
+                
+                <ul class="nav flex-column sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.farmer_home') }}">
+                            <i class="bi bi-grid-1x2-fill me-2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.create_request_page') }}">
+                            <i class="bi bi-file-earmark-plus-fill me-2"></i>
+                            <span>Create Request</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('farmer_dashboard.view_warehouse_announcements') }}">
+                            <i class="bi bi-megaphone-fill me-2"></i>
+                            <span>Warehouse Announcements</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-heading">Request Status</li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span>Accepted Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.pending_requests') }}">
+                            <i class="bi bi-clock-fill me-2"></i>
+                            <span>Pending Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.rejected_requests') }}">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            <span>Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+                
+                <div class="sidebar-footer">
+                    <!-- User info moved to header -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header text-center">
+                    <h1 class="dashboard-title">Warehouse Announcements</h1>
+                    <p class="dashboard-subtitle">View stock requests from warehouses</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-megaphone-fill me-2"></i>
+                            Active Warehouse Requests
+                        </h5>
+                    </div>
+                    <div class="dashboard-card-body">
+                        {% if announcements %}
+                        <div class="row">
+                            {% for announcement in announcements %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="card h-100 announcement-card">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0 fw-bold">{{ announcement.stock_type }}</h5>
+                                        <span class="badge bg-success rounded-pill">{{ announcement.quantity }} tons</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="warehouse-info mb-3">
+                                            <h6 class="mb-1">{{ announcement.warehouse.name }}</h6>
+                                            <p class="text-muted small mb-0"><i class="bi bi-geo-alt me-1"></i>{{ announcement.warehouse.location }}</p>
+                                        </div>
+                                        
+                                        <div class="announcement-details">
+                                            <div class="detail-row">
+                                                <span class="detail-label"><i class="bi bi-currency-rupee me-1"></i>Price Offered:</span>
+                                                <span class="detail-value">₹{{ announcement.price_per_ton }}/ton</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label"><i class="bi bi-calendar-event me-1"></i>Posted Date:</span>
+                                                <span class="detail-value">{{ announcement.date_posted.strftime('%Y-%m-%d') }}</span>
+                                            </div>
+                                            <div class="detail-row">
+                                                <span class="detail-label"><i class="bi bi-calendar-x me-1"></i>Expires On:</span>
+                                                <span class="detail-value">{{ announcement.expiry_date.strftime('%Y-%m-%d') }}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        {% if announcement.description %}
+                                        <div class="announcement-description mt-3">
+                                            <h6 class="mb-2"><i class="bi bi-info-circle me-1"></i>Description:</h6>
+                                            <p class="small mb-0">{{ announcement.description }}</p>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="card-footer">
+                                        <a href="{{ url_for('farmer_dashboard.respond_to_announcement', announcement_id=announcement.id) }}" class="btn btn-primary w-100">
+                                            <i class="bi bi-reply-fill me-1"></i>
+                                            Respond to Request
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info d-flex align-items-center">
+                            <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                            <p class="mb-0">There are no active warehouse announcements at this time.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* Dashboard Layout */
+    .farmer-dashboard {
+        background-color: #f5f7fa;
+        position: relative;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .main-content {
+        padding: 2rem;
+        transition: all 0.3s;
+        width: 100%;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .content-wrapper {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: 0 1.5rem;
+        align-items: center;
+        min-height: calc(100vh - 4rem);
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        margin-bottom: 1.5rem;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dashboard-title::after {
+        content: '';
+        position: absolute;
+        bottom: -0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3rem;
+        height: 0.25rem;
+        background: var(--primary-color);
+        border-radius: 0.125rem;
+    }
+    
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    /* Dashboard Card */
+    .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        width: 100%;
+        margin-bottom: 1rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        flex: 1;
+    }
+    
+    .dashboard-card:hover {
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05), 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .dashboard-card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background-color: #fcfcfc;
+    }
+    
+    .dashboard-card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dashboard-card-title i {
+        color: var(--primary-color);
+        margin-right: 0.75rem;
+        font-size: 1.25rem;
+    }
+    
+    .dashboard-card-body {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+    }
+    
+    /* Announcement Cards */
+    .row {
+        display: flex;
+        flex-wrap: wrap;
+        margin: -0.75rem;
+        width: calc(100% + 1.5rem);
+        flex: 1;
+    }
+    
+    .col-md-6.col-lg-4 {
+        padding: 0.75rem;
+    }
+    
+    /* Announcement Card Styles */
+    .announcement-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #fff;
+    }
+    
+    .announcement-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        border-color: #d1d9e6;
+    }
+    
+    .announcement-card .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e2e8f0;
+        padding: 1rem;
+    }
+    
+    .announcement-card .card-body {
+        padding: 1.25rem;
+    }
+    
+    .announcement-card .card-footer {
+        background-color: #f8f9fa;
+        border-top: 1px solid #e2e8f0;
+        padding: 1rem;
+    }
+    
+    .warehouse-info {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .warehouse-info h6 {
+        color: #2d3748;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .detail-label {
+        font-weight: 500;
+        color: #64748b;
+    }
+    
+    .detail-value {
+        font-weight: 600;
+        color: #334155;
+    }
+    
+    .announcement-description {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .announcement-description h6 {
+        color: #2d3748;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        transition: all 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-2px);
+    }
+    
+    .badge.bg-success {
+        background-color: var(--success-color) !important;
+        font-weight: 500;
+        padding: 0.35rem 0.65rem;
+    }
+    
+    /* Sidebar Styles */
+    .sidebar-wrapper {
+        background-color: #2d6b45;
+        color: white;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 250px;
+        z-index: 1000;
+        transition: all 0.3s;
+        overflow-y: auto;
+    }
+    
+    .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+        padding: 10px 0;
+    }
+    
+    .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-info {
+        text-align: center;
+    }
+    
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #e2e8f0;
+    }
+    
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+        text-align: center;
+    }
+    
+    .user-role {
+        font-size: 0.8rem;
+        color: #a0aec0;
+        text-align: center;
+    }
+    
+    /* Nav Styles */
+    .sidebar-nav {
+        list-style-type: none;
+        padding-left: 0;
+        margin-top: 1.5rem;
+    }
+    
+    .nav-item {
+        margin-bottom: 0.25rem;
+    }
+    
+    .nav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        transition: all 0.2s;
+        border-radius: 0.25rem;
+        margin: 0 0.5rem;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+    
+    .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-weight: 500;
+    }
+    
+    .nav-heading {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 0.75rem 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .sidebar-divider {
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.1);
+        margin: 1rem 0.5rem;
+    }
+    
+    /* Mobile Sidebar Toggle */
+    .mobile-sidebar-toggle {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1010;
+        display: none;
+    }
+    
+    .btn-sidebar-toggle {
+        background-color: #2d6b45;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .sidebar-wrapper {
+            transform: translateX(-100%);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar-wrapper.show {
+            transform: translateX(0);
+        }
+        
+        .mobile-sidebar-toggle {
+            display: block;
+        }
+        
+        .main-content {
+            padding: 1rem 0.5rem;
+            min-height: 100vh;
+        }
+        
+        .content-wrapper {
+            padding: 0 0.5rem;
+            align-items: center;
+            width: 100%;
+            min-height: calc(100vh - 2rem);
+        }
+        
+        .col-md-9.col-lg-10.main-content {
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-left: 0 !important;
+        }
+        
+        .row {
+            margin: -0.5rem;
+            width: calc(100% + 1rem);
+        }
+        
+        .col-md-6.col-lg-4 {
+            padding: 0.5rem;
+        }
+        
+        .dashboard-title {
+            font-size: 1.5rem;
+        }
+        
+        .dashboard-subtitle {
+            font-size: 0.9rem;
+        }
+        
+        .dashboard-card {
+            margin-bottom: 0.5rem;
+        }
+    }
+    
+    @media (min-width: 769px) {
+        .col-md-9.col-lg-10.main-content {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+            min-height: 100vh;
+        }
+        
+        .content-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile sidebar toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('farmerSidebar');
+        
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('show');
+            });
+            
+            // Close sidebar when clicking outside
+            document.addEventListener('click', function(event) {
+                const isClickInsideSidebar = sidebar.contains(event.target);
+                const isClickOnToggle = sidebarToggle.contains(event.target);
+                
+                if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 

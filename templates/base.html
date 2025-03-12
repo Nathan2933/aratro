@@ -464,6 +464,19 @@
             color: rgba(255, 255, 255, 0.7);
             text-transform: capitalize;
         }
+
+        .content-area.with-sidebar {
+            margin-left: 0;
+        }
+
+        @media (min-width: 768px) {
+            .content-area.with-sidebar {
+                margin-left: 250px; /* Same as sidebar width */
+                width: calc(100% - 250px);
+                max-width: none;
+                padding-right: 1rem;
+            }
+        }
     </style>
     {% block style %}{% endblock %}
 </head>
@@ -472,15 +485,13 @@
         {% if current_user.is_authenticated and current_user.role != 'farmer' %}
         <!-- Sidebar -->
         <div class="sidebar-wrapper" id="mainSidebar">
-            <div class="sidebar-header">
+            <div class="sidebar-header" style="display: flex; justify-content: center; align-items: center; width: 100%; padding: 10px 0;">
                 <h5 class="sidebar-brand">
                     <a href="{{ url_for('main.index') }}" class="brand-link">
                         <i class="bi bi-link-45deg"></i>
-                        {% if current_user.is_authenticated and current_user.role == 'ration_shop' %}
-                        Ration Shop
-                        {% else %}
+                        
                         Aratro
-                        {% endif %}
+                        
                     </a>
                 </h5>
                
@@ -514,6 +525,12 @@
                         </a>
                     </li>
                     <li>
+                        <a href="{{ url_for('warehouse_dashboard.view_announcements') }}" class="{% if request.endpoint == 'warehouse_dashboard.view_announcements' %}active{% endif %}">
+                            <i class="bi bi-megaphone-fill"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li>
                         <a href="{{ url_for('warehouse_dashboard.respond_to_request') }}" class="{% if request.endpoint == 'warehouse_dashboard.respond_to_request' %}active{% endif %}">
                             <i class="bi bi-inbox-fill"></i>
                             <span>Incoming Requests</span>
@@ -532,6 +549,24 @@
                         </a>
                     </li>
                     
+                    <li class="sidebar-divider"></li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.edit_profile') }}" class="{% if request.endpoint == 'auth.edit_warehouse_profile' %}active{% endif %}">
+                            <i class="bi bi-person-fill-gear"></i>
+                            <span>Edit Profile</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.change_password') }}" class="{% if request.endpoint == 'auth.change_password' %}active{% endif %}">
+                            <i class="bi bi-key-fill"></i>
+                            <span>Change Password</span>
+                        </a>
+                    </li>
+                    
+                    
+                    
                     {% elif current_user.role == 'admin' %}
                     <li>
                         <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
@@ -545,6 +580,19 @@
                             <span>Admin Panel</span>
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ url_for('auth.change_password') }}" class="{% if request.endpoint == 'auth.change_password' %}active{% endif %}">
+                            <i class="bi bi-key-fill"></i>
+                            <span>Change Password</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-item">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                    
                     {% elif current_user.role == 'ration_shop' %}
                     <li>
                         <a href="{{ url_for('main.ration_dashboard') }}" class="{% if request.endpoint == 'main.ration_dashboard' %}active{% endif %}">
@@ -564,6 +612,30 @@
                             <span>Your Requests</span>
                         </a>
                     </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.edit_profile') }}" class="{% if request.endpoint == 'auth.edit_ration_profile' %}active{% endif %}">
+                            <i class="bi bi-person-fill-gear"></i>
+                            <span>Edit Profile</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.change_password') }}" class="{% if request.endpoint == 'auth.change_password' %}active{% endif %}">
+                            <i class="bi bi-key-fill"></i>
+                            <span>Change Password</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-item">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                    
                     {% else %}
                     <li>
                         <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
@@ -592,7 +664,8 @@
         {% endif %}
         
         {% if not current_user.is_authenticated and 'register' not in request.endpoint %}
-        <!-- Sidebar for non-authenticated users (hidden on register pages) -->
+        <!-- Sidebar for non-authenticated users (hidden on register pages and index page) -->
+        {% if request.endpoint != 'main.index' %}
         <div class="sidebar-wrapper" id="mainSidebar">
             <div class="sidebar-header">
                 <h5 class="sidebar-brand">
@@ -636,8 +709,9 @@
             </button>
         </div>
         {% endif %}
+        {% endif %}
 
-        <div class="content-area {% if (current_user.is_authenticated and current_user.role != 'farmer') or (not current_user.is_authenticated and 'register' not in request.endpoint) %}with-sidebar{% endif %}">
+        <div class="content-area {% if (current_user.is_authenticated and current_user.role != 'farmer') or (not current_user.is_authenticated and 'register' not in request.endpoint and request.endpoint != 'main.index') %}with-sidebar{% endif %}">
             {% if current_user.is_authenticated and current_user.role != 'farmer' %}
             <div class="welcome-banner" id="welcomeBanner">
                 <div class="welcome-banner-content">

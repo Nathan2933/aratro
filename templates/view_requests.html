@@ -5,7 +5,7 @@
 {% block content %}
 <div class="container-fluid warehouse-dashboard p-0">
     <div class="row g-0">
-        <div class="col-12">
+        <div class="col-12 d-flex justify-content-center">
             <div class="content-wrapper">
                 <!-- Page Header -->
                 <div class="dashboard-header">
@@ -43,15 +43,15 @@
                         <div class="request-content active" id="farmer-content">
                             <div class="table-responsive">
                                 <table class="table table-hover mb-0">
-                                    <thead>
+                                    <thead class="custom-table-header">
                                         <tr>
-                                            <th>Request ID</th>
-                                            <th>Farmer</th>
-                                            <th>Stock Type</th>
-                                            <th>Requested Quantity</th>
-                                            <th>Approve Quantity</th>
-                                            <th>Date</th>
-                                            <th>Actions</th>
+                                            <th class="text-uppercase fw-bold">Request ID</th>
+                                            <th class="text-uppercase fw-bold">Farmer</th>
+                                            <th class="text-uppercase fw-bold">Stock Type</th>
+                                            <th class="text-uppercase fw-bold">Requested Quantity</th>
+                                            <th class="text-uppercase fw-bold">Approve Quantity</th>
+                                            <th class="text-uppercase fw-bold">Date</th>
+                                            <th class="text-uppercase fw-bold">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -61,15 +61,7 @@
                                             <td>{{ request.farmer.name }}</td>
                                             <td>{{ request.stock.type }}</td>
                                             <td>{{ request.stock.requested_quantity }} tons</td>
-                                            <td>
-                                                <input type="number" 
-                                                       class="form-control quantity-input" 
-                                                       id="quantity_{{ request.id }}"
-                                                       value="{{ request.stock.requested_quantity }}"
-                                                       min="0.1"
-                                                       max="{{ warehouse.capacity - total_allocated_space }}"
-                                                       step="0.1">
-                                            </td>
+                                            <td>{{ request.stock.approved_quantity }} tons</td>
                                             <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
                                             <td>
                                                 <div class="btn-group">
@@ -148,300 +140,154 @@
 </div>
 
 <style>
-    /* Dashboard Layout */
-    .warehouse-dashboard {
-        background-color: #f5f7fa;
-        position: relative;
-        overflow-x: hidden;
-        display: flex;
-        flex-direction: column;
-        width:130%;
-    }
-    .content-area{
-        margin-left: 300px;
-        margin-right: 400px;
-        width:200%;
-    }
-    .main-content {
-        padding: 2rem;
-        transition: all 0.3s;
-        display: flex;
-        justify-content: center;
-        width: 100%;
-        height: fit-content;
-        overflow: visible;
-    }
-    
+    /* Center content and set width */
     .content-wrapper {
-        width: 100%;
+        width: 85%;
         max-width: 1200px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        height: fit-content;
-        overflow: visible;
+        margin: 0 auto;
     }
     
-    /* Dashboard Header */
-    .dashboard-header {
-        margin-bottom: 2rem;
-        width: 100%;
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
     }
     
-    .dashboard-title {
-        font-size: 1.75rem;
-        font-weight: 600;
-        color: #333;
-        margin-bottom: 0.5rem;
-        position: relative;
-        display: inline-block;
+    .table thead {
+        background-color: #ffffff;
     }
     
-    .dashboard-title::after {
-        content: '';
-        position: absolute;
-        bottom: -0.5rem;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 3rem;
-        height: 0.25rem;
-        background: var(--primary-color);
-        border-radius: 0.125rem;
+    .table th {
+        background-color: #fff;
     }
     
-    .dashboard-subtitle {
-        color: #6c757d;
-        font-size: 1rem;
+    .custom-table-header {
+        background-color: #fff !important;
     }
     
-    /* Sidebar Styles */
-    .sidebar-brand {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        text-align: center;
-        padding: 10px 0;
+    .custom-table-header th {
+        color: #2e7d32 !important;
+        border-bottom: 2px solid #a5d6a7 !important;
     }
     
-    .sidebar-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
+    .table thead th {
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        padding: 12px 15px;
+        border-bottom: 2px solid #dee2e6;
+        color: #495057;
     }
     
-    .user-info {
-        text-align: center;
+    .table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-top: 1px solid #f0f0f0;
     }
     
-    .user-avatar {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background-color: rgba(255, 255, 255, 0.1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 10px;
-        color: #e2e8f0;
+    .table-hover tbody tr:hover {
+        background-color: rgba(46, 125, 50, 0.05) !important;
     }
     
-    .user-details {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        width: 100%;
+    /* Badge styling */
+    .badge {
+        font-weight: 500;
+        padding: 6px 10px;
+        letter-spacing: 0.5px;
     }
     
-    .user-name {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #e2e8f0;
-        margin-bottom: 2px;
-        text-align: center;
-    }
-    
-    .user-role {
-        font-size: 0.8rem;
-        color: #a0aec0;
-        text-align: center;
-    }
-    
-    /* Remove bullet points from sidebar navigation */
-    .sidebar-nav {
-        list-style-type: none;
-        padding-left: 0;
-    }
-    
-    /* Remove any default list styling that might be causing the white dot */
-    .sidebar-nav li {
-        list-style: none;
-    }
-    
-    .sidebar-divider {
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        margin: 10px 0;
-        list-style: none;
-    }
-    
-    /* Dashboard Card */
+    /* Dashboard card styling */
     .dashboard-card {
-        background-color: white;
-        border-radius: 0.5rem;
-        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
         overflow: hidden;
-        width: 100%;
-        height: fit-content;
-        margin-bottom: 2rem;
     }
     
     .dashboard-card-header {
-        padding: 1rem 1.5rem;
+        padding: 15px 20px;
         border-bottom: 1px solid #f0f0f0;
         display: flex;
+        justify-content: space-between;
         align-items: center;
     }
     
     .dashboard-card-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #2d3748;
         margin: 0;
-        display: flex;
-        align-items: center;
-    }
-    
-    .dashboard-card-title i {
-        color: #4a5568;
-        margin-right: 0.75rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
     }
     
     .dashboard-card-body {
-        padding: 1.5rem;
+        padding: 20px;
     }
     
-    /* Tab Styles */
-    .nav-tabs {
-        border-bottom: none;
+    /* Request tabs styling */
+    .request-tabs {
+        display: flex;
+        gap: 20px;
     }
     
-    .nav-tabs .nav-link {
-        border: none;
-        color: #718096;
-        padding: 0.75rem 1.25rem;
-        font-weight: 500;
-        border-radius: 0;
+    .request-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
         transition: all 0.2s ease;
     }
     
-    .nav-tabs .nav-link:hover {
-        color: #4a5568;
-        background-color: rgba(0, 0, 0, 0.02);
+    .request-tab.active {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        font-weight: 500;
     }
     
-    .nav-tabs .nav-link.active {
-        color: var(--primary-color);
-        border-bottom: 2px solid var(--primary-color);
-        background-color: transparent;
+    .request-tab:hover:not(.active) {
+        background-color: #f5f5f5;
     }
     
-    /* Responsive adjustments */
-    @media (max-width: 1200px) {
-        .dashboard-card {
-            width: 100%;
-        }
+    .request-content {
+        display: none;
+    }
+    
+    .request-content.active {
+        display: block;
+    }
+    
+    /* Action buttons styling */
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .btn-respond {
+        background-color: #2e7d32;
+        border-color: #2e7d32;
+        color: white;
+    }
+    
+    .btn-respond:hover {
+        background-color: #1b5e20;
+        border-color: #1b5e20;
     }
     
     @media (max-width: 768px) {
-        .main-content {
-            padding: 1.5rem 1rem;
+        .content-wrapper {
+            width: 95%;
         }
-
-    }
-    
-    .sidebar-brand {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    text-align: center;
-    padding: 10px 0;
-}
-
-.sidebar-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-}
-
-.user-info {
-    text-align: center;
-}
-
-.user-avatar {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background-color: rgba(255, 255, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 10px;
-    color: #e2e8f0;
-}
-
-.user-details {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-}
-
-.user-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #e2e8f0;
-    margin-bottom: 2px;
-    text-align: center;
-}
-
-.user-role {
-    font-size: 0.8rem;
-    color: #a0aec0;
-    text-align: center;
-}
-
-/* Remove bullet points from sidebar navigation */
-.sidebar-nav {
-    list-style-type: none;
-    padding-left: 0;
-}
-
-/* Remove any default list styling that might be causing the white dot */
-.sidebar-nav li {
-    list-style: none;
-}
-
-.sidebar-divider {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin: 10px 0;
-    list-style: none;
-}
-@media (min-width: 768px) {
-    .content-area.with-sidebar {
-        margin-left: 0;
-        width: 85%;
-    }}
-    .content-wrapper{
         
-        width: 100%;
+        .request-tabs {
+            flex-direction: column;
+            gap: 10px;
+        }
     }
-
-
+    .content-area.with-sidebar{
+    margin-left: 0;
+    width: 120%;
+}
 </style>
 
 <!-- Include SweetAlert2 library -->

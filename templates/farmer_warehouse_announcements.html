@@ -1,0 +1,599 @@
+{% extends "base.html" %}
+
+{% block title %}Warehouse Announcements{% endblock %}
+
+{% block content %}
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<div class="container-fluid farmer-dashboard p-0">
+    <div class="row g-0">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper" id="farmerSidebar">
+            <div class="position-sticky">
+                <div class="sidebar-header">
+                    <h5 class="sidebar-brand">
+                        <span class="company-name" style="font-size: 1.5rem; font-weight: 600; color: white; text-align: center; width: 100%;">
+                            <i class="bi bi-link-45deg" style="font-size: 1.8rem; margin-right: 5px;"></i>
+                            Aratro
+                        </span>
+                    </h5>
+                </div>
+                <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                    <div class="user-avatar">
+                        <i class="bi bi-person-circle" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{% if user_farmer %}{{ user_farmer.name }}{% elif current_user.is_authenticated %}{{ current_user.username }}{% elif farmer %}{{ farmer.name }}{% else %}Farmer{% endif %}</span>
+                        <span class="user-role">Farmer</span>
+                    </div>
+                </div>
+                
+                <ul class="nav flex-column sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.farmer_home') }}">
+                            <i class="bi bi-grid-1x2-fill me-2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.create_request_page') }}">
+                            <i class="bi bi-file-earmark-plus-fill me-2"></i>
+                            <span>Create Request</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('farmer_dashboard.view_warehouse_announcements') }}">
+                            <i class="bi bi-megaphone-fill me-2"></i>
+                            <span>Warehouse Announcements</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-heading">Request Status</li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span>Accepted Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.pending_requests') }}">
+                            <i class="bi bi-clock-fill me-2"></i>
+                            <span>Pending Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.rejected_requests') }}">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            <span>Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header text-center">
+                    <h1 class="dashboard-title">Warehouse Announcements</h1>
+                    <p class="dashboard-subtitle">View stock requests from warehouses</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="dashboard-card">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-megaphone-fill me-2"></i>
+                            Active Warehouse Requests
+                        </h5>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <input type="text" class="search-bar" placeholder="Search announcements..." onkeyup="searchAnnouncements()">
+                        
+                        <div id="announcements-container">
+                            {% if announcements %}
+                                {% for announcement in announcements %}
+                                <div class="announcement-item" data-announcement-id="{{ announcement.id }}">
+                                    <div class="announcement-summary">
+                                        <div class="announcement-info">
+                                            <div class="info-row">
+                                                <div class="info-label"><i class="bi bi-box-seam me-2"></i>
+                                                    <p>Stock Type:</p></div>
+                                                <div class="info-value">{{ announcement.stock_type }}</div>
+                                            </div>
+                                            <div class="info-row">
+                                                <div class="info-label"><i class="bi bi-archive me-2"></i>Quantity:</div>
+                                                <div class="info-value">{{ announcement.quantity }} tons</div>
+                                            </div>
+                                            <div class="info-row">
+                                                <div class="info-label"><i class="bi bi-currency-rupee me-2"></i>Price Offered:</div>
+                                                <div class="info-value">₹{{ announcement.price_per_ton }}/ton</div>
+                                            </div>
+                                            <div class="info-row">
+                                                <div class="info-label"><i class="bi bi-calendar-event me-2"></i>Posted Date:</div>
+                                                <div class="info-value">{{ announcement.date_posted.strftime('%Y-%m-%d') }}</div>
+                                            </div>
+                                        </div>
+                                        <div class="announcement-actions">
+                                            <div class="warehouse-badge">
+                                                <i class="bi bi-building me-1"></i>
+                                                {{ announcement.warehouse.name }}
+                                            </div>
+                                            <a href="{{ url_for('farmer_dashboard.respond_to_announcement', announcement_id=announcement.id) }}" class="btn btn-primary btn-respond mt-2">
+                                                <i class="bi bi-reply-fill me-1"></i> Respond
+                                            </a>
+                                        </div>
+                                    </div>
+                                    <button class="view-details-btn" onclick="toggleDetails(this)">View Details</button>
+                                    <div class="announcement-details" style="display: none;">
+                                        <div class="details-section">
+                                            <h4 class="section-title">Announcement Details</h4>
+                                            <div class="detail-row"><strong>Announcement ID:</strong> {{ announcement.id }}</div>
+                                            <div class="detail-row"><strong>Posted Date:</strong> {{ announcement.date_posted.strftime('%Y-%m-%d') }}</div>
+                                            <div class="detail-row"><strong>Expiry Date:</strong> {{ announcement.expiry_date.strftime('%Y-%m-%d') }}</div>
+                                            <div class="detail-row"><strong>Status:</strong> {{ announcement.status|capitalize }}</div>
+                                            {% if announcement.description %}
+                                            <div class="detail-row description-row">
+                                                <strong>Description:</strong>
+                                                <p class="description-text">{{ announcement.description }}</p>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="warehouse-section">
+                                            <h4 class="section-title">Warehouse Details</h4>
+                                            <div class="detail-row"><strong>Warehouse Name:</strong> {{ announcement.warehouse.name }}</div>
+                                            <div class="detail-row"><strong>Location:</strong> {{ announcement.warehouse.location }}</div>
+                                            <div class="detail-row"><strong>Type:</strong> {{ announcement.warehouse.warehouse_type|capitalize }}</div>
+                                            <div class="detail-row"><strong>Manager:</strong> {{ announcement.warehouse.manager_name }}</div>
+                                            <div class="detail-row"><strong>Contact:</strong> {{ announcement.warehouse.phone_number }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="alert alert-info d-flex align-items-center">
+                                    <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                                    <p class="mb-0">There are no active warehouse announcements at this time.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* CSS Variables */
+    :root {
+        --primary-color: #55c759;
+        --primary-dark: #3da042;
+        --primary-light: #7ed681;
+        --secondary-color: #358856;
+        --secondary-dark: #246b3d;
+        --secondary-light: #4a9d6a;
+        --success-color: #55c759;
+        --warning-color: #ffd54f;
+        --danger-color: #e57373;
+        --info-color: #4db6ac;
+    }
+
+    /* Dashboard Layout */
+    .farmer-dashboard {
+        background-color: #f5f7fa;
+        position: relative;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .content-area{
+        margin-left: 80px;
+    }
+    
+    .main-content {
+        padding: 2rem;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: fit-content;
+        overflow: visible;
+    }
+    
+    .content-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        height: fit-content;
+        overflow: visible;
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    /* Dashboard Card */
+    .dashboard-card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        width: 100%;
+        height: fit-content;
+        margin-bottom: 2rem;
+    }
+    
+    .dashboard-card-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dashboard-card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+    
+    .dashboard-card-title i {
+        color: #4a5568;
+        margin-right: 0.75rem;
+    }
+    
+    .dashboard-card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Announcement Item Styles */
+    .announcement-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: white;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+    
+    .announcement-item:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    .announcement-summary {
+        display: flex;
+        justify-content: space-between;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 15px;
+    }
+    
+    .announcement-info {
+        flex: 1;
+    }
+    
+    .info-row {
+        display: flex;
+        margin-bottom: 8px;
+    }
+    
+    .info-label {
+        width: 150px;
+        font-weight: 600;
+        color: #4a5568;
+        display: flex;
+        align-items: center;
+    }
+    
+    .info-value {
+        flex: 1;
+        color: #2d3748;
+    }
+    
+    .announcement-actions {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+        min-width: 150px;
+    }
+    
+    .warehouse-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        background-color: rgba(66, 153, 225, 0.1);
+        color: #3182ce;
+        margin-bottom: 10px;
+    }
+    
+    .btn-respond {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: white;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-respond:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+    
+    /* View Details Button */
+    .view-details-btn {
+        background: none;
+        border: 1px solid #e2e8f0;
+        color: #4299e1;
+        cursor: pointer;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .view-details-btn:hover {
+        background-color: #f7fafc;
+        color: #2b6cb0;
+    }
+    
+    /* Announcement Details */
+    .announcement-details {
+        background-color: #f7fafc;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+    }
+    
+    .details-section {
+        margin-bottom: 20px;
+    }
+    
+    .section-title {
+        color: #2d3748;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 8px;
+    }
+    
+    .detail-row {
+        margin: 8px 0;
+        display: flex;
+        align-items: flex-start;
+    }
+    
+    .detail-row strong {
+        min-width: 150px;
+        color: #4a5568;
+        font-weight: 600;
+    }
+    
+    .description-row {
+        flex-direction: column;
+    }
+    
+    .description-text {
+        margin-top: 8px;
+        padding: 10px;
+        background-color: white;
+        border-radius: 4px;
+        border: 1px solid #e2e8f0;
+        width: 100%;
+    }
+    
+    .warehouse-section {
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 1px solid #e2e8f0;
+    }
+    
+    /* Search Bar */
+    .search-bar {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        font-size: 1rem;
+        transition: border-color 0.2s ease;
+    }
+    
+    .search-bar:focus {
+        outline: none;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+    }
+    
+    /* Sidebar Styles */
+    .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+        padding: 10px 0;
+    }
+    
+    .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-info {
+        text-align: center;
+    }
+    
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #e2e8f0;
+    }
+    
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+        text-align: center;
+    }
+    
+    .user-role {
+        font-size: 0.8rem;
+        color: #a0aec0;
+        text-align: center;
+    }
+    
+    /* Mobile Responsive Styles */
+    @media screen and (max-width: 768px) {
+        .main-content {
+            padding: 1rem;
+        }
+        
+        .announcement-summary {
+            flex-direction: column;
+        }
+        
+        .announcement-actions {
+            margin-top: 15px;
+            align-items: flex-start;
+        }
+        
+        .info-row {
+            flex-direction: column;
+            margin-bottom: 12px;
+        }
+        
+        .info-label {
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        
+        .detail-row {
+            flex-direction: column;
+        }
+        
+        .detail-row strong {
+            margin-bottom: 4px;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile sidebar toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('farmerSidebar');
+        
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('show');
+            });
+        }
+    });
+    
+    function toggleDetails(button) {
+        const details = button.nextElementSibling;
+        const isHidden = details.style.display === 'none';
+        
+        details.style.display = isHidden ? 'block' : 'none';
+        button.textContent = isHidden ? 'Hide Details' : 'View Details';
+    }
+    
+    function searchAnnouncements() {
+        const searchInput = document.querySelector('.search-bar').value.toLowerCase();
+        const announcements = document.querySelectorAll('.announcement-item');
+        
+        announcements.forEach(announcement => {
+            const text = announcement.textContent.toLowerCase();
+            if (text.includes(searchInput)) {
+                announcement.style.display = 'block';
+            } else {
+                announcement.style.display = 'none';
+            }
+        });
+    }
+</script>
+{% endblock %} 

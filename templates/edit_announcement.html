@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Announcement{% endblock %}
+
+{% block content %}
+<div class="container-fluid warehouse-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Edit Announcement</h1>
+                    <p class="dashboard-subtitle">Update your announcement details</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Edit Announcement</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="editAnnouncementForm" action="{{ url_for('warehouse_dashboard.edit_announcement', announcement_id=announcement.id) }}" method="POST">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="stockType" class="form-label">Stock Type</label>
+                                        <select id="stockType" name="stock_type" class="form-select" required>
+                                            <option value="" disabled>Select Stock Type</option>
+                                            <option value="Rice" {% if announcement.stock_type == 'Rice' %}selected{% endif %}>Rice</option>
+                                            <option value="Wheat" {% if announcement.stock_type == 'Wheat' %}selected{% endif %}>Wheat</option>
+                                            <option value="Maize" {% if announcement.stock_type == 'Maize' %}selected{% endif %}>Maize</option>
+                                            <option value="Pulses" {% if announcement.stock_type == 'Pulses' %}selected{% endif %}>Pulses</option>
+                                            <option value="Vegetables" {% if announcement.stock_type == 'Vegetables' %}selected{% endif %}>Vegetables</option>
+                                            <option value="Fruits" {% if announcement.stock_type == 'Fruits' %}selected{% endif %}>Fruits</option>
+                                            <option value="Other" {% if announcement.stock_type not in ['Rice', 'Wheat', 'Maize', 'Pulses', 'Vegetables', 'Fruits'] %}selected{% endif %}>Other</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3" id="otherStockTypeGroup" style="display: {% if announcement.stock_type not in ['Rice', 'Wheat', 'Maize', 'Pulses', 'Vegetables', 'Fruits'] %}block{% else %}none{% endif %};">
+                                        <label for="otherStockType" class="form-label">Specify Stock Type</label>
+                                        <input type="text" id="otherStockType" name="other_stock_type" class="form-control" value="{{ announcement.stock_type if announcement.stock_type not in ['Rice', 'Wheat', 'Maize', 'Pulses', 'Vegetables', 'Fruits'] else '' }}">
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="quantity" class="form-label">Quantity Needed (tons)</label>
+                                        <input type="number" id="quantity" name="quantity" class="form-control" step="0.01" min="0.01" value="{{ announcement.quantity }}" required>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="pricePerTon" class="form-label">Price Per Ton (₹)</label>
+                                        <input type="number" id="pricePerTon" name="price_per_ton" class="form-control" step="0.01" min="0.01" value="{{ announcement.price_per_ton }}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="expiryDate" class="form-label">Expiry Date</label>
+                                        <input type="date" id="expiryDate" name="expiry_date" class="form-control" value="{{ announcement.expiry_date.strftime('%Y-%m-%d') }}" required>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="status" class="form-label">Status</label>
+                                        <select id="status" name="status" class="form-select" required>
+                                            <option value="open" {% if announcement.status == 'open' %}selected{% endif %}>Open</option>
+                                            <option value="closed" {% if announcement.status == 'closed' %}selected{% endif %}>Closed</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="description" class="form-label">Description</label>
+                                        <textarea id="description" name="description" class="form-control" rows="5">{{ announcement.description }}</textarea>
+                                        <small class="form-text text-muted">Provide additional details about your requirements, quality standards, etc.</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions d-flex gap-2 mt-4">
+                                <a href="{{ url_for('warehouse_dashboard.view_announcements') }}" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>
+                                    Update Announcement
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle "Other" stock type selection
+        document.getElementById('stockType').addEventListener('change', function() {
+            const otherGroup = document.getElementById('otherStockTypeGroup');
+            if (this.value === 'Other') {
+                otherGroup.style.display = 'block';
+            } else {
+                otherGroup.style.display = 'none';
+            }
+        });
+        
+        // Form validation
+        document.getElementById('editAnnouncementForm').addEventListener('submit', function(event) {
+            if (this.checkValidity()) {
+                const stockType = document.getElementById('stockType').value;
+                if (stockType === 'Other') {
+                    const otherStockType = document.getElementById('otherStockType').value;
+                    if (!otherStockType.trim()) {
+                        event.preventDefault();
+                        alert('Please specify the stock type.');
+                        return false;
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

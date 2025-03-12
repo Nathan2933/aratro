@@ -1,0 +1,2318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% if current_user.is_authenticated %}
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    {% endif %}
+    <title>Aratro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    {% block additional_css %}{% endblock %}
+    <style>
+        .flash-messages {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1050;
+            max-width: 350px;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .flash-message.success {
+            background-color: var(--success-color);
+            color: white;
+        }
+
+        .flash-message.error {
+            background-color: var(--error-color);
+            color: white;
+        }
+
+        .flash-message.info {
+            background-color: var(--info-color);
+            color: white;
+        }
+
+        .flash-message.warning {
+            background-color: var(--warning-color);
+            color: white;
+        }
+
+        .flash-message i {
+            margin-right: 0.5rem;
+        }
+
+        .flash-message-content {
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+        }
+
+        .flash-message .close-flash-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.2s;
+            padding: 5px;
+            margin-left: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+        }
+
+        .flash-message .close-flash-btn:hover {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+
+        /* Responsive navbar styles */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-wrap: wrap;
+                padding: 0.5rem;
+            }
+            
+            .navbar-brand {
+                flex: 1;
+            }
+            
+            .navbar-menu {
+                order: 3;
+                width: 100%;
+                margin-top: 0.5rem;
+                justify-content: center;
+                overflow-x: auto;
+                padding-bottom: 0.5rem;
+            }
+            
+            .navbar-end {
+                flex: 0;
+            }
+            
+            .user-menu-dropdown {
+                right: 0;
+                left: auto;
+            }
+        }
+
+        .welcome-banner {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+
+        .welcome-banner-content {
+            flex-grow: 1;
+        }
+
+        .banner-hint {
+            display: block;
+            font-size: 0.8rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .welcome-banner .close-banner-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            cursor: pointer;
+            opacity: 0.9;
+            transition: all 0.2s ease;
+            padding: 8px;
+            margin-left: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .welcome-banner .close-banner-btn:hover {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .welcome-banner .close-banner-btn i {
+            font-size: 16px;
+        }
+
+        .welcome-banner.hidden {
+            display: none;
+        }
+
+        /* Status indicators */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        .status-dot.warning {
+            background-color: var(--warning-color);
+        }
+
+        .status-dot.success {
+            background-color: var(--success-color);
+        }
+
+        .status-dot.error {
+            background-color: var(--error-color);
+        }
+
+        .status-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .status-item {
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .status-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateX(4px);
+        }
+
+        .status-label {
+            font-weight: 500;
+            flex-grow: 1;
+        }
+
+        .status-count {
+            font-weight: 600;
+            font-size: 1.125rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            background-color: var(--hover-color);
+            margin-left: 1rem;
+        }
+
+        .status-details {
+            margin-top: 0.5rem;
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .dashboard-option-card {
+            flex: 1;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .text-success {
+            color: var(--success-color);
+        }
+
+        .text-error {
+            color: var(--error-color);
+        }
+
+        .text-warning {
+            color: var(--warning-color);
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .form-select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .form-select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+        }
+
+        /* Partial Acceptances and Rejected Requests Styles */
+        .partial-requests-grid, .rejected-requests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .partial-request-card, .rejected-request-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .partial-request-card:hover, .rejected-request-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .partial-request-card .card-header, .rejected-request-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .stock-details, .warehouse-details {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .detail-group .label {
+            color: #666;
+            font-size: 0.875rem;
+        }
+        
+        .detail-group .value {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .detail-group.highlight .value {
+            color: #55c759;
+            font-weight: 600;
+        }
+        
+        .warehouse-details h4, .stock-details h4 {
+            margin-bottom: 0.75rem;
+            color: #444;
+            font-size: 1rem;
+        }
+        
+        .action-buttons {
+            padding: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-direction: column;
+        }
+        
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            color: #aaa;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+        
+        .empty-state p {
+            color: #777;
+            margin-bottom: 1.5rem;
+        }
+        
+        .warehouse-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .warehouse-info h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .warehouse-info p {
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+        
+        .warehouse-actions {
+            flex-shrink: 0;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 2rem;
+            color: #777;
+        }
+
+        .user-details {
+            text-align: center;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        .user-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.25rem;
+            display: block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: capitalize;
+        }
+
+        /* Language Toggle Button Styles */
+        .language-toggle {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 1040;
+        }
+
+        .language-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .language-btn i {
+            margin-right: 6px;
+            font-size: 1rem;
+        }
+
+        .language-btn:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .language-btn:active {
+            transform: translateY(0);
+        }
+
+        .lang-text {
+            display: inline-block;
+        }
+
+        .language-btn.lang-english {
+            background-color: var(--primary-color);
+        }
+
+        .language-btn.lang-tamil {
+            background-color: #FF6B6B;
+        }
+
+        /* Responsive styles for language toggle */
+        @media (max-width: 768px) {
+            .language-toggle {
+                top: 10px;
+                right: 70px;
+            }
+            
+            .language-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+    {% block style %}{% endblock %}
+</head>
+<body>
+    <div class="main-container {% if current_user.is_authenticated and current_user.role == 'farmer' %}no-navbar{% endif %}">
+        {% if current_user.is_authenticated and current_user.role != 'farmer' %}
+        <!-- Sidebar -->
+        <div class="sidebar-wrapper" id="mainSidebar">
+            <div class="sidebar-header" style="display: flex; justify-content: center; align-items: center; width: 100%; padding: 10px 0;">
+                <h5 class="sidebar-brand">
+                    <a href="{{ url_for('main.index') }}" class="brand-link">
+                        <i class="bi bi-link-45deg"></i>
+                        
+                        <span data-en="Aratro" data-ta="அராத்ரோ">Aratro</span>
+                        
+                    </a>
+                </h5>
+               
+            </div>
+            <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                <div class="user-avatar">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <div class="user-details">
+                    <span class="user-name">
+                    {% if current_user.role == 'warehouse_manager' and user_warehouse %}
+                        {{ user_warehouse.manager_name }}
+                    {% elif current_user.role == 'admin' %}
+                        <span data-en="Administrator" data-ta="நிர்வாகி">Administrator</span>
+                    {% elif current_user.role == 'ration_shop' and shop %}
+                        {{ shop.name }}
+                    {% else %}
+                        <span data-en="{{ current_user.role|replace('_', ' ')|title }}" data-ta="{{ current_user.role|replace('_', ' ')|title }}">{{ current_user.role|replace('_', ' ')|title }}</span>
+                    {% endif %}
+                    </span>
+                    <span class="user-role" data-en="{{ current_user.role|replace('_', ' ')|title }}" data-ta="{% if current_user.role == 'warehouse_manager' %}கிடங்கு மேலாளர்{% elif current_user.role == 'admin' %}நிர்வாகி{% elif current_user.role == 'ration_shop' %}ரேஷன் கடை{% else %}{{ current_user.role|replace('_', ' ')|title }}{% endif %}">{{ current_user.role|replace('_', ' ')|title }}</span>
+                </div>
+            </div>
+            <div class="sidebar-menu">
+                <ul>
+                    {% if current_user.role == 'warehouse_manager' %}
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.warehouse_home') }}" class="{% if request.endpoint == 'warehouse_dashboard.warehouse_home' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2-fill"></i>
+                            <span data-en="Dashboard" data-ta="டாஷ்போர்டு">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.respond_to_request') }}" class="{% if request.endpoint == 'warehouse_dashboard.respond_to_request' %}active{% endif %}">
+                            <i class="bi bi-inbox-fill"></i>
+                            <span data-en="Incoming Requests" data-ta="வரும் கோரிக்கைகள்">Incoming Requests</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.accepted_requests') }}" class="{% if request.endpoint == 'warehouse_dashboard.accepted_requests' %}active{% endif %}">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span data-en="Accepted Requests" data-ta="ஏற்றுக்கொள்ளப்பட்ட கோரிக்கைகள்">Accepted Requests</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.rejected_requests') }}" class="{% if request.endpoint == 'warehouse_dashboard.rejected_requests' %}active{% endif %}">
+                            <i class="bi bi-x-circle-fill"></i>
+                            <span data-en="Rejected Requests" data-ta="நிராகரிக்கப்பட்ட கோரிக்கைகள்">Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    {% elif current_user.role == 'admin' %}
+                    <li>
+                        <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                            <i class="fas fa-chart-line"></i>
+                            <span data-en="Dashboard" data-ta="டாஷ்போர்டு">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                            <i class="fas fa-cogs"></i>
+                            <span data-en="Admin Panel" data-ta="நிர்வாக பலகை">Admin Panel</span>
+                        </a>
+                    </li>
+                    {% elif current_user.role == 'ration_shop' %}
+                    <li>
+                        <a href="{{ url_for('main.ration_dashboard') }}" class="{% if request.endpoint == 'main.ration_dashboard' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2-fill"></i>
+                            <span data-en="Dashboard" data-ta="டாஷ்போர்டு">Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('main.ration_request_stock') }}" class="{% if request.endpoint == 'main.ration_request_stock' %}active{% endif %}">
+                            <i class="bi bi-cart-plus"></i>
+                            <span data-en="Request Stock" data-ta="பங்கு கோரிக்கை">Request Stock</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('main.ration_stock_requests') }}" class="{% if request.endpoint == 'main.ration_stock_requests' %}active{% endif %}">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span data-en="Your Requests" data-ta="உங்கள் கோரிக்கைகள்">Your Requests</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li>
+                        <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                            <i class="fas fa-chart-line"></i>
+                            <span data-en="Dashboard" data-ta="டாஷ்போர்டு">Dashboard</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="sidebar-divider"></li>
+                    <li>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-item">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span data-en="Logout" data-ta="வெளியேறு">Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none hide-on-pc">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        {% endif %}
+        
+        {% if not current_user.is_authenticated and 'register' not in request.endpoint %}
+        <!-- Sidebar for non-authenticated users (hidden on register pages) -->
+        <div class="sidebar-wrapper" id="mainSidebar">
+            <div class="sidebar-header">
+                <h5 class="sidebar-brand">
+                    <a href="{{ url_for('main.index') }}" class="brand-link">
+                        <i class="fas fa-link"></i>
+                        <span data-en="Aratro" data-ta="அராத்ரோ">Aratro</span>
+                    </a>
+                </h5>
+                <button type="button" class="btn-close-sidebar d-md-none" id="closeSidebarBtn">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="sidebar-menu">
+                <ul>
+                    <li>
+                        <a href="{{ url_for('auth.login') }}" class="{% if request.endpoint == 'auth.login' %}active{% endif %}">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span data-en="Login" data-ta="உள்நுழைக">Login</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.ration_login') }}" class="{% if request.endpoint == 'auth.ration_login' %}active{% endif %}">
+                            <i class="fas fa-store"></i>
+                            <span data-en="Ration Shop" data-ta="ரேஷன் கடை">Ration Shop</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.register') }}" class="{% if request.endpoint == 'auth.register' %}active{% endif %}">
+                            <i class="fas fa-user-plus"></i>
+                            <span data-en="Register" data-ta="பதிவு செய்க">Register</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none hide-on-pc">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        {% endif %}
+
+        <div class="content-area {% if (current_user.is_authenticated and current_user.role != 'farmer') or (not current_user.is_authenticated and 'register' not in request.endpoint) %}with-sidebar{% endif %}">
+            <!-- Language Toggle Button -->
+            <div class="language-toggle">
+                <button class="language-btn" id="languageToggle">
+                    <i class="bi bi-translate"></i>
+                    <span class="lang-text" data-lang="en">English</span>
+                    <span class="lang-text" data-lang="ta" style="display: none;">தமிழ்</span>
+                </button>
+            </div>
+            
+            {% if current_user.is_authenticated and current_user.role != 'farmer' %}
+            <div class="welcome-banner" id="welcomeBanner">
+                <div class="welcome-banner-content">
+                    {% if current_user.role == 'warehouse_manager' and user_warehouse %}
+                        <span data-en="Welcome back, {{ user_warehouse.manager_name }}!" data-ta="மீண்டும் வரவேற்கிறோம், {{ user_warehouse.manager_name }}!">Welcome back, {{ user_warehouse.manager_name }}!</span>
+                    {% elif current_user.role == 'admin' %}
+                        <span data-en="Welcome back, Administrator!" data-ta="மீண்டும் வரவேற்கிறோம், நிர்வாகி!">Welcome back, Administrator!</span>
+                    {% else %}
+                        <span data-en="Welcome back, {{ current_user.role|replace('_', ' ')|title }}!" data-ta="மீண்டும் வரவேற்கிறோம், {{ current_user.role|replace('_', ' ')|title }}!">Welcome back, {{ current_user.role|replace('_', ' ')|title }}!</span>
+                    {% endif %}
+                    <span class="banner-hint" data-en="(Click the X to dismiss)" data-ta="(மூட X ஐ கிளிக் செய்யவும்)">(Click the X to dismiss)</span>
+                </div>
+                <button type="button" class="close-banner-btn" aria-label="Close" id="closeBannerBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            {% endif %}
+
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-message {{ category }}" role="alert">
+                                <div class="flash-message-content">
+                                    {% if category == 'success' %}
+                                        <i class="fas fa-check-circle"></i>
+                                    {% elif category == 'error' %}
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    {% elif category == 'info' %}
+                                        <i class="fas fa-info-circle"></i>
+                                    {% elif category == 'warning' %}
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    {% endif %}
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button type="button" class="close-flash-btn" aria-label="Close">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script>
+        // All DOM interactions in a single DOMContentLoaded event
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded');
+            
+            // Sidebar toggle functionality
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainSidebar = document.getElementById('mainSidebar');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+            
+            if (sidebarToggle && mainSidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    mainSidebar.classList.add('show');
+                    document.body.classList.add('sidebar-open');
+                });
+            }
+            
+            if (closeSidebarBtn && mainSidebar) {
+                closeSidebarBtn.addEventListener('click', function() {
+                    mainSidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                });
+            }
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768 && 
+                    mainSidebar && 
+                    mainSidebar.classList.contains('show') && 
+                    !mainSidebar.contains(event.target) && 
+                    sidebarToggle && 
+                    !sidebarToggle.contains(event.target)) {
+                    mainSidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
+            
+            // Flash message close buttons
+            const closeButtons = document.querySelectorAll('.close-flash-btn');
+            closeButtons.forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const flashMessage = this.closest('.flash-message');
+                    flashMessage.style.animation = 'fadeOut 0.3s forwards';
+                    setTimeout(function() {
+                        flashMessage.remove();
+                    }, 300);
+                });
+            });
+            
+            // Auto-hide flash messages after 5 seconds
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(message) {
+                setTimeout(function() {
+                    if (document.body.contains(message)) {
+                        message.style.animation = 'fadeOut 0.3s forwards';
+                        setTimeout(function() {
+                            if (document.body.contains(message)) {
+                                message.remove();
+                            }
+                        }, 300);
+                    }
+                }, 5000);
+            });
+            
+            // Welcome banner close button
+            const welcomeBanner = document.getElementById('welcomeBanner');
+            const closeBannerBtn = document.getElementById('closeBannerBtn');
+            
+            if (welcomeBanner && closeBannerBtn) {
+                closeBannerBtn.addEventListener('click', function() {
+                    welcomeBanner.classList.add('hidden');
+                    // Store the banner state in localStorage
+                    localStorage.setItem('welcomeBannerClosed', 'true');
+                });
+                
+                // Check if the banner was previously closed
+                if (localStorage.getItem('welcomeBannerClosed') === 'true') {
+                    welcomeBanner.classList.add('hidden');
+                }
+            }
+            
+            // Language toggle functionality
+            const languageToggle = document.getElementById('languageToggle');
+            if (languageToggle) {
+                // Check if there's a saved language preference
+                const savedLanguage = localStorage.getItem('preferredLanguage') || 'en';
+                
+                // Initialize the button with the correct class
+                if (savedLanguage === 'en') {
+                    languageToggle.classList.add('lang-english');
+                } else {
+                    languageToggle.classList.add('lang-tamil');
+                }
+                
+                setLanguage(savedLanguage);
+                
+                languageToggle.addEventListener('click', function() {
+                    const currentLang = document.querySelector('.lang-text:not([style*="display: none"])').getAttribute('data-lang');
+                    const newLang = currentLang === 'en' ? 'ta' : 'en';
+                    setLanguage(newLang);
+                    localStorage.setItem('preferredLanguage', newLang);
+                });
+            }
+            
+            // Function to set the language
+            function setLanguage(lang) {
+                // Hide all language texts
+                document.querySelectorAll('.lang-text').forEach(el => {
+                    el.style.display = 'none';
+                });
+                
+                // Show the selected language text
+                const selectedLangEl = document.querySelector(`.lang-text[data-lang="${lang}"]`);
+                if (selectedLangEl) {
+                    selectedLangEl.style.display = 'inline-block';
+                }
+                
+                // Set the data-language attribute on the html element
+                document.documentElement.setAttribute('data-language', lang);
+                
+                // Update the language button appearance
+                const languageBtn = document.getElementById('languageToggle');
+                if (languageBtn) {
+                    if (lang === 'en') {
+                        languageBtn.classList.remove('lang-tamil');
+                        languageBtn.classList.add('lang-english');
+                    } else {
+                        languageBtn.classList.remove('lang-english');
+                        languageBtn.classList.add('lang-tamil');
+                    }
+                }
+                
+                // Translate the page content
+                translatePage(lang);
+                
+                // Make the current language available globally
+                window.currentLanguage = lang;
+            }
+            
+            // Function to translate the page content
+            function translatePage(lang) {
+                // Translate text content
+                const elements = document.querySelectorAll('[data-en], [data-ta]');
+                elements.forEach(el => {
+                    const translation = el.getAttribute(`data-${lang}`);
+                    if (translation) {
+                        // Save original text if not already saved
+                        if (!el.getAttribute('data-original')) {
+                            el.setAttribute('data-original', el.textContent);
+                        }
+                        el.textContent = translation;
+                    } else if (lang === 'en' && el.getAttribute('data-original')) {
+                        // Restore original text for English
+                        el.textContent = el.getAttribute('data-original');
+                    }
+                });
+                
+                // Translate elements with inline styles (special handling)
+                const inlineStyleElements = document.querySelectorAll('.dashboard-title, .dashboard-subtitle, .stats-title, .stats-value, .activity-title, .request-title, .request-subtitle, .stock-request-title, .warehouse-title, h1, h2, h3, h4, h5, h6');
+                inlineStyleElements.forEach(el => {
+                    // Skip if already has translation attributes
+                    if (el.hasAttribute('data-en') || el.hasAttribute('data-ta')) {
+                        return;
+                    }
+                    
+                    // Add translation attributes based on element content
+                    const content = el.textContent.trim();
+                    if (content) {
+                        // Create a mapping for common titles and their Tamil translations
+                        const commonTranslations = {
+                            'Dashboard': 'டாஷ்போர்டு',
+                            'Farmer Dashboard': 'விவசாயி டாஷ்போர்டு',
+                            'Welcome to your dashboard': 'உங்கள் டாஷ்போர்டுக்கு வரவேற்கிறோம்',
+                            'Recent Activity': 'சமீபத்திய செயல்பாடு',
+                            'Stats': 'புள்ளிவிவரங்கள்',
+                            'Total Requests': 'மொத்த கோரிக்கைகள்',
+                            'Pending': 'நிலுவையில்',
+                            'Approved': 'அங்கீகரிக்கப்பட்டது',
+                            'Rejected': 'நிராகரிக்கப்பட்டது',
+                            'Create Request': 'கோரிக்கையை உருவாக்கவும்',
+                            'Stock Request': 'பங்கு கோரிக்கை',
+                            'Available Warehouses': 'கிடைக்கக்கூடிய கிடங்குகள்',
+                            'Approved Requests': 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்',
+                            'Pending Requests': 'நிலுவையில் உள்ள கோரிக்கைகள்',
+                            'Rejected Requests': 'நிராகரிக்கப்பட்ட கோரிக்கைகள்',
+                            'Total Stock': 'மொத்த பங்கு',
+                            'Active Warehouses': 'செயலில் உள்ள கிடங்குகள்',
+                            'Completed': 'முடிக்கப்பட்டது'
+                        };
+                        
+                        // Check if content matches any common translation
+                        if (commonTranslations[content]) {
+                            el.setAttribute('data-en', content);
+                            el.setAttribute('data-ta', commonTranslations[content]);
+                            
+                            // Apply translation if current language is Tamil
+                            if (lang === 'ta') {
+                                el.setAttribute('data-original', content);
+                                el.textContent = commonTranslations[content];
+                            }
+                        }
+                    }
+                });
+                
+                // Translate input placeholders
+                const inputElements = document.querySelectorAll('input[data-placeholder-en], input[data-placeholder-ta], textarea[data-placeholder-en], textarea[data-placeholder-ta]');
+                inputElements.forEach(el => {
+                    const placeholderTranslation = el.getAttribute(`data-placeholder-${lang}`);
+                    if (placeholderTranslation) {
+                        // Save original placeholder if not already saved
+                        if (!el.getAttribute('data-original-placeholder')) {
+                            el.setAttribute('data-original-placeholder', el.getAttribute('placeholder') || '');
+                        }
+                        el.setAttribute('placeholder', placeholderTranslation);
+                    } else if (lang === 'en' && el.getAttribute('data-original-placeholder')) {
+                        // Restore original placeholder for English
+                        el.setAttribute('placeholder', el.getAttribute('data-original-placeholder'));
+                    }
+                });
+                
+                // Translate button values
+                const buttonElements = document.querySelectorAll('button[data-value-en], button[data-value-ta], input[type="submit"][data-value-en], input[type="submit"][data-value-ta], input[type="button"][data-value-en], input[type="button"][data-value-ta]');
+                buttonElements.forEach(el => {
+                    const valueTranslation = el.getAttribute(`data-value-${lang}`);
+                    if (valueTranslation) {
+                        // Save original value if not already saved
+                        if (!el.getAttribute('data-original-value')) {
+                            el.setAttribute('data-original-value', el.value || '');
+                        }
+                        el.value = valueTranslation;
+                    } else if (lang === 'en' && el.getAttribute('data-original-value')) {
+                        // Restore original value for English
+                        el.value = el.getAttribute('data-original-value');
+                    }
+                });
+                
+                // Translate title attributes
+                const elementsWithTitle = document.querySelectorAll('[data-title-en], [data-title-ta]');
+                elementsWithTitle.forEach(el => {
+                    const titleTranslation = el.getAttribute(`data-title-${lang}`);
+                    if (titleTranslation) {
+                        // Save original title if not already saved
+                        if (!el.getAttribute('data-original-title')) {
+                            el.setAttribute('data-original-title', el.getAttribute('title') || '');
+                        }
+                        el.setAttribute('title', titleTranslation);
+                    } else if (lang === 'en' && el.getAttribute('data-original-title')) {
+                        // Restore original title for English
+                        el.setAttribute('title', el.getAttribute('data-original-title'));
+                    }
+                });
+                
+                // Translate aria-label attributes
+                const elementsWithAriaLabel = document.querySelectorAll('[data-aria-label-en], [data-aria-label-ta]');
+                elementsWithAriaLabel.forEach(el => {
+                    const ariaLabelTranslation = el.getAttribute(`data-aria-label-${lang}`);
+                    if (ariaLabelTranslation) {
+                        // Save original aria-label if not already saved
+                        if (!el.getAttribute('data-original-aria-label')) {
+                            el.setAttribute('data-original-aria-label', el.getAttribute('aria-label') || '');
+                        }
+                        el.setAttribute('aria-label', ariaLabelTranslation);
+                    } else if (lang === 'en' && el.getAttribute('data-original-aria-label')) {
+                        // Restore original aria-label for English
+                        el.setAttribute('aria-label', el.getAttribute('data-original-aria-label'));
+                    }
+                });
+                
+                // Translate table headers and cells with specific attributes
+                const tableElements = document.querySelectorAll('th[data-header-en], th[data-header-ta], td[data-cell-en], td[data-cell-ta]');
+                tableElements.forEach(el => {
+                    let attributePrefix = el.tagName.toLowerCase() === 'th' ? 'data-header-' : 'data-cell-';
+                    const tableTranslation = el.getAttribute(`${attributePrefix}${lang}`);
+                    if (tableTranslation) {
+                        // Save original text if not already saved
+                        if (!el.getAttribute(`${attributePrefix}original`)) {
+                            el.setAttribute(`${attributePrefix}original`, el.textContent);
+                        }
+                        el.textContent = tableTranslation;
+                    }
+                });
+                
+                // Translate data attributes that might be used by JavaScript
+                const elementsWithDataAttr = document.querySelectorAll('[data-text-en], [data-text-ta], [data-label-en], [data-label-ta]');
+                elementsWithDataAttr.forEach(el => {
+                    // Handle data-text attributes
+                    if (el.hasAttribute(`data-text-${lang}`)) {
+                        const dataTextTranslation = el.getAttribute(`data-text-${lang}`);
+                        if (!el.hasAttribute('data-original-text')) {
+                            el.setAttribute('data-original-text', el.getAttribute('data-text') || '');
+                        }
+                        el.setAttribute('data-text', dataTextTranslation);
+                    }
+                    
+                    // Handle data-label attributes
+                    if (el.hasAttribute(`data-label-${lang}`)) {
+                        const dataLabelTranslation = el.getAttribute(`data-label-${lang}`);
+                        if (!el.hasAttribute('data-original-label')) {
+                            el.setAttribute('data-original-label', el.getAttribute('data-label') || '');
+                        }
+                        el.setAttribute('data-label', dataLabelTranslation);
+                    }
+                });
+                
+                // Translate card titles and content
+                const cardElements = document.querySelectorAll('.card-title[data-card-title-en], .card-title[data-card-title-ta], .card-text[data-card-text-en], .card-text[data-card-text-ta]');
+                cardElements.forEach(el => {
+                    let attributePrefix = el.classList.contains('card-title') ? 'data-card-title-' : 'data-card-text-';
+                    const cardTranslation = el.getAttribute(`${attributePrefix}${lang}`);
+                    if (cardTranslation) {
+                        // Save original text if not already saved
+                        if (!el.getAttribute(`${attributePrefix}original`)) {
+                            el.setAttribute(`${attributePrefix}original`, el.textContent);
+                        }
+                        el.textContent = cardTranslation;
+                    }
+                });
+                
+                // Translate stat cards and activity items
+                const statElements = document.querySelectorAll('.stat-label[data-stat-en], .stat-label[data-stat-ta], .stat-value[data-stat-value-en], .stat-value[data-stat-value-ta], .activity-text[data-activity-en], .activity-text[data-activity-ta]');
+                statElements.forEach(el => {
+                    let attributePrefix;
+                    if (el.classList.contains('stat-label')) {
+                        attributePrefix = 'data-stat-';
+                    } else if (el.classList.contains('stat-value')) {
+                        attributePrefix = 'data-stat-value-';
+                    } else if (el.classList.contains('activity-text')) {
+                        attributePrefix = 'data-activity-';
+                    }
+                    
+                    const statTranslation = el.getAttribute(`${attributePrefix}${lang}`);
+                    if (statTranslation) {
+                        // Save original text if not already saved
+                        if (!el.getAttribute(`${attributePrefix}original`)) {
+                            el.setAttribute(`${attributePrefix}original`, el.textContent);
+                        }
+                        el.textContent = statTranslation;
+                    }
+                });
+            }
+            
+            // Function to translate dynamic content
+            function translateDynamicContent(container) {
+                if (!window.currentLanguage || window.currentLanguage === 'en') return;
+                
+                const lang = window.currentLanguage;
+                
+                // Translate text content
+                const elements = container.querySelectorAll('[data-en], [data-ta]');
+                elements.forEach(el => {
+                    const translation = el.getAttribute(`data-${lang}`);
+                    if (translation) {
+                        // Save original text if not already saved
+                        if (!el.getAttribute('data-original')) {
+                            el.setAttribute('data-original', el.textContent);
+                        }
+                        el.textContent = translation;
+                    }
+                });
+                
+                // Translate elements with inline styles (special handling)
+                const inlineStyleElements = container.querySelectorAll('.dashboard-title, .dashboard-subtitle, .stats-title, .stats-value, .activity-title, .request-title, .request-subtitle, .stock-request-title, .warehouse-title, h1, h2, h3, h4, h5, h6');
+                inlineStyleElements.forEach(el => {
+                    // Skip if already has translation attributes
+                    if (el.hasAttribute('data-en') || el.hasAttribute('data-ta')) {
+                        return;
+                    }
+                    
+                    // Add translation attributes based on element content
+                    const content = el.textContent.trim();
+                    if (content) {
+                        // Create a mapping for common titles and their Tamil translations
+                        const commonTranslations = {
+                            'Dashboard': 'டாஷ்போர்டு',
+                            'Farmer Dashboard': 'விவசாயி டாஷ்போர்டு',
+                            'Welcome to your dashboard': 'உங்கள் டாஷ்போர்டுக்கு வரவேற்கிறோம்',
+                            'Recent Activity': 'சமீபத்திய செயல்பாடு',
+                            'Stats': 'புள்ளிவிவரங்கள்',
+                            'Total Requests': 'மொத்த கோரிக்கைகள்',
+                            'Pending': 'நிலுவையில்',
+                            'Approved': 'அங்கீகரிக்கப்பட்டது',
+                            'Rejected': 'நிராகரிக்கப்பட்டது',
+                            'Create Request': 'கோரிக்கையை உருவாக்கவும்',
+                            'Stock Request': 'பங்கு கோரிக்கை',
+                            'Available Warehouses': 'கிடைக்கக்கூடிய கிடங்குகள்',
+                            'Approved Requests': 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்',
+                            'Pending Requests': 'நிலுவையில் உள்ள கோரிக்கைகள்',
+                            'Rejected Requests': 'நிராகரிக்கப்பட்ட கோரிக்கைகள்',
+                            'Total Stock': 'மொத்த பங்கு',
+                            'Active Warehouses': 'செயலில் உள்ள கிடங்குகள்',
+                            'Completed': 'முடிக்கப்பட்டது'
+                        };
+                        
+                        // Check if content matches any common translation
+                        if (commonTranslations[content]) {
+                            el.setAttribute('data-en', content);
+                            el.setAttribute('data-ta', commonTranslations[content]);
+                            el.setAttribute('data-original', content);
+                            el.textContent = commonTranslations[content];
+                        }
+                    }
+                });
+                
+                // Translate input placeholders
+                const inputElements = container.querySelectorAll('input[data-placeholder-en], input[data-placeholder-ta], textarea[data-placeholder-en], textarea[data-placeholder-ta]');
+                inputElements.forEach(el => {
+                    const placeholderTranslation = el.getAttribute(`data-placeholder-${lang}`);
+                    if (placeholderTranslation) {
+                        // Save original placeholder if not already saved
+                        if (!el.getAttribute('data-original-placeholder')) {
+                            el.setAttribute('data-original-placeholder', el.getAttribute('placeholder') || '');
+                        }
+                        el.setAttribute('placeholder', placeholderTranslation);
+                    }
+                });
+                
+                // Translate button values
+                const buttonElements = container.querySelectorAll('button[data-value-en], button[data-value-ta], input[type="submit"][data-value-en], input[type="submit"][data-value-ta], input[type="button"][data-value-en], input[type="button"][data-value-ta]');
+                buttonElements.forEach(el => {
+                    const valueTranslation = el.getAttribute(`data-value-${lang}`);
+                    if (valueTranslation) {
+                        // Save original value if not already saved
+                        if (!el.getAttribute('data-original-value')) {
+                            el.setAttribute('data-original-value', el.value || '');
+                        }
+                        el.value = valueTranslation;
+                    }
+                });
+                
+                // Translate title attributes
+                const elementsWithTitle = container.querySelectorAll('[data-title-en], [data-title-ta]');
+                elementsWithTitle.forEach(el => {
+                    const titleTranslation = el.getAttribute(`data-title-${lang}`);
+                    if (titleTranslation) {
+                        // Save original title if not already saved
+                        if (!el.getAttribute('data-original-title')) {
+                            el.setAttribute('data-original-title', el.getAttribute('title') || '');
+                        }
+                        el.setAttribute('title', titleTranslation);
+                    }
+                });
+                
+                // Translate aria-label attributes
+                const elementsWithAriaLabel = container.querySelectorAll('[data-aria-label-en], [data-aria-label-ta]');
+                elementsWithAriaLabel.forEach(el => {
+                    const ariaLabelTranslation = el.getAttribute(`data-aria-label-${lang}`);
+                    if (ariaLabelTranslation) {
+                        // Save original aria-label if not already saved
+                        if (!el.getAttribute('data-original-aria-label')) {
+                            el.setAttribute('data-original-aria-label', el.getAttribute('aria-label') || '');
+                        }
+                        el.setAttribute('aria-label', ariaLabelTranslation);
+                    }
+                });
+                
+                // Translate table headers and cells with specific attributes
+                const tableElements = container.querySelectorAll('th[data-header-en], th[data-header-ta], td[data-cell-en], td[data-cell-ta]');
+                tableElements.forEach(el => {
+                    let attributePrefix = el.tagName.toLowerCase() === 'th' ? 'data-header-' : 'data-cell-';
+                    const tableTranslation = el.getAttribute(`${attributePrefix}${lang}`);
+                    if (tableTranslation) {
+                        // Save original text if not already saved
+                        if (!el.getAttribute(`${attributePrefix}original`)) {
+                            el.setAttribute(`${attributePrefix}original`, el.textContent);
+                        }
+                        el.textContent = tableTranslation;
+                    }
+                });
+                
+                // Translate data attributes that might be used by JavaScript
+                const elementsWithDataAttr = container.querySelectorAll('[data-text-en], [data-text-ta], [data-label-en], [data-label-ta]');
+                elementsWithDataAttr.forEach(el => {
+                    // Handle data-text attributes
+                    if (el.hasAttribute(`data-text-${lang}`)) {
+                        const dataTextTranslation = el.getAttribute(`data-text-${lang}`);
+                        if (!el.hasAttribute('data-original-text')) {
+                            el.setAttribute('data-original-text', el.getAttribute('data-text') || '');
+                        }
+                        el.setAttribute('data-text', dataTextTranslation);
+                    }
+                    
+                    // Handle data-label attributes
+                    if (el.hasAttribute(`data-label-${lang}`)) {
+                        const dataLabelTranslation = el.getAttribute(`data-label-${lang}`);
+                        if (!el.hasAttribute('data-original-label')) {
+                            el.setAttribute('data-original-label', el.getAttribute('data-label') || '');
+                        }
+                        el.setAttribute('data-label', dataLabelTranslation);
+                    }
+                });
+                
+                // Translate card titles and content
+                const cardElements = container.querySelectorAll('.card-title[data-card-title-en], .card-title[data-card-title-ta], .card-text[data-card-text-en], .card-text[data-card-text-ta]');
+                cardElements.forEach(el => {
+                    let attributePrefix = el.classList.contains('card-title') ? 'data-card-title-' : 'data-card-text-';
+                    const cardTranslation = el.getAttribute(`${attributePrefix}${lang}`);
+                    if (cardTranslation) {
+                        // Save original text if not already saved
+                        if (!el.getAttribute(`${attributePrefix}original`)) {
+                            el.setAttribute(`${attributePrefix}original`, el.textContent);
+                        }
+                        el.textContent = cardTranslation;
+                    }
+                });
+                
+                // Translate stat cards and activity items
+                const statElements = container.querySelectorAll('.stat-label[data-stat-en], .stat-label[data-stat-ta], .stat-value[data-stat-value-en], .stat-value[data-stat-value-ta], .activity-text[data-activity-en], .activity-text[data-activity-ta]');
+                statElements.forEach(el => {
+                    let attributePrefix;
+                    if (el.classList.contains('stat-label')) {
+                        attributePrefix = 'data-stat-';
+                    } else if (el.classList.contains('stat-value')) {
+                        attributePrefix = 'data-stat-value-';
+                    } else if (el.classList.contains('activity-text')) {
+                        attributePrefix = 'data-activity-';
+                    }
+                    
+                    const statTranslation = el.getAttribute(`${attributePrefix}${lang}`);
+                    if (statTranslation) {
+                        // Save original text if not already saved
+                        if (!el.getAttribute(`${attributePrefix}original`)) {
+                            el.setAttribute(`${attributePrefix}original`, el.textContent);
+                        }
+                        el.textContent = statTranslation;
+                    }
+                });
+            }
+            
+            // Make the translation function available globally
+            window.translateDynamicContent = translateDynamicContent;
+            
+            // Set up MutationObserver to automatically translate new content
+            if (window.MutationObserver) {
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                            // Check if Tamil is the current language
+                            const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+                            if (currentLang === 'ta') {
+                                translateDynamicContent();
+                                translateAllContent(); // Call our comprehensive translation function for new content
+                            }
+                        }
+                    });
+                });
+                
+                // Start observing the document with the configured parameters
+                observer.observe(document.body, { childList: true, subtree: true });
+                
+                // Language toggle functionality
+                const languageToggle = document.getElementById('language-toggle');
+                
+                if (languageToggle) {
+                    // Check if there's a stored language preference
+                    const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+                    
+                    // Set initial state based on stored preference
+                    if (currentLang === 'ta') {
+                        languageToggle.checked = true;
+                        translatePage();
+                        translateDynamicContent();
+                        translateAllContent(); // Call our comprehensive translation function
+                    }
+                    
+                    // Add event listener for language toggle
+                    languageToggle.addEventListener('change', function() {
+                        if (this.checked) {
+                            // Switch to Tamil
+                            localStorage.setItem('preferredLanguage', 'ta');
+                            translatePage();
+                            translateDynamicContent();
+                            translateAllContent(); // Call our comprehensive translation function
+                        } else {
+                            // Switch to English
+                            localStorage.setItem('preferredLanguage', 'en');
+                            restoreOriginalText();
+                            restoreDynamicContent();
+                        }
+                    });
+                }
+            }
+            
+            // Function to handle stats cards specifically
+            function translateStatsCards() {
+                const lang = window.currentLanguage || 'en';
+                if (lang === 'en') return;
+                
+                // Find all stats cards that might not have proper translation attributes
+                const statsCards = document.querySelectorAll('.stats-card, .stat-card');
+                statsCards.forEach(card => {
+                    // Find the label and value elements
+                    const labelEl = card.querySelector('.stats-label, .stat-label, .card-title, h3, h4, h5');
+                    const valueEl = card.querySelector('.stats-value, .stat-value, .card-text');
+                    
+                    if (labelEl && !labelEl.hasAttribute('data-ta')) {
+                        const labelText = labelEl.textContent.trim();
+                        // Common stats card labels
+                        const labelTranslations = {
+                            'Total Requests': 'மொத்த கோரிக்கைகள்',
+                            'Pending': 'நிலுவையில்',
+                            'Approved': 'அங்கீகரிக்கப்பட்டது',
+                            'Rejected': 'நிராகரிக்கப்பட்டது',
+                            'Total Stock': 'மொத்த பங்கு',
+                            'Active Warehouses': 'செயலில் உள்ள கிடங்குகள்',
+                            'Completed': 'முடிக்கப்பட்டது',
+                            'Pending Requests': 'நிலுவையில் உள்ள கோரிக்கைகள்',
+                            'Approved Requests': 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்',
+                            'Rejected Requests': 'நிராகரிக்கப்பட்ட கோரிக்கைகள்'
+                        };
+                        
+                        if (labelTranslations[labelText]) {
+                            labelEl.setAttribute('data-en', labelText);
+                            labelEl.setAttribute('data-ta', labelTranslations[labelText]);
+                            labelEl.setAttribute('data-original', labelText);
+                            labelEl.textContent = labelTranslations[labelText];
+                        }
+                    }
+                    
+                    // Handle value elements if they contain text (not just numbers)
+                    if (valueEl && !valueEl.hasAttribute('data-ta')) {
+                        const valueText = valueEl.textContent.trim();
+                        // Only translate if it contains text, not just numbers
+                        if (isNaN(valueText) && valueText.match(/[a-zA-Z]/)) {
+                            valueEl.setAttribute('data-en', valueText);
+                            // For simplicity, we'll keep the same value but add the attribute
+                            valueEl.setAttribute('data-ta', valueText);
+                            valueEl.setAttribute('data-original', valueText);
+                        }
+                    }
+                });
+            }
+            
+            // Function to handle farmer dashboard specific elements
+            function translateFarmerDashboard() {
+                const lang = window.currentLanguage || 'en';
+                if (lang === 'en') return;
+                
+                // Helper function to find elements by text content
+                function findElementsByText(selector, text) {
+                    const elements = document.querySelectorAll(selector);
+                    return Array.from(elements).filter(el => el.textContent.trim().includes(text));
+                }
+                
+                // Handle farmer dashboard title and subtitle
+                const dashboardTitle = document.querySelector('.farmer-dashboard-title, .dashboard-title') || 
+                                      findElementsByText('h1, h2, h3', 'Farmer Dashboard')[0];
+                if (dashboardTitle && !dashboardTitle.hasAttribute('data-ta')) {
+                    dashboardTitle.setAttribute('data-en', 'Farmer Dashboard');
+                    dashboardTitle.setAttribute('data-ta', 'விவசாயி டாஷ்போர்டு');
+                    dashboardTitle.setAttribute('data-original', dashboardTitle.textContent);
+                    dashboardTitle.textContent = 'விவசாயி டாஷ்போர்டு';
+                }
+                
+                const dashboardSubtitle = document.querySelector('.farmer-dashboard-subtitle, .dashboard-subtitle') || 
+                                         findElementsByText('p', 'Welcome to your dashboard')[0];
+                if (dashboardSubtitle && !dashboardSubtitle.hasAttribute('data-ta')) {
+                    dashboardSubtitle.setAttribute('data-en', 'Welcome to your dashboard');
+                    dashboardSubtitle.setAttribute('data-ta', 'உங்கள் டாஷ்போர்டுக்கு வரவேற்கிறோம்');
+                    dashboardSubtitle.setAttribute('data-original', dashboardSubtitle.textContent);
+                    dashboardSubtitle.textContent = 'உங்கள் டாஷ்போர்டுக்கு வரவேற்கிறோம்';
+                }
+                
+                // Handle create request page elements
+                const createRequestTitle = document.querySelector('.create-request-title') || 
+                                          findElementsByText('h1, h2, h3', 'Create Request')[0];
+                if (createRequestTitle && !createRequestTitle.hasAttribute('data-ta')) {
+                    createRequestTitle.setAttribute('data-en', 'Create Request');
+                    createRequestTitle.setAttribute('data-ta', 'கோரிக்கையை உருவாக்கவும்');
+                    createRequestTitle.setAttribute('data-original', createRequestTitle.textContent);
+                    createRequestTitle.textContent = 'கோரிக்கையை உருவாக்கவும்';
+                }
+                
+                const stockRequestTitle = document.querySelector('.stock-request-title') || 
+                                         findElementsByText('.card-title, h3, h4', 'Stock Request')[0];
+                if (stockRequestTitle && !stockRequestTitle.hasAttribute('data-ta')) {
+                    stockRequestTitle.setAttribute('data-en', 'Stock Request');
+                    stockRequestTitle.setAttribute('data-ta', 'பங்கு கோரிக்கை');
+                    stockRequestTitle.setAttribute('data-original', stockRequestTitle.textContent);
+                    stockRequestTitle.textContent = 'பங்கு கோரிக்கை';
+                }
+                
+                const warehouseTitle = document.querySelector('.warehouse-title') || 
+                                      findElementsByText('.card-title, h3, h4', 'Available Warehouses')[0];
+                if (warehouseTitle && !warehouseTitle.hasAttribute('data-ta')) {
+                    warehouseTitle.setAttribute('data-en', 'Available Warehouses');
+                    warehouseTitle.setAttribute('data-ta', 'கிடைக்கக்கூடிய கிடங்குகள்');
+                    warehouseTitle.setAttribute('data-original', warehouseTitle.textContent);
+                    warehouseTitle.textContent = 'கிடைக்கக்கூடிய கிடங்குகள்';
+                }
+                
+                // Handle request status pages
+                const approvedRequestsTitle = document.querySelector('.approved-requests-title') || 
+                                             findElementsByText('h1, h2, h3', 'Approved Requests')[0];
+                if (approvedRequestsTitle && !approvedRequestsTitle.hasAttribute('data-ta')) {
+                    approvedRequestsTitle.setAttribute('data-en', 'Approved Requests');
+                    approvedRequestsTitle.setAttribute('data-ta', 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்');
+                    approvedRequestsTitle.setAttribute('data-original', approvedRequestsTitle.textContent);
+                    approvedRequestsTitle.textContent = 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்';
+                }
+                
+                const pendingRequestsTitle = document.querySelector('.pending-requests-title') || 
+                                            findElementsByText('h1, h2, h3', 'Pending Requests')[0];
+                if (pendingRequestsTitle && !pendingRequestsTitle.hasAttribute('data-ta')) {
+                    pendingRequestsTitle.setAttribute('data-en', 'Pending Requests');
+                    pendingRequestsTitle.setAttribute('data-ta', 'நிலுவையில் உள்ள கோரிக்கைகள்');
+                    pendingRequestsTitle.setAttribute('data-original', pendingRequestsTitle.textContent);
+                    pendingRequestsTitle.textContent = 'நிலுவையில் உள்ள கோரிக்கைகள்';
+                }
+                
+                const rejectedRequestsTitle = document.querySelector('.rejected-requests-title') || 
+                                             findElementsByText('h1, h2, h3', 'Rejected Requests')[0];
+                if (rejectedRequestsTitle && !rejectedRequestsTitle.hasAttribute('data-ta')) {
+                    rejectedRequestsTitle.setAttribute('data-en', 'Rejected Requests');
+                    rejectedRequestsTitle.setAttribute('data-ta', 'நிராகரிக்கப்பட்ட கோரிக்கைகள்');
+                    rejectedRequestsTitle.setAttribute('data-original', rejectedRequestsTitle.textContent);
+                    rejectedRequestsTitle.textContent = 'நிராகரிக்கப்பட்ட கோரிக்கைகள்';
+                }
+                
+                // Handle recent activity section
+                const recentActivityTitle = document.querySelector('.recent-activity-title, .activity-title') || 
+                                           findElementsByText('.card-title, h3, h4', 'Recent Activity')[0];
+                if (recentActivityTitle && !recentActivityTitle.hasAttribute('data-ta')) {
+                    recentActivityTitle.setAttribute('data-en', 'Recent Activity');
+                    recentActivityTitle.setAttribute('data-ta', 'சமீபத்திய செயல்பாடு');
+                    recentActivityTitle.setAttribute('data-original', recentActivityTitle.textContent);
+                    recentActivityTitle.textContent = 'சமீபத்திய செயல்பாடு';
+                }
+                
+                // Handle activity items that might not have proper translation attributes
+                const activityItems = document.querySelectorAll('.activity-item');
+                activityItems.forEach(item => {
+                    const activityText = item.querySelector('.activity-text, .activity-content');
+                    if (activityText && !activityText.hasAttribute('data-ta')) {
+                        activityText.setAttribute('data-en', activityText.textContent);
+                        // For simplicity, we'll keep the same text but add the attribute
+                        activityText.setAttribute('data-ta', activityText.textContent);
+                        activityText.setAttribute('data-original', activityText.textContent);
+                    }
+                });
+                
+                // Handle farmer dashboard left navigation bar
+                const farmerNavItems = document.querySelectorAll('.sidebar-menu ul li a');
+                farmerNavItems.forEach(item => {
+                    if (item.hasAttribute('data-en') && item.hasAttribute('data-ta')) {
+                        return; // Skip if already has translation attributes
+                    }
+                    
+                    const itemText = item.textContent.trim();
+                    // Common navigation items in farmer dashboard
+                    const navTranslations = {
+                        'Dashboard': 'டாஷ்போர்டு',
+                        'Create Request': 'கோரிக்கையை உருவாக்கவும்',
+                        'Approved Requests': 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்',
+                        'Pending Requests': 'நிலுவையில் உள்ள கோரிக்கைகள்',
+                        'Rejected Requests': 'நிராகரிக்கப்பட்ட கோரிக்கைகள்',
+                        'Profile': 'சுயவிவரம்',
+                        'Logout': 'வெளியேறு',
+                        'Home': 'முகப்பு',
+                        'Settings': 'அமைப்புகள்'
+                    };
+                    
+                    if (navTranslations[itemText]) {
+                        item.setAttribute('data-en', itemText);
+                        item.setAttribute('data-ta', navTranslations[itemText]);
+                        item.setAttribute('data-original', itemText);
+                        item.textContent = navTranslations[itemText];
+                    }
+                });
+                
+                // Handle any span elements inside nav items that might need translation
+                const navSpans = document.querySelectorAll('.sidebar-menu ul li a span');
+                navSpans.forEach(span => {
+                    if (span.hasAttribute('data-en') && span.hasAttribute('data-ta')) {
+                        return; // Skip if already has translation attributes
+                    }
+                    
+                    const spanText = span.textContent.trim();
+                    // Common navigation items in farmer dashboard
+                    const navTranslations = {
+                        'Dashboard': 'டாஷ்போர்டு',
+                        'Create Request': 'கோரிக்கையை உருவாக்கவும்',
+                        'Approved Requests': 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்',
+                        'Pending Requests': 'நிலுவையில் உள்ள கோரிக்கைகள்',
+                        'Rejected Requests': 'நிராகரிக்கப்பட்ட கோரிக்கைகள்',
+                        'Profile': 'சுயவிவரம்',
+                        'Logout': 'வெளியேறு',
+                        'Home': 'முகப்பு',
+                        'Settings': 'அமைப்புகள்'
+                    };
+                    
+                    if (navTranslations[spanText]) {
+                        span.setAttribute('data-en', spanText);
+                        span.setAttribute('data-ta', navTranslations[spanText]);
+                        span.setAttribute('data-original', spanText);
+                        span.textContent = navTranslations[spanText];
+                    }
+                });
+            }
+            
+            // Function to translate all HTML content without explicit translation attributes
+            function translateAllContent() {
+                const lang = window.currentLanguage || 'en';
+                if (lang === 'en') return;
+                
+                // Common translations dictionary
+                const commonTranslations = {
+                    // Dashboard and navigation
+                    'Dashboard': 'டாஷ்போர்டு',
+                    'Farmer Dashboard': 'விவசாயி டாஷ்போர்டு',
+                    'Welcome back': 'மீண்டும் வரவேற்கிறோம்',
+                    'Welcome to your dashboard': 'உங்கள் டாஷ்போர்டுக்கு வரவேற்கிறோம்',
+                    'Logout': 'வெளியேறு',
+                    'Profile': 'சுயவிவரம்',
+                    'Settings': 'அமைப்புகள்',
+                    'Home': 'முகப்பு',
+                    
+                    // Stats and metrics
+                    'Total Requests': 'மொத்த கோரிக்கைகள்',
+                    'Warehouses': 'கிடங்குகள்',
+                    'Accepted Requests': 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்',
+                    'Pending Requests': 'நிலுவையில் உள்ள கோரிக்கைகள்',
+                    'Rejected Requests': 'நிராகரிக்கப்பட்ட கோரிக்கைகள்',
+                    'Total Stock': 'மொத்த பங்கு',
+                    'Active Warehouses': 'செயலில் உள்ள கிடங்குகள்',
+                    
+                    // Request related
+                    'Create Request': 'கோரிக்கையை உருவாக்கவும்',
+                    'Submit a new stock request to warehouses': 'கிடங்குகளுக்கு புதிய பங்கு கோரிக்கையை சமர்ப்பிக்கவும்',
+                    'New Stock Request': 'புதிய பங்கு கோரிக்கை',
+                    'Stock Request': 'பங்கு கோரிக்கை',
+                    'Available Warehouses': 'கிடைக்கக்கூடிய கிடங்குகள்',
+                    'Selected Warehouse': 'தேர்ந்தெடுக்கப்பட்ட கிடங்கு',
+                    'Please select a warehouse from the map or list below': 'வரைபடத்திலிருந்து அல்லது கீழே உள்ள பட்டியலிலிருந்து ஒரு கிடங்கைத் தேர்ந்தெடுக்கவும்',
+                    'Stock Type': 'பங்கு வகை',
+                    'Quantity (tons)': 'அளவு (டன்கள்)',
+                    'Additional Notes': 'கூடுதல் குறிப்புகள்',
+                    'Cancel': 'ரத்து செய்',
+                    'Submit Request': 'கோரிக்கையை சமர்ப்பிக்கவும்',
+                    'View requests that are awaiting approval': 'ஒப்புதலுக்காக காத்திருக்கும் கோரிக்கைகளைக் காண்க',
+                    'Pending Stock Requests': 'நிலுவையில் உள்ள பங்கு கோரிக்கைகள்',
+                    'Search requests...': 'கோரிக்கைகளைத் தேடுங்கள்...',
+                    'Quantity': 'அளவு',
+                    'Warehouse': 'கிடங்கு',
+                    'Pending': 'நிலுவையில்',
+                    'Cancel Request': 'கோரிக்கையை ரத்து செய்',
+                    'View Details': 'விவரங்களைக் காண்க',
+                    
+                    // Activity section
+                    'Recent Activity': 'சமீபத்திய செயல்பாடு',
+                    'Created a new request for': 'புதிய கோரிக்கையை உருவாக்கியது',
+                    'tons of': 'டன்கள்',
+                    'to': 'க்கு',
+                    'Wheat': 'கோதுமை',
+                    'Rice': 'அரிசி',
+                    
+                    // Common words
+                    'Submit': 'சமர்ப்பிக்க',
+                    'Save': 'சேமி',
+                    'Search': 'தேடு',
+                    'Welcome': 'வரவேற்கிறோம்',
+                    'Completed': 'முடிக்கப்பட்டது',
+                    'No data available': 'தரவு எதுவும் இல்லை',
+                    'Filter': 'வடிகட்டு',
+                    'Sort': 'வரிசைப்படுத்து',
+                    'View': 'காண்க',
+                    'Edit': 'திருத்து',
+                    'Delete': 'நீக்கு',
+                    'Confirm': 'உறுதிப்படுத்து',
+                    'Farmer': 'விவசாயி',
+                    
+                    // Specific elements from screenshots
+                    'Welcome back, Kk!': 'மீண்டும் வரவேற்கிறோம், Kk!',
+                    'Welcome back, Kk': 'மீண்டும் வரவேற்கிறோம், Kk',
+                    'Request Status': 'கோரிக்கை நிலை',
+                    'Accepted': 'ஏற்றுக்கொள்ளப்பட்டது',
+                    'Rejected': 'நிராகரிக்கப்பட்டது',
+                    'Create': 'உருவாக்கு',
+                    'Request': 'கோரிக்கை',
+                    'Status': 'நிலை',
+                    'Aratro': 'அராத்ரோ',
+                    'Kk': 'Kk',
+                    'Farmer': 'விவசாயி',
+                    'Recent': 'சமீபத்திய',
+                    'Activity': 'செயல்பாடு',
+                    'Created': 'உருவாக்கப்பட்டது',
+                    'new': 'புதிய',
+                    'request': 'கோரிக்கை',
+                    'for': 'க்காக',
+                    'tons': 'டன்கள்',
+                    'of': 'இன்',
+                    'to': 'க்கு',
+                    'KOk': 'KOk',
+                    'varHouse3': 'varHouse3',
+                    'Type': 'வகை',
+                    'Wheat': 'கோதுமை',
+                    'Rice': 'அரிசி',
+                    '-- Select Stock Type --': '-- பங்கு வகையைத் தேர்ந்தெடுக்கவும் --',
+                    'Search requests...': 'கோரிக்கைகளைத் தேடுங்கள்...',
+                    'View requests that are awaiting approval': 'ஒப்புதலுக்காக காத்திருக்கும் கோரிக்கைகளைக் காண்க',
+                    'Stock Type:': 'பங்கு வகை:',
+                    'Quantity:': 'அளவு:',
+                    'Warehouse:': 'கிடங்கு:',
+                    '2.0 tons': '2.0 டன்கள்',
+                    '1.0 tons': '1.0 டன்கள்'
+                };
+                
+                // Process all text nodes in the document
+                function walkTextNodes(node) {
+                    if (node.nodeType === 3) { // Text node
+                        const text = node.nodeValue.trim();
+                        if (text && text.length > 1) {
+                            // Check for exact matches
+                            if (commonTranslations[text]) {
+                                node.nodeValue = commonTranslations[text];
+                                return;
+                            }
+                            
+                            // Check for partial matches (for longer sentences)
+                            for (const [english, tamil] of Object.entries(commonTranslations)) {
+                                if (english.length > 5 && text.includes(english)) {
+                                    node.nodeValue = text.replace(english, tamil);
+                                    return;
+                                }
+                            }
+                            
+                            // Handle complex activity text with pattern matching
+                            if (text.includes('Created a new request for')) {
+                                let translatedText = text;
+                                translatedText = translatedText.replace('Created a new request for', commonTranslations['Created a new request for']);
+                                translatedText = translatedText.replace('tons of', commonTranslations['tons of']);
+                                translatedText = translatedText.replace('to', commonTranslations['to']);
+                                
+                                if (text.includes('Wheat')) {
+                                    translatedText = translatedText.replace('Wheat', commonTranslations['Wheat']);
+                                }
+                                if (text.includes('Rice')) {
+                                    translatedText = translatedText.replace('Rice', commonTranslations['Rice']);
+                                }
+                                
+                                node.nodeValue = translatedText;
+                                return;
+                            }
+                            
+                            // Handle dates and timestamps (leave them unchanged)
+                            if (text.match(/^\d{4}-\d{2}-\d{2}/) || text.match(/^\d{2}:\d{2}:\d{2}$/)) {
+                                return;
+                            }
+                        }
+                    } else if (node.nodeType === 1) { // Element node
+                        // Skip if the element already has translation attributes
+                        if (node.hasAttribute('data-en') || node.hasAttribute('data-ta')) {
+                            return;
+                        }
+                        
+                        // Skip script and style elements
+                        if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') {
+                            return;
+                        }
+                        
+                        // Process child nodes
+                        for (let i = 0; i < node.childNodes.length; i++) {
+                            walkTextNodes(node.childNodes[i]);
+                        }
+                    }
+                }
+                
+                // Start walking from the body
+                walkTextNodes(document.body);
+                
+                // Handle specific elements that might not be caught by the text node walker
+                
+                // Stats cards
+                document.querySelectorAll('.stat-card, .stats-card').forEach(card => {
+                    const labelEl = card.querySelector('.stat-label, .stats-label');
+                    if (labelEl && !labelEl.hasAttribute('data-ta')) {
+                        const text = labelEl.textContent.trim();
+                        if (commonTranslations[text]) {
+                            labelEl.textContent = commonTranslations[text];
+                        }
+                    }
+                });
+                
+                // Form labels and placeholders
+                document.querySelectorAll('label, input[placeholder], textarea[placeholder]').forEach(el => {
+                    if (el.tagName === 'LABEL') {
+                        const text = el.textContent.trim();
+                        if (commonTranslations[text]) {
+                            el.textContent = commonTranslations[text];
+                        }
+                    } else {
+                        const placeholder = el.getAttribute('placeholder');
+                        if (placeholder && commonTranslations[placeholder]) {
+                            el.setAttribute('placeholder', commonTranslations[placeholder]);
+                        }
+                    }
+                });
+                
+                // Buttons
+                document.querySelectorAll('button, input[type="submit"], input[type="button"]').forEach(el => {
+                    if (el.tagName === 'BUTTON') {
+                        const text = el.textContent.trim();
+                        if (commonTranslations[text]) {
+                            el.textContent = commonTranslations[text];
+                        }
+                    } else {
+                        const value = el.value;
+                        if (value && commonTranslations[value]) {
+                            el.value = commonTranslations[value];
+                        }
+                    }
+                });
+                
+                // Table headers and cells
+                document.querySelectorAll('th, td').forEach(el => {
+                    const text = el.textContent.trim();
+                    if (commonTranslations[text]) {
+                        el.textContent = commonTranslations[text];
+                    }
+                });
+                
+                // Headings
+                document.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(el => {
+                    const text = el.textContent.trim();
+                    if (commonTranslations[text]) {
+                        el.textContent = commonTranslations[text];
+                    }
+                });
+                
+                // Navigation items
+                document.querySelectorAll('.sidebar-menu a, .sidebar-menu span').forEach(el => {
+                    const text = el.textContent.trim();
+                    if (commonTranslations[text]) {
+                        el.textContent = commonTranslations[text];
+                    }
+                });
+                
+                // Activity items
+                document.querySelectorAll('.activity-item').forEach(item => {
+                    const activityText = item.querySelector('.activity-text, .activity-content');
+                    if (activityText) {
+                        const text = activityText.textContent.trim();
+                        // Handle complex activity text with pattern matching
+                        if (text.includes('Created a new request for')) {
+                            let translatedText = text;
+                            translatedText = translatedText.replace('Created a new request for', commonTranslations['Created a new request for']);
+                            translatedText = translatedText.replace('tons of', commonTranslations['tons of']);
+                            translatedText = translatedText.replace('to', commonTranslations['to']);
+                            
+                            if (text.includes('Wheat')) {
+                                translatedText = translatedText.replace('Wheat', commonTranslations['Wheat']);
+                            }
+                            if (text.includes('Rice')) {
+                                translatedText = translatedText.replace('Rice', commonTranslations['Rice']);
+                            }
+                            
+                            activityText.textContent = translatedText;
+                        }
+                    }
+                });
+                
+                // Special handling for specific elements from screenshots
+                
+                // Helper function to find elements by text content
+                function findElementsByText(selector, text) {
+                    const elements = document.querySelectorAll(selector);
+                    return Array.from(elements).filter(el => el.textContent.trim().includes(text));
+                }
+                
+                // Farmer dashboard title
+                const dashboardTitleElements = findElementsByText('h1', 'Dashboard');
+                if (dashboardTitleElements.length > 0 && !dashboardTitleElements[0].hasAttribute('data-ta')) {
+                    dashboardTitleElements[0].textContent = 'டாஷ்போர்டு';
+                }
+                
+                // Create Request page title
+                const createRequestTitleElements = findElementsByText('h1', 'Create Request');
+                if (createRequestTitleElements.length > 0 && !createRequestTitleElements[0].hasAttribute('data-ta')) {
+                    createRequestTitleElements[0].textContent = 'கோரிக்கையை உருவாக்கவும்';
+                }
+                
+                // Pending Requests page title
+                const pendingRequestsTitleElements = findElementsByText('h1', 'Pending Requests');
+                if (pendingRequestsTitleElements.length > 0 && !pendingRequestsTitleElements[0].hasAttribute('data-ta')) {
+                    pendingRequestsTitleElements[0].textContent = 'நிலுவையில் உள்ள கோரிக்கைகள்';
+                }
+                
+                // Stock Request card title
+                const stockRequestTitleElements = findElementsByText('.card-title, h3, h4', 'Stock Request');
+                if (stockRequestTitleElements.length > 0 && !stockRequestTitleElements[0].hasAttribute('data-ta')) {
+                    stockRequestTitleElements[0].textContent = 'பங்கு கோரிக்கை';
+                }
+                
+                // Recent Activity section
+                const recentActivityTitleElements = findElementsByText('h3, h4, .card-title', 'Recent Activity');
+                if (recentActivityTitleElements.length > 0 && !recentActivityTitleElements[0].hasAttribute('data-ta')) {
+                    recentActivityTitleElements[0].textContent = 'சமீபத்திய செயல்பாடு';
+                }
+                
+                // Stats cards in dashboard
+                document.querySelectorAll('.stat-card, .stats-card').forEach(card => {
+                    // Total Requests
+                    const totalRequestsElements = findElementsByText('.stat-label, div', 'Total Requests');
+                    totalRequestsElements.forEach(el => {
+                        if (card.contains(el)) {
+                            el.textContent = 'மொத்த கோரிக்கைகள்';
+                        }
+                    });
+                    
+                    // Warehouses
+                    const warehousesElements = findElementsByText('.stat-label, div', 'Warehouses');
+                    warehousesElements.forEach(el => {
+                        if (card.contains(el)) {
+                            el.textContent = 'கிடங்குகள்';
+                        }
+                    });
+                    
+                    // Accepted Requests
+                    const acceptedElements = findElementsByText('.stat-label, div', 'Accepted');
+                    acceptedElements.forEach(el => {
+                        if (card.contains(el)) {
+                            el.textContent = 'அங்கீகரிக்கப்பட்ட கோரிக்கைகள்';
+                        }
+                    });
+                    
+                    // Pending Requests
+                    const pendingElements = findElementsByText('.stat-label, div', 'Pending');
+                    pendingElements.forEach(el => {
+                        if (card.contains(el)) {
+                            el.textContent = 'நிலுவையில் உள்ள கோரிக்கைகள்';
+                        }
+                    });
+                });
+                
+                // Form elements in Create Request page
+                document.querySelectorAll('label, select, input, textarea').forEach(el => {
+                    // Stock Type
+                    if (el.textContent && el.textContent.includes('Stock Type') || 
+                        (el.tagName === 'LABEL' && el.getAttribute('for') && el.getAttribute('for').includes('stock_type'))) {
+                        el.textContent = 'பங்கு வகை';
+                    }
+                    
+                    // Quantity
+                    if (el.textContent && el.textContent.includes('Quantity') || 
+                        (el.tagName === 'LABEL' && el.getAttribute('for') && el.getAttribute('for').includes('quantity'))) {
+                        el.textContent = 'அளவு';
+                    }
+                    
+                    // Additional Notes
+                    if (el.textContent && el.textContent.includes('Additional Notes') || 
+                        (el.tagName === 'LABEL' && el.getAttribute('for') && el.getAttribute('for').includes('notes'))) {
+                        el.textContent = 'கூடுதல் குறிப்புகள்';
+                    }
+                    
+                    // Select Stock Type dropdown
+                    if (el.tagName === 'SELECT' && el.options && el.options[0] && 
+                        el.options[0].text && el.options[0].text.includes('Select Stock Type')) {
+                        el.options[0].text = '-- பங்கு வகையைத் தேர்ந்தெடுக்கவும் --';
+                    }
+                });
+                
+                // Buttons in Create Request page
+                document.querySelectorAll('button, input[type="submit"], input[type="button"]').forEach(el => {
+                    // Submit Request
+                    if ((el.textContent && el.textContent.includes('Submit Request')) || 
+                        (el.value && el.value.includes('Submit Request'))) {
+                        if (el.tagName === 'BUTTON') {
+                            el.textContent = 'கோரிக்கையை சமர்ப்பிக்கவும்';
+                        } else {
+                            el.value = 'கோரிக்கையை சமர்ப்பிக்கவும்';
+                        }
+                    }
+                    
+                    // Cancel
+                    if ((el.textContent && el.textContent.includes('Cancel') && !el.textContent.includes('Request')) || 
+                        (el.value && el.value.includes('Cancel') && !el.value.includes('Request'))) {
+                        if (el.tagName === 'BUTTON') {
+                            el.textContent = 'ரத்து செய்';
+                        } else {
+                            el.value = 'ரத்து செய்';
+                        }
+                    }
+                    
+                    // Cancel Request
+                    if ((el.textContent && el.textContent.includes('Cancel Request')) || 
+                        (el.value && el.value.includes('Cancel Request'))) {
+                        if (el.tagName === 'BUTTON') {
+                            el.textContent = 'கோரிக்கையை ரத்து செய்';
+                        } else {
+                            el.value = 'கோரிக்கையை ரத்து செய்';
+                        }
+                    }
+                    
+                    // View Details
+                    if ((el.textContent && el.textContent.includes('View Details')) || 
+                        (el.value && el.value.includes('View Details'))) {
+                        if (el.tagName === 'BUTTON') {
+                            el.textContent = 'விவரங்களைக் காண்க';
+                        } else {
+                            el.value = 'விவரங்களைக் காண்க';
+                        }
+                    }
+                });
+                
+                // Sidebar navigation items
+                document.querySelectorAll('.sidebar-nav a, .sidebar-menu a, .nav-item a').forEach(navItem => {
+                    const navText = navItem.textContent.trim();
+                    
+                    // Dashboard
+                    if (navText === 'Dashboard') {
+                        navItem.textContent = 'டாஷ்போர்டு';
+                    }
+                    
+                    // Create Request
+                    else if (navText === 'Create Request') {
+                        navItem.textContent = 'கோரிக்கையை உருவாக்கவும்';
+                    }
+                    
+                    // Pending Requests
+                    else if (navText === 'Pending Requests') {
+                        navItem.textContent = 'நிலுவையில் உள்ள கோரிக்கைகள்';
+                    }
+                    
+                    // My Requests
+                    else if (navText === 'My Requests') {
+                        navItem.textContent = 'எனது கோரிக்கைகள்';
+                    }
+                    
+                    // All Requests
+                    else if (navText === 'All Requests') {
+                        navItem.textContent = 'அனைத்து கோரிக்கைகளும்';
+                    }
+                    
+                    // Warehouses
+                    else if (navText === 'Warehouses') {
+                        navItem.textContent = 'கிடங்குகள்';
+                    }
+                    
+                    // Users
+                    else if (navText === 'Users') {
+                        navItem.textContent = 'பயனர்கள்';
+                    }
+                    
+                    // Settings
+                    else if (navText === 'Settings') {
+                        navItem.textContent = 'அமைப்புகள்';
+                    }
+                    
+                    // Logout
+                    else if (navText === 'Logout') {
+                        navItem.textContent = 'வெளியேறு';
+                    }
+                    
+                    // Profile
+                    else if (navText === 'Profile') {
+                        navItem.textContent = 'சுயவிவரம்';
+                    }
+                });
+                
+                // Table headers and content
+                document.querySelectorAll('table th, table td').forEach(cell => {
+                    const cellText = cell.textContent.trim();
+                    
+                    // Request ID
+                    if (cellText === 'Request ID') {
+                        cell.textContent = 'கோரிக்கை ஐடி';
+                    }
+                    
+                    // Stock Type
+                    else if (cellText === 'Stock Type') {
+                        cell.textContent = 'பங்கு வகை';
+                    }
+                    
+                    // Quantity
+                    else if (cellText === 'Quantity') {
+                        cell.textContent = 'அளவு';
+                    }
+                    
+                    // Status
+                    else if (cellText === 'Status') {
+                        cell.textContent = 'நிலை';
+                    }
+                    
+                    // Date
+                    else if (cellText === 'Date' || cellText === 'Request Date') {
+                        cell.textContent = 'தேதி';
+                    }
+                    
+                    // Actions
+                    else if (cellText === 'Actions') {
+                        cell.textContent = 'செயல்கள்';
+                    }
+                    
+                    // Farmer
+                    else if (cellText === 'Farmer') {
+                        cell.textContent = 'விவசாயி';
+                    }
+                    
+                    // Warehouse
+                    else if (cellText === 'Warehouse') {
+                        cell.textContent = 'கிடங்கு';
+                    }
+                    
+                    // Notes
+                    else if (cellText === 'Notes' || cellText === 'Additional Notes') {
+                        cell.textContent = 'குறிப்புகள்';
+                    }
+                    
+                    // Status values in table cells
+                    else if (cellText === 'Pending') {
+                        cell.textContent = 'நிலுவையில் உள்ளது';
+                    }
+                    else if (cellText === 'Accepted') {
+                        cell.textContent = 'ஏற்றுக்கொள்ளப்பட்டது';
+                    }
+                    else if (cellText === 'Rejected') {
+                        cell.textContent = 'நிராகரிக்கப்பட்டது';
+                    }
+                    else if (cellText === 'Completed') {
+                        cell.textContent = 'முடிக்கப்பட்டது';
+                    }
+                    
+                    // Stock types in table cells
+                    else if (cellText === 'Wheat') {
+                        cell.textContent = 'கோதுமை';
+                    }
+                    else if (cellText === 'Rice') {
+                        cell.textContent = 'அரிசி';
+                    }
+                    else if (cellText === 'Corn') {
+                        cell.textContent = 'மக்காச்சோளம்';
+                    }
+                    else if (cellText === 'Barley') {
+                        cell.textContent = 'பார்லி';
+                    }
+                });
+                
+                // Page headers and section titles
+                document.querySelectorAll('h1, h2, h3, h4, h5, h6, .card-title, .section-title').forEach(header => {
+                    const headerText = header.textContent.trim();
+                    
+                    // Request Details
+                    if (headerText === 'Request Details') {
+                        header.textContent = 'கோரிக்கை விவரங்கள்';
+                    }
+                    
+                    // Recent Activity
+                    else if (headerText === 'Recent Activity') {
+                        header.textContent = 'சமீபத்திய செயல்பாடு';
+                    }
+                    
+                    // Stock Requests
+                    else if (headerText === 'Stock Requests') {
+                        header.textContent = 'பங்கு கோரிக்கைகள்';
+                    }
+                    
+                    // Warehouse Information
+                    else if (headerText === 'Warehouse Information') {
+                        header.textContent = 'கிடங்கு தகவல்';
+                    }
+                    
+                    // User Information
+                    else if (headerText === 'User Information') {
+                        header.textContent = 'பயனர் தகவல்';
+                    }
+                });
+                
+                // Welcome messages
+                document.querySelectorAll('.welcome-message, .greeting, .dashboard-welcome').forEach(element => {
+                    const text = element.textContent.trim();
+                    
+                    // Welcome back pattern
+                    if (text.startsWith('Welcome back')) {
+                        const nameMatch = text.match(/Welcome back,\s+(.+)!/);
+                        if (nameMatch && nameMatch[1]) {
+                            element.textContent = `மீண்டும் வரவேற்கிறோம், ${nameMatch[1]}!`;
+                        } else {
+                            element.textContent = 'மீண்டும் வரவேற்கிறோம்!';
+                        }
+                    }
+                    
+                    // Welcome pattern
+                    else if (text.startsWith('Welcome')) {
+                        const nameMatch = text.match(/Welcome,\s+(.+)!/);
+                        if (nameMatch && nameMatch[1]) {
+                            element.textContent = `வரவேற்கிறோம், ${nameMatch[1]}!`;
+                        } else {
+                            element.textContent = 'வரவேற்கிறோம்!';
+                        }
+                    }
+                    
+                    // Good morning/afternoon/evening pattern
+                    else if (text.startsWith('Good morning') || text.startsWith('Good afternoon') || text.startsWith('Good evening')) {
+                        const nameMatch = text.match(/(Good (?:morning|afternoon|evening)),\s+(.+)!/);
+                        if (nameMatch && nameMatch[2]) {
+                            const timeOfDay = nameMatch[1];
+                            const name = nameMatch[2];
+                            
+                            let tamilGreeting = '';
+                            if (timeOfDay === 'Good morning') {
+                                tamilGreeting = `காலை வணக்கம், ${name}!`;
+                            } else if (timeOfDay === 'Good afternoon') {
+                                tamilGreeting = `மதிய வணக்கம், ${name}!`;
+                            } else if (timeOfDay === 'Good evening') {
+                                tamilGreeting = `மாலை வணக்கம், ${name}!`;
+                            }
+                            
+                            element.textContent = tamilGreeting;
+                        }
+                    }
+                });
+                
+                // Activity items
+                document.querySelectorAll('.activity-item, .timeline-item, .notification-item').forEach(item => {
+                    const text = item.textContent.trim();
+                    
+                    // Created a new request pattern
+                    if (text.includes('Created a new request for')) {
+                        const match = text.match(/Created a new request for (\d+) (kg|tons) of ([A-Za-z]+)/);
+                        if (match) {
+                            const quantity = match[1];
+                            const unit = match[2];
+                            const stockType = match[3];
+                            
+                            let tamilStockType = stockType;
+                            if (stockType === 'Wheat') tamilStockType = 'கோதுமை';
+                            else if (stockType === 'Rice') tamilStockType = 'அரிசி';
+                            else if (stockType === 'Corn') tamilStockType = 'மக்காச்சோளம்';
+                            else if (stockType === 'Barley') tamilStockType = 'பார்லி';
+                            
+                            let tamilUnit = unit;
+                            if (unit === 'kg') tamilUnit = 'கிலோ';
+                            else if (unit === 'tons') tamilUnit = 'டன்கள்';
+                            
+                            item.textContent = text.replace(
+                                `Created a new request for ${quantity} ${unit} of ${stockType}`,
+                                `${quantity} ${tamilUnit} ${tamilStockType} க்கான புதிய கோரிக்கையை உருவாக்கினார்`
+                            );
+                        }
+                    }
+                    
+                    // Request accepted pattern
+                    else if (text.includes('Request accepted')) {
+                        const match = text.match(/Request (\w+) accepted/);
+                        if (match && match[1]) {
+                            const requestId = match[1];
+                            item.textContent = text.replace(
+                                `Request ${requestId} accepted`,
+                                `கோரிக்கை ${requestId} ஏற்றுக்கொள்ளப்பட்டது`
+                            );
+                        } else {
+                            item.textContent = text.replace(
+                                'Request accepted',
+                                'கோரிக்கை ஏற்றுக்கொள்ளப்பட்டது'
+                            );
+                        }
+                    }
+                    
+                    // Request rejected pattern
+                    else if (text.includes('Request rejected')) {
+                        const match = text.match(/Request (\w+) rejected/);
+                        if (match && match[1]) {
+                            const requestId = match[1];
+                            item.textContent = text.replace(
+                                `Request ${requestId} rejected`,
+                                `கோரிக்கை ${requestId} நிராகரிக்கப்பட்டது`
+                            );
+                        } else {
+                            item.textContent = text.replace(
+                                'Request rejected',
+                                'கோரிக்கை நிராகரிக்கப்பட்டது'
+                            );
+                        }
+                    }
+                    
+                    // Request completed pattern
+                    else if (text.includes('Request completed')) {
+                        const match = text.match(/Request (\w+) completed/);
+                        if (match && match[1]) {
+                            const requestId = match[1];
+                            item.textContent = text.replace(
+                                `Request ${requestId} completed`,
+                                `கோரிக்கை ${requestId} முடிக்கப்பட்டது`
+                            );
+                        } else {
+                            item.textContent = text.replace(
+                                'Request completed',
+                                'கோரிக்கை முடிக்கப்பட்டது'
+                            );
+                        }
+                    }
+                    
+                    // Request cancelled pattern
+                    else if (text.includes('Request cancelled')) {
+                        const match = text.match(/Request (\w+) cancelled/);
+                        if (match && match[1]) {
+                            const requestId = match[1];
+                            item.textContent = text.replace(
+                                `Request ${requestId} cancelled`,
+                                `கோரிக்கை ${requestId} ரத்து செய்யப்பட்டது`
+                            );
+                        } else {
+                            item.textContent = text.replace(
+                                'Request cancelled',
+                                'கோரிக்கை ரத்து செய்யப்பட்டது'
+                            );
+                        }
+                    }
+                });
+            }
+            
+            // Call all translation functions when language changes
+            document.addEventListener('DOMContentLoaded', function() {
+                // Language toggle functionality
+                const languageToggleCheckbox = document.getElementById('language-toggle');
+                
+                if (languageToggleCheckbox) {
+                    // Check if there's a stored language preference
+                    const currentLang = localStorage.getItem('preferredLanguage') || 'en';
+                    
+                    // Set initial state based on stored preference
+                    if (currentLang === 'ta') {
+                        languageToggleCheckbox.checked = true;
+                        translatePage();
+                        translateDynamicContent();
+                        translateAllContent(); // Call our comprehensive translation function
+                    }
+                    
+                    // Add event listener for language toggle
+                    languageToggleCheckbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            // Switch to Tamil
+                            localStorage.setItem('preferredLanguage', 'ta');
+                            translatePage();
+                            translateDynamicContent();
+                            translateAllContent(); // Call our comprehensive translation function
+                        } else {
+                            // Switch to English
+                            localStorage.setItem('preferredLanguage', 'en');
+                            restoreOriginalText();
+                            restoreDynamicContent();
+                        }
+                    });
+                }
+                
+                // Also call translation functions on initial page load if Tamil is the preferred language
+                const preferredLanguage = localStorage.getItem('preferredLanguage');
+                if (preferredLanguage === 'ta') {
+                    setTimeout(function() {
+                        translateStatsCards();
+                        translateFarmerDashboard();
+                        translateAllContent();
+                    }, 100);
+                }
+            });
+        </script>
+        
+        {% block scripts %}{% endblock %}
+    </body>
+</html>

@@ -68,6 +68,11 @@ class BlockchainManager:
         # Use Ganache for local development
         ganache_url = os.environ.get('BLOCKCHAIN_URL', 'http://127.0.0.1:7545')
         
+        # Log the blockchain URL being used
+        logger.info(f"Attempting to connect to blockchain at {ganache_url}")
+        logger.info("To use a different blockchain URL, set the BLOCKCHAIN_URL environment variable")
+        logger.info("For network access, make sure the blockchain is accessible from other machines")
+        
         try:
             self.w3 = Web3(Web3.HTTPProvider(ganache_url))
             # Add middleware for compatibility with PoA chains like Ganache
@@ -749,7 +754,6 @@ class BlockchainManager:
                     'error': str(e)
                 }
             
-            # Sign and send transaction
             try:
                 private_key = os.environ.get('PRIVATE_KEY')
                 if not private_key:

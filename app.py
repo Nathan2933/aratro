@@ -270,5 +270,13 @@ def handler(request):
 
 # Keep the app.run() for local development
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Run the Aratro application server')
+    parser.add_argument('--host', default='0.0.0.0', help='Host to bind the server to')
+    parser.add_argument('--port', type=int, default=int(os.environ.get('PORT', 8080)), help='Port to bind the server to')
+    args = parser.parse_args()
+    
+    print(f"Starting server on http://{args.host}:{args.port}")
+    print(f"To access from another machine, use your computer's IP address instead of {args.host}")
+    
     init_db()  # Initialize database for local development
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+    app.run(host=args.host, port=args.port, debug=(not IS_PRODUCTION))

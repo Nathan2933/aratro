@@ -452,16 +452,37 @@ document.addEventListener('DOMContentLoaded', function() {
         const alertsContainer = document.getElementById('alerts-container');
         const alertDiv = document.createElement('div');
         alertDiv.className = `alert alert-${type}`;
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" onclick="this.parentElement.remove()">×</button>
-        `;
+        
+        // Create the alert content with close button
+        const alertContent = document.createElement('div');
+        alertContent.className = 'd-flex justify-content-between align-items-start';
+        
+        // Message container that can contain HTML
+        const messageContainer = document.createElement('div');
+        messageContainer.innerHTML = message;
+        
+        // Close button
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn-close ms-3';
+        closeButton.setAttribute('aria-label', 'Close');
+        closeButton.onclick = function() {
+            alertDiv.remove();
+        };
+        
+        // Assemble the alert
+        alertContent.appendChild(messageContainer);
+        alertContent.appendChild(closeButton);
+        alertDiv.appendChild(alertContent);
+        
         alertsContainer.appendChild(alertDiv);
         
-        // Auto-remove after 5 seconds
+        // Auto-remove after 8 seconds (longer for blockchain notifications)
         setTimeout(() => {
-            alertDiv.remove();
-        }, 5000);
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 8000);
     };
     
     // Stock request form submission
@@ -493,16 +514,27 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
             
             if (data.success) {
-                // Show success message
-                showAlert('Stock request submitted successfully', 'success');
+                // Create a success notification with blockchain status
+                let successMessage = 'Stock request submitted successfully to the database.';
+                
+                // Add blockchain status information
+                if (data.blockchain === true) {
+                    successMessage += ' <div class="mt-2"><span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Recorded on Blockchain</span></div>';
+                } else if (data.blockchain === false) {
+                    successMessage += ' <div class="mt-2"><span class="badge bg-warning"><i class="fas fa-exclamation-triangle me-1"></i> Pending Blockchain Confirmation</span>' +
+                                     '<small class="d-block mt-1 text-muted">Your request will be automatically recorded on the blockchain soon.</small></div>';
+                }
+                
+                // Show detailed success message
+                showAlert(successMessage, 'success');
                 
                 // Reset form
                 stockRequestForm.reset();
                 
-                // Redirect to dashboard after a short delay
+                // Redirect to dashboard after a brief delay to show the success message
                 setTimeout(() => {
-                    window.location.href = "{{ url_for('main.ration_dashboard') }}";
-                }, 1500);
+                    window.location.href = "{{ url_for('main.ration_stock_requests') }}";
+                }, 1000);
             } else {
                 // Show error message
                 showAlert(data.message || 'Failed to submit request', 'error');

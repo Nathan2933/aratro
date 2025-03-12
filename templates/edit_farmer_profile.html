@@ -1,0 +1,519 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid farmer-dashboard p-0">
+    <div class="row g-0">
+        <!-- Sidebar -->
+        <div class="col-md-3 col-lg-2 d-md-block sidebar-wrapper" id="farmerSidebar">
+            <div class="position-sticky">
+                <div class="sidebar-header">
+                    <h5 class="sidebar-brand">
+                        <span class="company-name" style="font-size: 1.5rem; font-weight: 600; color: white; text-align: center; width: 100%;">
+                            <i class="bi bi-link-45deg" style="font-size: 1.8rem; margin-right: 5px;"></i>
+                            Aratro
+                        </span>
+                    </h5>
+                </div>
+                <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                    <div class="user-avatar">
+                        <i class="bi bi-person-circle" style="font-size: 2.5rem;"></i>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{ farmer.name }}</span>
+                        <span class="user-role">Farmer</span>
+                    </div>
+                </div>
+                
+                <ul class="nav flex-column sidebar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.farmer_home') }}">
+                            <i class="bi bi-grid-1x2-fill me-2"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.create_request_page') }}">
+                            <i class="bi bi-file-earmark-plus-fill me-2"></i>
+                            <span>Create Request</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.view_warehouse_announcements') }}">
+                            <i class="bi bi-megaphone-fill me-2"></i>
+                            <span>Warehouse Announcements</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-heading">Request Status</li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.accepted_requests') }}">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            <span>Accepted Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.pending_requests') }}">
+                            <i class="bi bi-clock-fill me-2"></i>
+                            <span>Pending Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('farmer_dashboard.rejected_requests') }}">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            <span>Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('auth.edit_profile') }}">
+                            <i class="bi bi-person-fill-gear me-2"></i>
+                            <span>Edit Profile</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('auth.change_password') }}">
+                            <i class="bi bi-key-fill me-2"></i>
+                            <span>Change Password</span>
+                        </a>
+                    </li>
+                    
+                    <li class="nav-item">
+                        <a class="nav-link text-danger" href="{{ url_for('auth.logout') }}">
+                            <i class="bi bi-box-arrow-right me-2"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="col-md-9 col-lg-10 main-content">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Edit Profile</h1>
+                    <p class="dashboard-subtitle">Update your personal information</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Personal Information</h2>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('auth.edit_farmer_profile') }}" method="POST">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="name" class="form-label">Full Name</label>
+                                    <input type="text" id="name" name="name" class="form-control" value="{{ farmer.name }}" required>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="phone_number" class="form-label">Phone Number</label>
+                                    <input type="text" id="phone_number" class="form-control" value="{{ farmer.phone_number }}" disabled>
+                                    <small class="text-muted">Phone number cannot be changed</small>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Address</label>
+                                <textarea id="address" name="address" class="form-control" rows="3" required>{{ farmer.address }}</textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="aadhar_number" class="form-label">Aadhar Number</label>
+                                <input type="text" id="aadhar_number" class="form-control" value="{{ farmer.aadhar_number }}" disabled>
+                                <small class="text-muted">Aadhar number cannot be changed</small>
+                            </div>
+                            
+                            <div class="form-actions d-flex gap-2 mt-4">
+                                <a href="{{ url_for('farmer_dashboard.farmer_home') }}" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* Dashboard Layout */
+    .farmer-dashboard {
+        background-color: #f5f7fa;
+        position: relative;
+        overflow-x: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .main-content {
+        padding: 2rem;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .content-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        margin-bottom: 2rem;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dashboard-title::after {
+        content: '';
+        position: absolute;
+        bottom: -0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3rem;
+        height: 0.25rem;
+        background: var(--primary-color);
+        border-radius: 0.125rem;
+    }
+    
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    /* Card Styles */
+    .card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        width: 100%;
+        margin-bottom: 2rem;
+    }
+    
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        background-color: #f8f9fa;
+    }
+    
+    .card-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    /* Form Styles */
+    .form-label {
+        font-weight: 500;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        padding: 0.625rem 0.75rem;
+        font-size: 0.875rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-control:focus {
+        border-color: #4a6fdc;
+        box-shadow: 0 0 0 3px rgba(74, 111, 220, 0.1);
+    }
+    
+    .form-control:disabled {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+    
+    .text-muted {
+        color: #6c757d;
+        font-size: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background-color: #4a6fdc;
+        border-color: #4a6fdc;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #3a5fc9;
+        border-color: #3a5fc9;
+    }
+    
+    .btn-outline-secondary {
+        color: #6c757d;
+        border-color: #6c757d;
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    /* Sidebar Styles */
+    .sidebar-wrapper {
+        background-color: #2d6b45;
+        color: white;
+        height: 100vh;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 250px;
+        z-index: 1000;
+        transition: all 0.3s;
+        overflow-y: auto;
+    }
+    
+    .sidebar-brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        text-align: center;
+        padding: 10px 0;
+    }
+    
+    .sidebar-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-info {
+        text-align: center;
+    }
+    
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background-color: rgba(255, 255, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 10px;
+        color: #e2e8f0;
+    }
+    
+    .user-details {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+    }
+    
+    .user-name {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #e2e8f0;
+        margin-bottom: 2px;
+        text-align: center;
+    }
+    
+    .user-role {
+        font-size: 0.8rem;
+        color: #a0aec0;
+        text-align: center;
+    }
+    
+    /* Nav Styles */
+    .sidebar-nav {
+        list-style-type: none;
+        padding-left: 0;
+        margin-top: 1.5rem;
+    }
+    
+    .nav-item {
+        margin-bottom: 0.25rem;
+    }
+    
+    .nav-link {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        transition: all 0.2s;
+        border-radius: 0.25rem;
+        margin: 0 0.5rem;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+    }
+    
+    .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        font-weight: 500;
+    }
+    
+    .nav-heading {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: rgba(255, 255, 255, 0.5);
+        padding: 0.75rem 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .sidebar-divider {
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.1);
+        margin: 1rem 0.5rem;
+    }
+    
+    /* Mobile Sidebar Toggle */
+    .mobile-sidebar-toggle {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1010;
+        display: none;
+    }
+    
+    .btn-sidebar-toggle {
+        background-color: #2d6b45;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .sidebar-wrapper {
+            transform: translateX(-100%);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .sidebar-wrapper.show {
+            transform: translateX(0);
+        }
+        
+        .mobile-sidebar-toggle {
+            display: block;
+        }
+        
+        .main-content {
+            padding: 1rem;
+            margin-left: 0 !important;
+            width: 100%;
+        }
+        
+        .col-md-9.col-lg-10.main-content {
+            flex: 0 0 100%;
+            max-width: 100%;
+        }
+    }
+    
+    @media (min-width: 769px) {
+        .col-md-9.col-lg-10.main-content {
+            margin-left: 250px;
+            width: calc(100% - 250px);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Mobile sidebar toggle
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const sidebar = document.getElementById('farmerSidebar');
+        
+        if (sidebarToggle && sidebar) {
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('show');
+            });
+            
+            // Close sidebar when clicking outside
+            document.addEventListener('click', function(event) {
+                const isClickInsideSidebar = sidebar.contains(event.target);
+                const isClickOnToggle = sidebarToggle.contains(event.target);
+                
+                if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('show')) {
+                    sidebar.classList.remove('show');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 

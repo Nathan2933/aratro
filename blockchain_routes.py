@@ -593,10 +593,8 @@ def view_transaction(tx_hash):
         
         if db_tx:
             logger.info(f"Transaction details: ID={db_tx.id}, Type={db_tx.tx_type}, Entity={db_tx.entity_type}, EntityID={db_tx.entity_id}, Status={db_tx.status}")
-            
             # Prepare entity details if we have the transaction in our database
             entity_query_time = datetime.utcnow()
-            
             # Get entity details with a single query based on entity type
             if db_tx.entity_type == 'stock':
                 entity = Stock.query.get(db_tx.entity_id)
@@ -621,8 +619,6 @@ def view_transaction(tx_hash):
                     logger.info(f"StockRequest entity found: ID={entity.id}, Status={entity.status}")
             
             logger.info(f"Entity query completed - Query time: {(datetime.utcnow() - entity_query_time).total_seconds():.2f}s")
-            
-            # Create basic transaction data from database
             tx_data = {
                 'hash': tx_hash,
                 'blockNumber': 'Unknown',

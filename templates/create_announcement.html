@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Create Announcement{% endblock %}
+
+{% block content %}
+<div class="container-fluid warehouse-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Create Announcement</h1>
+                    <p class="dashboard-subtitle">Create a new announcement for farmers</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>New Announcement</h2>
+                    </div>
+                    <div class="card-body">
+                        <form id="announcementForm" action="{{ url_for('warehouse_dashboard.create_announcement') }}" method="POST">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="stockType" class="form-label">Stock Type</label>
+                                        <select id="stockType" name="stock_type" class="form-select" required>
+                                            <option value="" selected disabled>Select Stock Type</option>
+                                            <option value="Rice">Rice</option>
+                                            <option value="Wheat">Wheat</option>
+                                            <option value="Maize">Maize</option>
+                                            <option value="Pulses">Pulses</option>
+                                            <option value="Vegetables">Vegetables</option>
+                                            <option value="Fruits">Fruits</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3" id="otherStockTypeGroup" style="display: none;">
+                                        <label for="otherStockType" class="form-label">Specify Stock Type</label>
+                                        <input type="text" id="otherStockType" name="other_stock_type" class="form-control">
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="quantity" class="form-label">Quantity Needed (tons)</label>
+                                        <input type="number" id="quantity" name="quantity" class="form-control" step="0.01" min="0.01" required>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="pricePerTon" class="form-label">Price Per Ton (₹)</label>
+                                        <input type="number" id="pricePerTon" name="price_per_ton" class="form-control" step="0.01" min="0.01" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="form-group mb-3">
+                                        <label for="expiryDate" class="form-label">Expiry Date</label>
+                                        <input type="date" id="expiryDate" name="expiry_date" class="form-control" required>
+                                    </div>
+                                    
+                                    <div class="form-group mb-3">
+                                        <label for="description" class="form-label">Description</label>
+                                        <textarea id="description" name="description" class="form-control" rows="5"></textarea>
+                                        <small class="form-text text-muted">Provide additional details about your requirements, quality standards, etc.</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-actions d-flex gap-2 mt-4">
+                                <a href="{{ url_for('warehouse_dashboard.view_announcements') }}" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-paper-plane me-1"></i>
+                                    Create Announcement
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle "Other" stock type selection
+        document.getElementById('stockType').addEventListener('change', function() {
+            const otherGroup = document.getElementById('otherStockTypeGroup');
+            if (this.value === 'Other') {
+                otherGroup.style.display = 'block';
+            } else {
+                otherGroup.style.display = 'none';
+            }
+        });
+        
+        // Set minimum date for expiry date to today
+        const today = new Date();
+        const yyyy = today.getFullYear();
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const todayStr = `${yyyy}-${mm}-${dd}`;
+        document.getElementById('expiryDate').min = todayStr;
+        
+        // Form validation
+        document.getElementById('announcementForm').addEventListener('submit', function(event) {
+            if (this.checkValidity()) {
+                const stockType = document.getElementById('stockType').value;
+                if (stockType === 'Other') {
+                    const otherStockType = document.getElementById('otherStockType').value;
+                    if (!otherStockType.trim()) {
+                        event.preventDefault();
+                        alert('Please specify the stock type.');
+                        return false;
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

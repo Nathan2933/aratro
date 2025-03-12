@@ -287,8 +287,8 @@ def logout():
     # Clear all session data
     session.clear()
     logout_user()
-    flash('You have been logged out successfully.', 'success')
-    return redirect(url_for('auth.login'))
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('main.index'))
 
 @auth.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
@@ -1051,6 +1051,9 @@ def warehouse_home():
     # Calculate total allocated space
     total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
     
+    # Update the available space in the warehouse model
+    warehouse.available_space = warehouse.capacity - total_allocated_space
+    
     # Get notifications
     notifications = Notification.query.filter_by(user_id=current_user.id, read=False).all()
     
@@ -1250,6 +1253,9 @@ def respond_to_request():
         # Calculate total allocated space
         total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
         
+        # Update the available space in the warehouse model
+        warehouse.available_space = warehouse.capacity - total_allocated_space
+        
         return render_template('view_requests.html', 
                               warehouse=warehouse,
                               pending_requests=pending_requests,
@@ -1383,6 +1389,12 @@ def accepted_requests():
     # Get all accepted ration shop requests for this warehouse
     ration_approved_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='approved').all()
     
+    # Calculate total allocated space
+    total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
+    
+    # Update the available space in the warehouse model
+    warehouse.available_space = warehouse.capacity - total_allocated_space
+    
     return render_template('warehouse_accepted_requests.html', 
                           warehouse=warehouse,
                           approved_requests=approved_requests,
@@ -1407,6 +1419,12 @@ def rejected_requests():
     
     # Get all rejected ration shop requests for this warehouse
     ration_rejected_requests = RationStockRequest.query.filter_by(warehouse_id=warehouse.id, status='rejected').all()
+    
+    # Calculate total allocated space
+    total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
+    
+    # Update the available space in the warehouse model
+    warehouse.available_space = warehouse.capacity - total_allocated_space
     
     return render_template('warehouse_rejected_requests.html', 
                           warehouse=warehouse,
@@ -1623,6 +1641,15 @@ def farmers():
 @admin_required
 def warehouses():
     warehouses = Warehouse.query.all()
+    
+    # Calculate actual available space for each warehouse
+    for warehouse in warehouses:
+        total_allocated = db.session.query(db.func.sum(Stock.quantity))\
+            .filter(Stock.warehouse_id == warehouse.id)\
+            .filter(Stock.status == 'stored')\
+            .scalar() or 0
+        warehouse.available_space = warehouse.capacity - total_allocated
+    
     return render_template('admin/warehouses.html', warehouses=warehouses)
 
 @admin.route('/stocks')
@@ -2396,3 +2423,493 @@ def ration_request_details(request_id):
         'success': True,
         'request': request_data
     })
+
+@warehouse_dashboard.route('/create_announcement', methods=['GET', 'POST'])
+@login_required
+def create_announcement():
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    if request.method == 'POST':
+        stock_type = request.form.get('stock_type')
+        quantity = request.form.get('quantity')
+        price_per_ton = request.form.get('price_per_ton')
+        description = request.form.get('description')
+        expiry_date = request.form.get('expiry_date')
+        
+        if stock_type == 'Other':
+            stock_type = request.form.get('other_stock_type')
+        
+        if not all([stock_type, quantity, price_per_ton, expiry_date]):
+            flash('All required fields must be filled', 'error')
+            return redirect(url_for('warehouse_dashboard.create_announcement'))
+        
+        try:
+            quantity = float(quantity)
+            price_per_ton = float(price_per_ton)
+            expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d')
+            
+            if quantity <= 0:
+                flash('Quantity must be greater than zero', 'error')
+                return redirect(url_for('warehouse_dashboard.create_announcement'))
+            
+            if price_per_ton <= 0:
+                flash('Price per ton must be greater than zero', 'error')
+                return redirect(url_for('warehouse_dashboard.create_announcement'))
+            
+            if expiry_date < datetime.now():
+                flash('Expiry date must be in the future', 'error')
+                return redirect(url_for('warehouse_dashboard.create_announcement'))
+            
+            # Create warehouse request
+            warehouse_request = WarehouseRequest(
+                warehouse_id=warehouse.id,
+                stock_type=stock_type,
+                quantity=quantity,
+                price_per_ton=price_per_ton,
+                description=description,
+                expiry_date=expiry_date,
+                status='open'
+            )
+            db.session.add(warehouse_request)
+            
+            # Create notifications for all farmers
+            farmers = Farmer.query.all()
+            for farmer in farmers:
+                notification = Notification(
+                    user_id=farmer.user_id,
+                    title='New Warehouse Announcement',
+                    message=f'{warehouse.name} is requesting {quantity} tons of {stock_type}.',
+                    type='warehouse_announcement'
+                )
+                db.session.add(notification)
+            
+            db.session.commit()
+            
+            # Add blockchain integration if needed
+            try:
+                # Import the blockchain integration functions
+                from blockchain_integration import create_warehouse_request_on_blockchain
+                
+                # Create warehouse request on blockchain
+                blockchain_success = create_warehouse_request_on_blockchain(warehouse_request.id)
+                
+                if not blockchain_success:
+                    logger.warning(f"Warehouse request created but blockchain update failed")
+            except Exception as e:
+                logger.error(f"Blockchain integration error: {str(e)}")
+            
+            flash('Announcement created successfully', 'success')
+            return redirect(url_for('warehouse_dashboard.view_announcements'))
+            
+        except ValueError as e:
+            flash(f'Invalid input: {str(e)}', 'error')
+            return redirect(url_for('warehouse_dashboard.create_announcement'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error creating announcement: {str(e)}', 'error')
+            return redirect(url_for('warehouse_dashboard.create_announcement'))
+    
+    # Handle GET request
+    return render_template('create_announcement.html', warehouse=warehouse)
+
+@warehouse_dashboard.route('/view_announcements')
+@login_required
+def view_announcements():
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get all announcements for this warehouse
+    announcements = WarehouseRequest.query.filter_by(warehouse_id=warehouse.id).order_by(WarehouseRequest.date_posted.desc()).all()
+    
+    # Calculate total allocated space
+    total_allocated_space = sum(stock.quantity for stock in warehouse.stocks if stock.status == 'stored')
+    
+    # Update the available space in the warehouse model
+    warehouse.available_space = warehouse.capacity - total_allocated_space
+    
+    return render_template('warehouse_announcements.html', 
+                          warehouse=warehouse,
+                          announcements=announcements)
+
+@warehouse_dashboard.route('/edit_announcement/<int:announcement_id>', methods=['GET', 'POST'])
+@login_required
+def edit_announcement(announcement_id):
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get the announcement
+    announcement = WarehouseRequest.query.get_or_404(announcement_id)
+    
+    # Check if the announcement belongs to this warehouse
+    if announcement.warehouse_id != warehouse.id:
+        flash('You do not have permission to edit this announcement.', 'error')
+        return redirect(url_for('warehouse_dashboard.view_announcements'))
+    
+    if request.method == 'POST':
+        stock_type = request.form.get('stock_type')
+        quantity = request.form.get('quantity')
+        price_per_ton = request.form.get('price_per_ton')
+        description = request.form.get('description')
+        expiry_date = request.form.get('expiry_date')
+        status = request.form.get('status')
+        
+        if stock_type == 'Other':
+            stock_type = request.form.get('other_stock_type')
+        
+        if not all([stock_type, quantity, price_per_ton, expiry_date, status]):
+            flash('All required fields must be filled', 'error')
+            return redirect(url_for('warehouse_dashboard.edit_announcement', announcement_id=announcement_id))
+        
+        try:
+            quantity = float(quantity)
+            price_per_ton = float(price_per_ton)
+            expiry_date = datetime.strptime(expiry_date, '%Y-%m-%d')
+            
+            if quantity <= 0:
+                flash('Quantity must be greater than zero', 'error')
+                return redirect(url_for('warehouse_dashboard.edit_announcement', announcement_id=announcement_id))
+            
+            if price_per_ton <= 0:
+                flash('Price per ton must be greater than zero', 'error')
+                return redirect(url_for('warehouse_dashboard.edit_announcement', announcement_id=announcement_id))
+            
+            # Update announcement
+            announcement.stock_type = stock_type
+            announcement.quantity = quantity
+            announcement.price_per_ton = price_per_ton
+            announcement.description = description
+            announcement.expiry_date = expiry_date
+            announcement.status = status
+            
+            db.session.commit()
+            
+            # Add blockchain integration if needed
+            try:
+                # Import the blockchain integration functions
+                from blockchain_integration import update_warehouse_request_on_blockchain
+                
+                # Update warehouse request on blockchain
+                blockchain_success = update_warehouse_request_on_blockchain(announcement.id)
+                
+                if not blockchain_success:
+                    logger.warning(f"Warehouse request updated but blockchain update failed")
+            except Exception as e:
+                logger.error(f"Blockchain integration error: {str(e)}")
+            
+            flash('Announcement updated successfully', 'success')
+            return redirect(url_for('warehouse_dashboard.view_announcements'))
+            
+        except ValueError as e:
+            flash(f'Invalid input: {str(e)}', 'error')
+            return redirect(url_for('warehouse_dashboard.edit_announcement', announcement_id=announcement_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating announcement: {str(e)}', 'error')
+            return redirect(url_for('warehouse_dashboard.edit_announcement', announcement_id=announcement_id))
+    
+    # Handle GET request
+    return render_template('edit_announcement.html', warehouse=warehouse, announcement=announcement)
+
+@warehouse_dashboard.route('/delete_announcement/<int:announcement_id>', methods=['POST'])
+@login_required
+def delete_announcement(announcement_id):
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse not found', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get the announcement
+    announcement = WarehouseRequest.query.get_or_404(announcement_id)
+    
+    # Check if the announcement belongs to this warehouse
+    if announcement.warehouse_id != warehouse.id:
+        flash('You do not have permission to delete this announcement', 'error')
+        return redirect(url_for('warehouse_dashboard.view_announcements'))
+    
+    try:
+        db.session.delete(announcement)
+        db.session.commit()
+        
+        flash('Announcement deleted successfully', 'success')
+        return redirect(url_for('warehouse_dashboard.view_announcements'))
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting announcement: {str(e)}', 'error')
+        return redirect(url_for('warehouse_dashboard.view_announcements'))
+
+# Farmer routes to view warehouse announcements
+@farmer_dashboard.route('/warehouse_announcements')
+@login_required
+def view_warehouse_announcements():
+    # Check if user is a farmer
+    if not current_user.is_authenticated or current_user.role != 'farmer':
+        flash('You need to be logged in as a farmer to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the farmer data
+    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    if not farmer:
+        flash('Farmer not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get all active warehouse announcements
+    current_date = datetime.now()
+    announcements = WarehouseRequest.query.filter(
+        WarehouseRequest.status == 'open',
+        WarehouseRequest.expiry_date > current_date
+    ).order_by(WarehouseRequest.date_posted.desc()).all()
+    
+    return render_template('farmer_warehouse_announcements.html', 
+                          farmer=farmer,
+                          announcements=announcements)
+
+@farmer_dashboard.route('/respond_to_announcement/<int:announcement_id>')
+@login_required
+def respond_to_announcement(announcement_id):
+    # Check if user is a farmer
+    if not current_user.is_authenticated or current_user.role != 'farmer':
+        flash('You need to be logged in as a farmer to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the farmer data
+    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    if not farmer:
+        flash('Farmer not found.', 'error')
+        return redirect(url_for('main.index'))
+    
+    # Get the announcement
+    announcement = WarehouseRequest.query.get_or_404(announcement_id)
+    
+    # Check if the announcement is still open
+    if announcement.status != 'open' or announcement.expiry_date < datetime.now():
+        flash('This announcement is no longer active.', 'error')
+        return redirect(url_for('farmer_dashboard.view_warehouse_announcements'))
+    
+    # Redirect to create request page with pre-filled data
+    return redirect(url_for('farmer_dashboard.create_request_page', 
+                           warehouse_id=announcement.warehouse_id,
+                           warehouse_request_id=announcement.id,
+                           stock_type=announcement.stock_type,
+                           quantity=announcement.quantity))
+
+@auth.route('/profile/edit', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    if current_user.role == 'farmer':
+        return redirect(url_for('auth.edit_farmer_profile'))
+    elif current_user.role == 'warehouse_manager':
+        return redirect(url_for('auth.edit_warehouse_profile'))
+    elif current_user.role == 'ration_shop':
+        return redirect(url_for('auth.edit_ration_profile'))
+    else:
+        flash('Profile editing not available for this role', 'error')
+        return redirect(url_for('main.dashboard'))
+
+@auth.route('/profile/edit/farmer', methods=['GET', 'POST'])
+@login_required
+def edit_farmer_profile():
+    # Check if user is a farmer
+    if not current_user.is_authenticated or current_user.role != 'farmer':
+        flash('You need to be logged in as a farmer to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the farmer data
+    farmer = Farmer.query.filter_by(user_id=current_user.id).first()
+    if not farmer:
+        flash('Farmer profile not found.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        address = request.form.get('address')
+        
+        # Validate form data
+        if not name or not address:
+            flash('Name and address are required', 'error')
+            return redirect(url_for('auth.edit_farmer_profile'))
+        
+        try:
+            # Update farmer profile
+            farmer.name = name
+            farmer.address = address
+            
+            db.session.commit()
+            flash('Profile updated successfully', 'success')
+            return redirect(url_for('farmer_dashboard.farmer_home'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating profile: {str(e)}', 'error')
+            return redirect(url_for('auth.edit_farmer_profile'))
+    
+    return render_template('edit_farmer_profile.html', farmer=farmer)
+
+@auth.route('/profile/edit/warehouse', methods=['GET', 'POST'])
+@login_required
+def edit_warehouse_profile():
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        flash('You need to be logged in as a warehouse manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        flash('Warehouse profile not found.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    if request.method == 'POST':
+        manager_name = request.form.get('manager_name')
+        warehouse_name = request.form.get('warehouse_name')
+        location = request.form.get('location')
+        latitude = request.form.get('latitude')
+        longitude = request.form.get('longitude')
+        warehouse_type = request.form.get('warehouse_type')
+        capacity = request.form.get('capacity')
+        
+        # Validate form data
+        if not all([manager_name, warehouse_name, location, latitude, longitude, warehouse_type, capacity]):
+            flash('All fields are required', 'error')
+            return redirect(url_for('auth.edit_warehouse_profile'))
+        
+        try:
+            # Update warehouse profile
+            warehouse.manager_name = manager_name
+            warehouse.name = warehouse_name
+            warehouse.location = location
+            warehouse.latitude = float(latitude)
+            warehouse.longitude = float(longitude)
+            warehouse.warehouse_type = warehouse_type
+            
+            # Only update capacity if it's greater than or equal to the used space
+            new_capacity = float(capacity)
+            used_space = warehouse.capacity - warehouse.available_space
+            if new_capacity < used_space:
+                flash('New capacity cannot be less than the currently used space', 'error')
+                return redirect(url_for('auth.edit_warehouse_profile'))
+            
+            warehouse.available_space = warehouse.available_space + (new_capacity - warehouse.capacity)
+            warehouse.capacity = new_capacity
+            
+            db.session.commit()
+            flash('Profile updated successfully', 'success')
+            return redirect(url_for('warehouse_dashboard.warehouse_home'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating profile: {str(e)}', 'error')
+            return redirect(url_for('auth.edit_warehouse_profile'))
+    
+    return render_template('edit_warehouse_profile.html', warehouse=warehouse, maps_api_key=current_app.config['GOOGLE_MAPS_API_KEY'])
+
+@auth.route('/profile/edit/ration', methods=['GET', 'POST'])
+@login_required
+def edit_ration_profile():
+    # Check if user is a ration shop manager
+    if not current_user.is_authenticated or current_user.role != 'ration_shop':
+        flash('You need to be logged in as a ration shop manager to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get the ration shop data
+    shop = RationShop.query.filter_by(user_id=current_user.id).first()
+    if not shop:
+        flash('Ration shop profile not found.', 'error')
+        return redirect(url_for('main.dashboard'))
+    
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        location = request.form.get('location')
+        latitude = request.form.get('latitude')
+        longitude = request.form.get('longitude')
+        
+        # Validate form data
+        if not all([name, email, location, latitude, longitude]):
+            flash('All fields are required', 'error')
+            return redirect(url_for('auth.edit_ration_profile'))
+        
+        try:
+            # Update ration shop profile
+            shop.name = name
+            shop.email = email
+            shop.location = location
+            shop.latitude = float(latitude)
+            shop.longitude = float(longitude)
+            
+            db.session.commit()
+            flash('Profile updated successfully', 'success')
+            return redirect(url_for('main.ration_dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating profile: {str(e)}', 'error')
+            return redirect(url_for('auth.edit_ration_profile'))
+    
+    return render_template('edit_ration_profile.html', shop=shop, maps_api_key=current_app.config['GOOGLE_MAPS_API_KEY'])
+
+@auth.route('/change-password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    if request.method == 'POST':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+        
+        # Validate form data
+        if not all([current_password, new_password, confirm_password]):
+            flash('All fields are required', 'error')
+            return redirect(url_for('auth.change_password'))
+        
+        if new_password != confirm_password:
+            flash('New passwords do not match', 'error')
+            return redirect(url_for('auth.change_password'))
+        
+        if len(new_password) < 8:
+            flash('New password must be at least 8 characters long', 'error')
+            return redirect(url_for('auth.change_password'))
+        
+        # Check current password
+        if not check_password_hash(current_user.password_hash, current_password):
+            flash('Current password is incorrect', 'error')
+            return redirect(url_for('auth.change_password'))
+        
+        try:
+            # Update password
+            current_user.password_hash = generate_password_hash(new_password)
+            db.session.commit()
+            flash('Password changed successfully', 'success')
+            return redirect(url_for('main.dashboard'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error changing password: {str(e)}', 'error')
+            return redirect(url_for('auth.change_password'))
+    
+    return render_template('change_password.html')
