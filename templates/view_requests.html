@@ -61,7 +61,15 @@
                                             <td>{{ request.farmer.name }}</td>
                                             <td>{{ request.stock.type }}</td>
                                             <td>{{ request.stock.requested_quantity }} tons</td>
-                                            <td>{{ request.stock.approved_quantity }} tons</td>
+                                            <td>
+                                                <input type="number" 
+                                                       id="quantity_{{ request.id }}" 
+                                                       class="form-control form-control-sm" 
+                                                       value="{{ request.stock.requested_quantity }}" 
+                                                       min="0.1" 
+                                                       max="{{ request.stock.requested_quantity }}" 
+                                                       step="0.1">
+                                            </td>
                                             <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
                                             <td>
                                                 <div class="btn-group">
@@ -285,9 +293,9 @@
         }
     }
     .content-area.with-sidebar{
-    margin-left: 0;
-    width: 120%;
-}
+        margin-left: 0;
+        width: 120%;
+    }
 </style>
 
 <!-- Include SweetAlert2 library -->
@@ -356,18 +364,47 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function approveRequest(requestId) {
-    const quantity = parseFloat(document.getElementById(`quantity_${requestId}`).value);
+    const quantityInput = document.getElementById(`quantity_${requestId}`);
+    
+    if (!quantityInput) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Quantity input not found'
+        });
+        return;
+    }
+    
+    const quantity = parseFloat(quantityInput.value);
     const availableSpace = {{ warehouse.capacity - total_allocated_space }};
     
-    if (quantity <= 0) {
-        showAlert('Please enter a valid quantity greater than zero', 'error');
+    if (isNaN(quantity) || quantity <= 0) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid Quantity',
+            text: 'Please enter a valid quantity greater than zero'
+        });
         return;
     }
     
     if (quantity > availableSpace) {
-        showAlert(`Cannot approve more than available space (${availableSpace.toFixed(2)} tons)`, 'error');
+        Swal.fire({
+            icon: 'error',
+            title: 'Insufficient Space',
+            text: `Cannot approve more than available space (${availableSpace.toFixed(2)} tons)`
+        });
         return;
     }
+    
+    // Show loading state
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Approving the request',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
     
     fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
         method: 'POST',

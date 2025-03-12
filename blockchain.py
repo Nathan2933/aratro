@@ -7,6 +7,7 @@ from solcx import compile_source, install_solc
 from dotenv import load_dotenv
 import logging
 import traceback
+from eth_account import Account
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -83,9 +84,19 @@ class BlockchainManager:
                 # Try to get the block number to check connection
                 block_number = self.w3.eth.block_number
                 logger.info(f"Connected to blockchain at {ganache_url}, current block: {block_number}")
-                # Set default account
-                self.account = self.w3.eth.accounts[0]
-                logger.info(f"Using account: {self.account}")
+                
+                # Use the account derived from the private key
+                private_key = os.environ.get('PRIVATE_KEY')
+                if private_key:
+                    if not private_key.startswith('0x'):
+                        private_key = f'0x{private_key}'
+                    account = Account.from_key(private_key)
+                    self.account = account.address
+                    logger.info(f"Using account derived from private key: {self.account}")
+                else:
+                    # Fallback to the first account if no private key is provided
+                    self.account = self.w3.eth.accounts[0]
+                    logger.info(f"Using default account: {self.account}")
             except Exception as e:
                 logger.error(f"Failed to connect to blockchain at {ganache_url}: {e}")
                 return False

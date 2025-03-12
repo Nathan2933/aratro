@@ -2,6 +2,7 @@ from app import app, db
 from models import Admin
 from werkzeug.security import generate_password_hash
 from datetime import datetime
+from sqlalchemy import text
 
 def reset_database():
     """
@@ -9,8 +10,13 @@ def reset_database():
     Also creates a default admin user.
     """
     with app.app_context():
-        print("Dropping all tables...")
-        db.drop_all()
+        print("Dropping all tables with CASCADE...")
+        # Use raw SQL with CASCADE option instead of db.drop_all()
+        db.session.execute(text("DROP SCHEMA public CASCADE"))
+        db.session.execute(text("CREATE SCHEMA public"))
+        db.session.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
+        db.session.execute(text("GRANT ALL ON SCHEMA public TO public"))
+        db.session.commit()
         
         print("Creating all tables...")
         db.create_all()
