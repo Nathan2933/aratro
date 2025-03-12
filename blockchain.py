@@ -469,7 +469,8 @@ class BlockchainManager:
                 'pending': 0,
                 'stored': 1,
                 'rejected': 2,
-                'transferred': 3
+                'transferred': 3,
+                'approved': 1  # Map 'approved' to the same value as 'stored'
             }
             status_value = status_map.get(status.lower(), 0)
             
@@ -487,9 +488,6 @@ class BlockchainManager:
             # Sign and send transaction
             signed_tx = self.w3.eth.account.sign_transaction(tx, private_key=os.environ.get('PRIVATE_KEY'))
             tx_hash = self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)
-            tx_hash_hex = tx_hash.hex()  # Convert bytes to hex string
-            
-            logger.info(f"Transaction sent with hash: {tx_hash_hex}")
             
             # Wait for transaction receipt
             tx_receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -499,7 +497,7 @@ class BlockchainManager:
             # Return both success status and transaction hash
             return {
                 'success': True,
-                'tx_hash': tx_hash_hex
+                'tx_hash': tx_hash.hex()
             }
         except Exception as e:
             logger.error(f"Error updating stock request status: {e}")

@@ -1,93 +1,172 @@
 #!/usr/bin/env python3
 """
-Test script to check if a blockchain node is accessible.
-Usage: python test_blockchain_connection.py [blockchain_url]
-If blockchain_url is not provided, it will use the BLOCKCHAIN_URL environment variable
-or default to http://127.0.0.1:7545
+Script to test the blockchain connection.
+This script will:
+1. Connect to the blockchain
+2. Get the current block number
+3. Print the connection status
 """
-
 import os
 import sys
-import requests
-import json
-from web3 import Web3
-from web3.middleware import geth_poa_middleware
+import logging
+from dotenv import load_dotenv
 
-def test_http_connection(url):
-    """Test if the URL is accessible via HTTP"""
-    try:
-        response = requests.get(url, timeout=5)
-        print(f"✅ HTTP connection to {url} successful!")
-        print(f"Status code: {response.status_code}")
-        return True
-    except requests.exceptions.RequestException as e:
-        print(f"❌ HTTP connection to {url} failed: {e}")
-        return False
+# Add the parent directory to the path so we can import from the root
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-def test_web3_connection(url):
-    """Test if Web3 can connect to the blockchain"""
+from blockchain import blockchain_manager, init_blockchain
+from models import db, Farmer, Warehouse, Stock, StockRequest
+import app
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, 
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger('test_blockchain_connection')
+
+# Load environment variables
+load_dotenv()
+
+def test_connection():
+    """Test the connection to the blockchain."""
     try:
-        w3 = Web3(Web3.HTTPProvider(url))
-        # Add middleware for compatibility with PoA chains like Ganache
-        w3.middleware_onion.inject(geth_poa_middleware, layer=0)
+        # Initialize blockchain manager
+        if blockchain_manager is None:
+            logger.info("Initializing blockchain manager...")
+            bm = init_blockchain()
+        else:
+            logger.info("Using existing blockchain manager...")
+            bm = blockchain_manager
         
-        # Check connection by trying to get the block number
-        try:
-            block_number = w3.eth.block_number
-            print(f"✅ Web3 connection to {url} successful!")
-            print(f"Current block number: {block_number}")
-            
-            # Get network ID
-            network_id = w3.net.version
-            print(f"Network ID: {network_id}")
-            
-            # Get accounts
-            accounts = w3.eth.accounts
-            print(f"Number of accounts: {len(accounts)}")
-            if accounts:
-                print(f"First account: {accounts[0]}")
-            
-            return True
-        except Exception as e:
-            print(f"❌ Web3 could not connect to {url}: {e}")
+        if not bm:
+            logger.error("Failed to initialize blockchain manager")
             return False
+        
+        # Test connection
+        try:
+            # Try to get the block number to check connection
+            block_number = bm.w3.eth.block_number
+            logger.info(f"Connected to blockchain. Current block number: {block_number}")
+        except Exception as e:
+            logger.error(f"Not connected to blockchain: {e}")
+            return False
+        
+        # Get contract address
+        contract_address = bm.contract_address
+        logger.info(f"Contract address: {contract_address}")
+        
+        # Check if contract is deployed
+        if not contract_address:
+            logger.error("Contract not deployed")
+            return False
+        
+        # Check if contract is accessible
+        try:
+            total_stocks = bm.get_total_stocks()
+            logger.info(f"Total stocks on blockchain: {total_stocks}")
+            
+            total_requests = bm.get_total_stock_requests()
+            logger.info(f"Total stock requests on blockchain: {total_requests}")
+        except Exception as e:
+            logger.error(f"Error accessing contract: {e}")
+            return False
+        
+        return True
     except Exception as e:
-        print(f"❌ Web3 connection to {url} failed: {e}")
+        logger.error(f"Error testing blockchain connection: {e}")
         return False
+
+def check_ethereum_addresses():
+    """Check if farmers and warehouses have Ethereum addresses."""
+    # Initialize Flask app
+    flask_app = app.Flask(__name__)
+    
+    # Database configuration
+    local_db_url = os.environ.get('LOCAL_DB_URL')
+    supabase_url = os.environ.get('SUPABASE_DB_URL')
+
+    # Use local database if specified, otherwise use Supabase
+    if local_db_url and os.environ.get('USE_LOCAL_DB', 'false').lower() == 'true':
+        logger.info("Using LOCAL database")
+        flask_app.config['SQLALCHEMY_DATABASE_URI'] = local_db_url
+    elif supabase_url:
+        logger.info("Using SUPABASE database")
+        flask_app.config['SQLALCHEMY_DATABASE_URI'] = supabase_url
+    else:
+        logger.error("No database URL found in environment variables")
+        return False
+    
+    flask_app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    db.init_app(flask_app)
+    
+    with flask_app.app_context():
+        # Check farmers
+        farmers = Farmer.query.all()
+        logger.info(f"Found {len(farmers)} farmers")
+        
+        missing_eth_farmers = [f for f in farmers if not f.eth_address]
+        if missing_eth_farmers:
+            logger.error(f"{len(missing_eth_farmers)} farmers missing Ethereum addresses")
+            for farmer in missing_eth_farmers[:5]:  # Show first 5
+                logger.error(f"Farmer ID {farmer.id}, Name: {farmer.name}")
+        else:
+            logger.info("All farmers have Ethereum addresses")
+        
+        # Check warehouses
+        warehouses = Warehouse.query.all()
+        logger.info(f"Found {len(warehouses)} warehouses")
+        
+        missing_eth_warehouses = [w for w in warehouses if not w.eth_address]
+        if missing_eth_warehouses:
+            logger.error(f"{len(missing_eth_warehouses)} warehouses missing Ethereum addresses")
+            for warehouse in missing_eth_warehouses[:5]:  # Show first 5
+                logger.error(f"Warehouse ID {warehouse.id}, Name: {warehouse.name}")
+        else:
+            logger.info("All warehouses have Ethereum addresses")
+        
+        # Check recent stock requests
+        recent_requests = StockRequest.query.order_by(StockRequest.created_at.desc()).limit(5).all()
+        logger.info(f"Found {len(recent_requests)} recent stock requests")
+        
+        for req in recent_requests:
+            logger.info(f"Request ID: {req.id}, Status: {req.status}, Blockchain ID: {req.blockchain_id}")
+            
+            # Check stock
+            stock = Stock.query.get(req.stock_id)
+            if stock:
+                logger.info(f"  Stock ID: {stock.id}, Type: {stock.type}, Blockchain ID: {stock.blockchain_id}")
+            else:
+                logger.error(f"  Stock not found for request {req.id}")
+            
+            # Check farmer
+            farmer = Farmer.query.get(req.from_id)
+            if farmer:
+                logger.info(f"  Farmer ID: {farmer.id}, Name: {farmer.name}, ETH Address: {farmer.eth_address}")
+            else:
+                logger.error(f"  Farmer not found for request {req.id}")
+            
+            # Check warehouse
+            warehouse = Warehouse.query.get(req.to_id)
+            if warehouse:
+                logger.info(f"  Warehouse ID: {warehouse.id}, Name: {warehouse.name}, ETH Address: {warehouse.eth_address}")
+            else:
+                logger.error(f"  Warehouse not found for request {req.id}")
 
 def main():
-    # Get blockchain URL from command line or environment variable or use default
-    if len(sys.argv) > 1:
-        blockchain_url = sys.argv[1]
+    """Main function to run the script."""
+    logger.info("Testing blockchain connection...")
+    connection_ok = test_connection()
+    
+    if connection_ok:
+        logger.info("Blockchain connection test passed")
+        
+        # Check Ethereum addresses
+        logger.info("Checking Ethereum addresses...")
+        check_ethereum_addresses()
     else:
-        blockchain_url = os.environ.get('BLOCKCHAIN_URL', 'http://127.0.0.1:7545')
+        logger.error("Blockchain connection test failed")
+        return 1
     
-    print(f"Testing connection to blockchain at: {blockchain_url}")
-    print("-" * 50)
-    
-    # Test HTTP connection
-    http_success = test_http_connection(blockchain_url)
-    
-    print("-" * 50)
-    
-    # Test Web3 connection
-    web3_success = test_web3_connection(blockchain_url)
-    
-    print("-" * 50)
-    
-    # Summary
-    if http_success and web3_success:
-        print("✅ All tests passed! The blockchain is accessible.")
-    elif http_success:
-        print("⚠️ HTTP connection works but Web3 connection failed.")
-        print("This might indicate that the URL is accessible but it's not a valid blockchain node.")
-    else:
-        print("❌ Connection tests failed. The blockchain is not accessible.")
-        print("Please check:")
-        print("1. Is the blockchain node running?")
-        print("2. Is the URL correct?")
-        print("3. Is the blockchain configured to accept connections from other machines?")
-        print("4. Are there any firewalls blocking the connection?")
+    return 0
 
 if __name__ == "__main__":
-    main() 
+    sys.exit(main()) 

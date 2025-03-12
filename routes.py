@@ -1346,19 +1346,48 @@ def respond_to_request():
         try:
             # Import the blockchain integration functions
             from blockchain_integration import update_stock_status_on_blockchain, update_stock_request_status_on_blockchain
+            import traceback
             
             # Update stock status on blockchain
             stock_status = 'stored' if action == 'approve' else 'rejected'
             stock_blockchain_success = update_stock_status_on_blockchain(stock_request.stock.id, stock_status)
             
+            if not stock_blockchain_success:
+                logger.warning(f"Failed to update stock {stock_request.stock.id} status to {stock_status} on blockchain")
+            
             # Update stock request status on blockchain
             request_status = 'approved' if action == 'approve' else 'rejected'
             request_blockchain_success = update_stock_request_status_on_blockchain(stock_request.id, request_status)
             
+            if not request_blockchain_success:
+                logger.warning(f"Failed to update stock request {stock_request.id} status to {request_status} on blockchain")
+            
             if not stock_blockchain_success or not request_blockchain_success:
                 logger.warning(f"Request {action}d but blockchain update failed")
+                # Create a notification for the admin about the blockchain failure
+                admin_notification = Notification(
+                    user_id=1,  # Assuming admin user ID is 1
+                    title='Blockchain Update Failed',
+                    message=f'Failed to update stock request {stock_request.id} on blockchain. Manual intervention may be required.',
+                    type='blockchain_error'
+                )
+                db.session.add(admin_notification)
+                db.session.commit()
         except Exception as e:
             logger.error(f"Blockchain integration error: {str(e)}")
+            logger.error(f"Exception traceback: {traceback.format_exc()}")
+            # Create a notification for the admin about the blockchain exception
+            try:
+                admin_notification = Notification(
+                    user_id=1,  # Assuming admin user ID is 1
+                    title='Blockchain Integration Exception',
+                    message=f'Exception occurred while updating stock request {stock_request.id} on blockchain: {str(e)}',
+                    type='blockchain_error'
+                )
+                db.session.add(admin_notification)
+                db.session.commit()
+            except Exception as notification_error:
+                logger.error(f"Failed to create admin notification: {str(notification_error)}")
         
         return jsonify({'success': True, 'message': f'Request {action}d successfully'}), 200
         

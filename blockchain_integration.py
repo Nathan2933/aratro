@@ -15,11 +15,12 @@ from dotenv import load_dotenv
 import hashlib
 import secrets
 import traceback
+import time
 
 # Add the parent directory to the path so we can import from the root
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from models import db, Stock, StockRequest, WarehouseRequest, RationStockRequest, BlockchainTransaction, Farmer, Warehouse, RationShop
+from models import db, Stock, StockRequest, WarehouseRequest, RationStockRequest, BlockchainTransaction, Farmer, Warehouse, RationShop, Notification
 from blockchain import blockchain_manager, init_blockchain
 
 # Configure logging
@@ -335,54 +336,170 @@ def create_stock_request_on_blockchain(stock_request_id):
 
 def update_stock_request_status_on_blockchain(request_id, status):
     """Update a stock request's status on the blockchain when it's updated in the database."""
-    try:
-        # Get stock request from database
-        request = StockRequest.query.get(request_id)
-        if not request:
-            logger.error(f"Stock request {request_id} not found in database")
-            return False
-        
-        # Check if stock request has a blockchain ID
-        if not request.blockchain_id:
-            logger.error(f"Stock request {request_id} does not have a blockchain ID")
-            return False
-        
-        # Update stock request status on blockchain
-        result = blockchain_manager.update_stock_request_status(request.blockchain_id, status)
-        
-        if not result or not isinstance(result, dict) or not result.get('success'):
-            error_msg = result.get('error', 'Unknown error') if isinstance(result, dict) else 'Unknown error'
-            logger.error(f"Failed to update stock request {request_id} status on blockchain: {error_msg}")
-            return False
-        
-        tx_hash = result.get('tx_hash')
-        if not tx_hash:
-            logger.error(f"No transaction hash returned for stock request status update {request_id}")
-            return False
-        
-        # Create blockchain transaction record
-        transaction = BlockchainTransaction(
-            tx_hash=tx_hash,
-            tx_type='update_stock_request_status',
-            entity_type='stock_request',
-            entity_id=request.id,
-            blockchain_id=request.blockchain_id,
-            status='pending',  # Mark as pending until confirmed
-            data=json.dumps({
-                'status': status
-            })
-        )
-        
-        # Save changes to database
-        db.session.add(transaction)
-        db.session.commit()
-        
-        logger.info(f"Stock request {request_id} status updated to {status} on blockchain with transaction hash {tx_hash}")
-        return True
-    except Exception as e:
-        db.session.rollback()
-        logger.error(f"Error updating stock request {request_id} status on blockchain: {e}")
-        return False
+    max_retries = 3
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        try:
+            # Get stock request from database
+            request = StockRequest.query.get(request_id)
+            if not request:
+                logger.error(f"Stock request {request_id} not found in database")
+                return False
+            
+            # Check if stock request has a blockchain ID
+            if not request.blockchain_id:
+                logger.error(f"Stock request {request_id} does not have a blockchain ID")
+                return False
+            
+            # Update stock request status on blockchain
+            logger.info(f"Attempting to update stock request {request_id} status to {status} on blockchain (attempt {retry_count + 1}/{max_retries})")
+            result = blockchain_manager.update_stock_request_status(request.blockchain_id, status)
+            
+            if not result or not isinstance(result, dict) or not result.get('success'):
+                error_msg = result.get('error', 'Unknown error') if isinstance(result, dict) else 'Unknown error'
+                logger.error(f"Failed to update stock request {request_id} status on blockchain: {error_msg}")
+                
+                # If this is the last retry, create a pending blockchain transaction for later retry
+                if retry_count == max_retries - 1:
+                    # Create a pending blockchain transaction record for later retry
+                    pending_tx = BlockchainTransaction(
+                        tx_hash='pending_' + secrets.token_hex(16),
+                        tx_type='update_stock_request_status',
+                        entity_type='stock_request',
+                        entity_id=request.id,
+                        blockchain_id=request.blockchain_id,
+                        status='pending',
+                        data=json.dumps({
+                            'status': status,
+                            'error': error_msg
+                        })
+                    )
+                    db.session.add(pending_tx)
+                    
+                    # Create notification for the farmer
+                    if request.stock and request.stock.farmer:
+                        create_blockchain_notification(
+                            user_id=request.stock.farmer.user_id,
+                            title='Blockchain Update Pending',
+                            message=f'Your stock request status update to "{status}" is pending on the blockchain and will be retried automatically.',
+                            notification_type='blockchain_pending'
+                        )
+                    
+                    # Create notification for the warehouse
+                    if request.to_id:
+                        warehouse = Warehouse.query.get(request.to_id)
+                        if warehouse:
+                            create_blockchain_notification(
+                                user_id=warehouse.user_id,
+                                title='Blockchain Update Pending',
+                                message=f'Stock request {request_id} status update to "{status}" is pending on the blockchain and will be retried automatically.',
+                                notification_type='blockchain_pending'
+                            )
+                    
+                    db.session.commit()
+                    logger.info(f"Created pending blockchain transaction for stock request {request_id}")
+                
+                retry_count += 1
+                if retry_count < max_retries:
+                    # Wait before retrying (exponential backoff)
+                    time.sleep(2 ** retry_count)
+                    continue
+                return False
+            
+            tx_hash = result.get('tx_hash')
+            if not tx_hash:
+                logger.error(f"No transaction hash returned for stock request status update {request_id}")
+                retry_count += 1
+                if retry_count < max_retries:
+                    time.sleep(2 ** retry_count)
+                    continue
+                return False
+            
+            # Create blockchain transaction record
+            transaction = BlockchainTransaction(
+                tx_hash=tx_hash,
+                tx_type='update_stock_request_status',
+                entity_type='stock_request',
+                entity_id=request.id,
+                blockchain_id=request.blockchain_id,
+                status='pending',  # Mark as pending until confirmed
+                data=json.dumps({
+                    'status': status
+                })
+            )
+            
+            # Save changes to database
+            db.session.add(transaction)
+            
+            # Create notification for the farmer
+            if request.stock and request.stock.farmer:
+                create_blockchain_notification(
+                    user_id=request.stock.farmer.user_id,
+                    title='Blockchain Update Successful',
+                    message=f'Your stock request status has been updated to "{status}" on the blockchain.',
+                    notification_type='blockchain_success'
+                )
+            
+            db.session.commit()
+            
+            logger.info(f"Stock request {request_id} status updated to {status} on blockchain with transaction hash {tx_hash}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating stock request {request_id} status on blockchain: {e}")
+            logger.error(f"Exception traceback: {traceback.format_exc()}")
+            
+            retry_count += 1
+            if retry_count < max_retries:
+                # Wait before retrying (exponential backoff)
+                time.sleep(2 ** retry_count)
+            else:
+                # Create a pending blockchain transaction record for later retry
+                try:
+                    request = StockRequest.query.get(request_id)
+                    if request and request.blockchain_id:
+                        pending_tx = BlockchainTransaction(
+                            tx_hash='pending_' + secrets.token_hex(16),
+                            tx_type='update_stock_request_status',
+                            entity_type='stock_request',
+                            entity_id=request.id,
+                            blockchain_id=request.blockchain_id,
+                            status='pending',
+                            data=json.dumps({
+                                'status': status,
+                                'error': str(e)
+                            })
+                        )
+                        db.session.add(pending_tx)
+                        
+                        # Create notification for the farmer
+                        if request.stock and request.stock.farmer:
+                            create_blockchain_notification(
+                                user_id=request.stock.farmer.user_id,
+                                title='Blockchain Update Failed',
+                                message=f'Your stock request status update to "{status}" failed on the blockchain but will be retried automatically.',
+                                notification_type='blockchain_error'
+                            )
+                        
+                        # Create notification for the warehouse
+                        if request.to_id:
+                            warehouse = Warehouse.query.get(request.to_id)
+                            if warehouse:
+                                create_blockchain_notification(
+                                    user_id=warehouse.user_id,
+                                    title='Blockchain Update Failed',
+                                    message=f'Stock request {request_id} status update to "{status}" failed on the blockchain but will be retried automatically.',
+                                    notification_type='blockchain_error'
+                                )
+                        
+                        db.session.commit()
+                        logger.info(f"Created pending blockchain transaction for stock request {request_id}")
+                except Exception as inner_e:
+                    logger.error(f"Error creating pending transaction: {inner_e}")
+                    db.session.rollback()
+                
+                return False
 
 def sync_stock_to_blockchain(stock_id):
     """Sync a specific stock to the blockchain.
@@ -670,6 +787,24 @@ def sync_existing_ration_stock_requests_to_blockchain():
         logger.error(f"Error syncing ration stock requests to blockchain: {e}")
         logger.error(f"Exception traceback: {traceback.format_exc()}")
         return 0
+
+def create_blockchain_notification(user_id, title, message, notification_type='blockchain'):
+    """Create a notification for blockchain events."""
+    try:
+        notification = Notification(
+            user_id=user_id,
+            title=title,
+            message=message,
+            type=notification_type
+        )
+        db.session.add(notification)
+        db.session.commit()
+        logger.info(f"Created blockchain notification for user {user_id}: {title}")
+        return True
+    except Exception as e:
+        logger.error(f"Error creating blockchain notification: {e}")
+        db.session.rollback()
+        return False
 
 if __name__ == '__main__':
     # Check command line arguments

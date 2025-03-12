@@ -61,7 +61,13 @@
                                             <td>{{ request.farmer.name }}</td>
                                             <td>{{ request.stock.type }}</td>
                                             <td>{{ request.stock.requested_quantity }} tons</td>
-                                            <td>{{ request.stock.approved_quantity }} tons</td>
+                                            <td>
+                                                <input type="number" id="quantity_{{ request.id }}" 
+                                                       class="form-control form-control-sm" 
+                                                       value="{{ request.stock.requested_quantity }}" 
+                                                       min="0.01" step="0.01" 
+                                                       max="{{ request.stock.requested_quantity }}">
+                                            </td>
                                             <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
                                             <td>
                                                 <div class="btn-group">
