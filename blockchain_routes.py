@@ -392,8 +392,6 @@ def api_transactions():
     entity_type = request.args.get('entity_type')
     entity_id = request.args.get('entity_id')
     
-    logger.info(f"API transactions request received. Entity type: {entity_type}, Entity ID: {entity_id}")
-    
     # Build query
     query = BlockchainTransaction.query
     
@@ -405,30 +403,24 @@ def api_transactions():
     
     # Get transactions
     transactions = query.order_by(BlockchainTransaction.created_at.desc()).all()
-    logger.info(f"Found {len(transactions)} transactions")
     
     # Format transactions for JSON response
     formatted_transactions = []
     for tx in transactions:
-        try:
-            tx_data = {
-                'id': tx.id,
-                'tx_hash': tx.tx_hash,
-                'tx_type': tx.tx_type,
-                'entity_type': tx.entity_type,
-                'entity_id': tx.entity_id,
-                'blockchain_id': tx.blockchain_id,
-                'status': tx.status,
-                'created_at': tx.created_at.isoformat() if tx.created_at else None,
-                'confirmed_at': tx.confirmed_at.isoformat() if tx.confirmed_at else None,
-                'data': json.loads(tx.data) if tx.data else None
-            }
-            formatted_transactions.append(tx_data)
-        except Exception as e:
-            logger.error(f"Error formatting transaction {tx.id}: {str(e)}")
+        formatted_transactions.append({
+            'id': tx.id,
+            'tx_hash': tx.tx_hash,
+            'tx_type': tx.tx_type,
+            'entity_type': tx.entity_type,
+            'entity_id': tx.entity_id,
+            'blockchain_id': tx.blockchain_id,
+            'status': tx.status,
+            'created_at': tx.created_at.isoformat(),
+            'confirmed_at': tx.confirmed_at.isoformat() if tx.confirmed_at else None,
+            'data': json.loads(tx.data) if tx.data else None
+        })
     
     # Return JSON response
-    logger.info(f"Returning {len(formatted_transactions)} formatted transactions")
     return jsonify({'transactions': formatted_transactions})
 
 @blockchain.route('/api/blocks')
@@ -920,43 +912,4 @@ def get_stats():
         return jsonify({
             'success': False,
             'error': 'Blockchain manager not initialized or not connected'
-        }), 503
-
-@blockchain.route('/debug/transactions')
-def debug_transactions():
-    """Debug endpoint for blockchain transactions (no authentication required)."""
-    try:
-        # Get transactions
-        transactions = BlockchainTransaction.query.order_by(BlockchainTransaction.created_at.desc()).all()
-        logger.info(f"Debug endpoint: Found {len(transactions)} transactions")
-        
-        # Format transactions for JSON response
-        formatted_transactions = []
-        for tx in transactions:
-            try:
-                tx_data = {
-                    'id': tx.id,
-                    'tx_hash': tx.tx_hash,
-                    'tx_type': tx.tx_type,
-                    'entity_type': tx.entity_type,
-                    'entity_id': tx.entity_id,
-                    'status': tx.status,
-                    'created_at': tx.created_at.isoformat() if tx.created_at else None
-                }
-                formatted_transactions.append(tx_data)
-            except Exception as e:
-                logger.error(f"Error formatting transaction {tx.id}: {str(e)}")
-        
-        # Return JSON response
-        logger.info(f"Debug endpoint: Returning {len(formatted_transactions)} formatted transactions")
-        return jsonify({
-            'success': True,
-            'transactions': formatted_transactions,
-            'count': len(formatted_transactions)
-        })
-    except Exception as e:
-        logger.error(f"Debug endpoint error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'error': str(e)
-        }) 
+        }), 503 

@@ -105,18 +105,15 @@
 
 <!-- Recent Transactions -->
 <div class="admin-card">
-    <div class="admin-card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Recent Transactions</h5>
-        <div>
-            <a href="{{ url_for('blockchain.api_transactions') }}" target="_blank" class="btn btn-sm btn-outline-secondary me-2">
-                <i class="bi bi-link-45deg me-1"></i>
-                API Link
-            </a>
-            <button class="btn btn-sm btn-outline-primary" id="refreshTransactions">
-                <i class="bi bi-arrow-clockwise me-1"></i>
-                Refresh
-            </button>
-        </div>
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-arrow-left-right me-2"></i>
+            Recent Transactions
+        </h5>
+        <button class="btn btn-sm btn-outline-primary" id="refreshTransactions">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            Refresh
+        </button>
     </div>
     <div class="admin-card-body p-0">
         <div class="table-responsive">
@@ -373,28 +370,11 @@
         const refreshTransactionsBtn = document.getElementById('refreshTransactions');
         if (refreshTransactionsBtn) {
             refreshTransactionsBtn.addEventListener('click', function() {
-                console.log('Refresh transactions button clicked');
                 fetch('{{ url_for("blockchain.api_transactions") }}')
-                    .then(response => {
-                        console.log('API response received:', response);
-                        return response.json();
-                    })
+                    .then(response => response.json())
                     .then(data => {
-                        console.log('API data received:', data);
                         const tableBody = document.getElementById('transactionsTableBody');
-                        if (!tableBody) {
-                            console.error('Transaction table body element not found!');
-                            return;
-                        }
                         tableBody.innerHTML = '';
-                        
-                        if (!data.transactions || data.transactions.length === 0) {
-                            console.log('No transactions returned from API');
-                            const row = document.createElement('tr');
-                            row.innerHTML = '<td colspan="6" class="text-center">No transactions found</td>';
-                            tableBody.appendChild(row);
-                            return;
-                        }
                         
                         data.transactions.forEach(tx => {
                             let statusBadge = '';
@@ -433,13 +413,7 @@
                             tableBody.appendChild(row);
                         });
                     })
-                    .catch(error => {
-                        console.error('Error fetching transactions:', error);
-                        const tableBody = document.getElementById('transactionsTableBody');
-                        if (tableBody) {
-                            tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-danger">Error loading transactions</td></tr>';
-                        }
-                    });
+                    .catch(error => console.error('Error fetching transactions:', error));
             });
         }
         
