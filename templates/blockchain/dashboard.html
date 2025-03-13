@@ -12,7 +12,10 @@
             <span class="text-muted">(Local Ganache Contract)</span>
         </p>
     </div>
-    <div>
+    <div class="d-flex align-items-center">
+        <button id="refreshStats" class="btn btn-primary me-2">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Stats
+        </button>
         <span class="admin-badge admin-badge-primary">
             <i class="bi bi-link-45deg me-1"></i>
             Blockchain
@@ -36,72 +39,9 @@
     {% endif %}
 {% endwith %}
 
-<!-- Overview Cards -->
-<div class="row">
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="admin-card">
-            <div class="admin-card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Total Stocks</h6>
-                        <h3 class="mb-0">{{ total_stocks }}</h3>
-                    </div>
-                    <div class="icon-circle bg-primary">
-                        <i class="bi bi-box"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="admin-card">
-            <div class="admin-card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Total Requests</h6>
-                        <h3 class="mb-0">{{ total_requests }}</h3>
-                    </div>
-                    <div class="icon-circle bg-success">
-                        <i class="bi bi-list-check"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="admin-card">
-            <div class="admin-card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Total Ration Requests</h6>
-                        <h3 class="mb-0">{{ total_ration_requests }}</h3>
-                    </div>
-                    <div class="icon-circle bg-danger">
-                        <i class="bi bi-shop"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="admin-card">
-            <div class="admin-card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="text-muted mb-1">Confirmed Transactions</h6>
-                        <h3 class="mb-0">{{ confirmed_transactions }}</h3>
-                    </div>
-                    <div class="icon-circle bg-info">
-                        <i class="bi bi-check2-circle"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
+
+
+
 
 <!-- Recent Transactions -->
 <div class="admin-card">
@@ -307,6 +247,7 @@
 
 {% block scripts %}
 <script>
+    // Single formatTimeAgo function
     function formatTimeAgo(timestamp) {
         if (!timestamp) return '';
         
@@ -366,6 +307,32 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+        // Add event listener for manual refresh button
+        const refreshStatsBtn = document.getElementById('refreshStats');
+        if (refreshStatsBtn) {
+            refreshStatsBtn.addEventListener('click', function() {
+                refreshDashboardStats();
+            });
+        }
+        
+        // Debug tools event listeners
+        const testApiBtn = document.getElementById('testApi');
+        if (testApiBtn) {
+            testApiBtn.addEventListener('click', function() {
+                testApi();
+            });
+        }
+        
+        const forceRefreshBtn = document.getElementById('forceRefresh');
+        if (forceRefreshBtn) {
+            forceRefreshBtn.addEventListener('click', function() {
+                forceRefresh();
+            });
+        }
+        
+        // Check API status on page load
+        checkApiStatus();
+        
         // Refresh transactions
         const refreshTransactionsBtn = document.getElementById('refreshTransactions');
         if (refreshTransactionsBtn) {
@@ -445,38 +412,332 @@
     });
 
     function refreshDashboardStats() {
+        console.log('Refreshing dashboard stats...');
         fetch('/blockchain/api/stats')
-            .then(response => response.json())
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
             .then(data => {
+                console.log('Stats data received:', data);
+                // Update the API response display
+                updateApiResponse(data);
+                
+                // Check blockchain status
+                checkBlockchainStatus(data);
+                
                 if (data.success) {
                     const stats = data.stats;
+                    console.log('Updating stats with:', stats);
                     
-                    // Update total stocks
-                    const totalStocksElement = document.querySelector('.admin-card:nth-child(1) h3');
-                    if (totalStocksElement) totalStocksElement.textContent = stats.total_stocks;
+                    // Try multiple approaches to update the stats
                     
-                    // Update total requests
-                    const totalRequestsElement = document.querySelector('.admin-card:nth-child(2) h3');
-                    if (totalRequestsElement) totalRequestsElement.textContent = stats.total_requests;
+                    // Approach 1: Use the updateStatCard function
+                    const cards = document.querySelectorAll('.admin-card');
+                    updateStatCard(cards, 'Total Stocks', stats.total_stocks);
+                    updateStatCard(cards, 'Total Requests', stats.total_requests);
+                    updateStatCard(cards, 'Total Ration Requests', stats.total_ration_requests);
+                    updateStatCard(cards, 'Confirmed Transactions', stats.confirmed_transactions);
                     
-                    // Update total ration requests
-                    const totalRationRequestsElement = document.querySelector('.admin-card:nth-child(3) h3');
-                    if (totalRationRequestsElement) totalRationRequestsElement.textContent = stats.total_ration_requests;
+                    // Approach 2: Direct update by index
+                    console.log('Trying direct update by index');
+                    const statCards = Array.from(document.querySelectorAll('.admin-card')).slice(0, 4);
                     
-                    // Update confirmed transactions
-                    const confirmedTransactionsElement = document.querySelector('.admin-card:nth-child(4) h3');
-                    if (confirmedTransactionsElement) confirmedTransactionsElement.textContent = stats.confirmed_transactions;
+                    if (statCards.length >= 4) {
+                        // Update Total Stocks (first card)
+                        const stocksValueEl = statCards[0].querySelector('h3');
+                        if (stocksValueEl) {
+                            console.log('Directly updating Total Stocks to:', stats.total_stocks);
+                            stocksValueEl.textContent = stats.total_stocks;
+                        }
+                        
+                        // Update Total Requests (second card)
+                        const requestsValueEl = statCards[1].querySelector('h3');
+                        if (requestsValueEl) {
+                            console.log('Directly updating Total Requests to:', stats.total_requests);
+                            requestsValueEl.textContent = stats.total_requests;
+                        }
+                        
+                        // Update Total Ration Requests (third card)
+                        const rationRequestsValueEl = statCards[2].querySelector('h3');
+                        if (rationRequestsValueEl) {
+                            console.log('Directly updating Total Ration Requests to:', stats.total_ration_requests);
+                            rationRequestsValueEl.textContent = stats.total_ration_requests;
+                        }
+                        
+                        // Update Confirmed Transactions (fourth card)
+                        const confirmedTxValueEl = statCards[3].querySelector('h3');
+                        if (confirmedTxValueEl) {
+                            console.log('Directly updating Confirmed Transactions to:', stats.confirmed_transactions);
+                            confirmedTxValueEl.textContent = stats.confirmed_transactions;
+                        }
+                    }
+                    
+                    // Approach 3: Most direct approach using all h3 elements
+                    console.log('Trying most direct approach with all h3 elements');
+                    const allH3Elements = document.querySelectorAll('.admin-card h3');
+                    
+                    if (allH3Elements.length >= 4) {
+                        allH3Elements[0].textContent = stats.total_stocks;
+                        allH3Elements[1].textContent = stats.total_requests;
+                        allH3Elements[2].textContent = stats.total_ration_requests;
+                        allH3Elements[3].textContent = stats.confirmed_transactions;
+                        console.log('Updated all stats using direct h3 elements approach');
+                    }
                 } else {
                     console.error('Error refreshing stats:', data.error);
+                    updateApiStatus('error', `Error: ${data.error || 'Unknown error'}`);
                 }
             })
-            .catch(error => console.error('Error refreshing dashboard stats:', error));
+            .catch(error => {
+                console.error('Error refreshing dashboard stats:', error);
+                updateApiStatus('error', `Error: ${error.message || 'Network error'}`);
+            });
+    }
+    
+    // Helper function to update a specific stat card
+    function updateStatCard(cards, titleText, value) {
+        // Log all card titles for debugging
+        console.log('Available cards:');
+        cards.forEach(card => {
+            const titleEl = card.querySelector('h6.text-muted');
+            if (titleEl) {
+                console.log(`- Card title: "${titleEl.textContent.trim()}"`);
+            }
+        });
+        
+        // First try the more specific approach
+        for (const card of cards) {
+            const titleElement = card.querySelector('h6.text-muted');
+            if (titleElement && titleElement.textContent.trim() === titleText) {
+                const valueElement = card.querySelector('h3');
+                if (valueElement) {
+                    console.log(`Updating ${titleText} to:`, value);
+                    valueElement.textContent = value;
+                    return true;
+                }
+            }
+        }
+        
+        // If that fails, try a more direct approach based on the order of cards
+        console.log('First approach failed, trying direct index approach');
+        let index = -1;
+        
+        switch(titleText) {
+            case 'Total Stocks':
+                index = 0;
+                break;
+            case 'Total Requests':
+                index = 1;
+                break;
+            case 'Total Ration Requests':
+                index = 2;
+                break;
+            case 'Confirmed Transactions':
+                index = 3;
+                break;
+        }
+        
+        if (index >= 0 && index < 4) {
+            // Get only the stat cards (first 4 cards)
+            const statCards = Array.from(document.querySelectorAll('.admin-card')).slice(0, 4);
+            if (statCards.length > index) {
+                const card = statCards[index];
+                const valueElement = card.querySelector('h3');
+                if (valueElement) {
+                    console.log(`Updating ${titleText} (by index ${index}) to:`, value);
+                    valueElement.textContent = value;
+                    return true;
+                }
+            }
+        }
+        
+        // If all else fails, try the most direct approach
+        console.log('Second approach failed, trying most direct approach');
+        const allH3Elements = document.querySelectorAll('.admin-card h3');
+        
+        if (allH3Elements.length >= 4) {
+            let h3Index = -1;
+            
+            switch(titleText) {
+                case 'Total Stocks':
+                    h3Index = 0;
+                    break;
+                case 'Total Requests':
+                    h3Index = 1;
+                    break;
+                case 'Total Ration Requests':
+                    h3Index = 2;
+                    break;
+                case 'Confirmed Transactions':
+                    h3Index = 3;
+                    break;
+            }
+            
+            if (h3Index >= 0 && h3Index < allH3Elements.length) {
+                console.log(`Updating ${titleText} (by direct h3 index ${h3Index}) to:`, value);
+                allH3Elements[h3Index].textContent = value;
+                return true;
+            }
+        }
+        
+        console.error(`Could not find card with title: ${titleText}`);
+        return false;
+    }
+    
+    // Debug functions
+    function checkApiStatus() {
+        fetch('/blockchain/api/stats')
+            .then(response => {
+                if (response.ok) {
+                    updateApiStatus('success', 'API is responding normally');
+                    return response.json();
+                } else {
+                    updateApiStatus('warning', `API returned status: ${response.status}`);
+                    throw new Error(`API returned status: ${response.status}`);
+                }
+            })
+            .then(data => {
+                updateApiResponse(data);
+            })
+            .catch(error => {
+                console.error('API check error:', error);
+                updateApiStatus('error', `Error: ${error.message || 'Unknown error'}`);
+            });
+    }
+    
+    function testApi() {
+        updateApiStatus('info', 'Testing API...');
+        fetch('/blockchain/api/test_stats')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error(`API returned status: ${response.status}`);
+                }
+            })
+            .then(data => {
+                updateApiResponse(data);
+                updateApiStatus('success', 'Test API responded successfully');
+                
+                // Update the stats with test data
+                if (data.success && data.stats) {
+                    const stats = data.stats;
+                    const cards = document.querySelectorAll('.admin-card');
+                    
+                    updateStatCard(cards, 'Total Stocks', stats.total_stocks);
+                    updateStatCard(cards, 'Total Requests', stats.total_requests);
+                    updateStatCard(cards, 'Total Ration Requests', stats.total_ration_requests);
+                    updateStatCard(cards, 'Confirmed Transactions', stats.confirmed_transactions);
+                }
+            })
+            .catch(error => {
+                console.error('Test API error:', error);
+                updateApiStatus('error', `Error: ${error.message || 'Unknown error'}`);
+            });
+    }
+    
+    function forceRefresh() {
+        updateApiStatus('info', 'Forcing refresh...');
+        
+        // First try the test endpoint
+        fetch('/blockchain/api/test_stats')
+            .then(response => response.json())
+            .then(testData => {
+                // Then try the real endpoint
+                return fetch('/blockchain/api/stats')
+                    .then(response => response.json())
+                    .then(realData => {
+                        // Compare the responses
+                        const comparison = {
+                            test: testData,
+                            real: realData,
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        updateApiResponse(comparison);
+                        updateApiStatus('success', 'Force refresh completed');
+                        
+                        // Update the stats with real data
+                        if (realData.success && realData.stats) {
+                            const stats = realData.stats;
+                            const cards = document.querySelectorAll('.admin-card');
+                            
+                            updateStatCard(cards, 'Total Stocks', stats.total_stocks);
+                            updateStatCard(cards, 'Total Requests', stats.total_requests);
+                            updateStatCard(cards, 'Total Ration Requests', stats.total_ration_requests);
+                            updateStatCard(cards, 'Confirmed Transactions', stats.confirmed_transactions);
+                        }
+                    });
+            })
+            .catch(error => {
+                console.error('Force refresh error:', error);
+                updateApiStatus('error', `Error: ${error.message || 'Unknown error'}`);
+            });
+    }
+    
+    function updateApiStatus(type, message) {
+        const apiStatus = document.getElementById('apiStatus');
+        if (apiStatus) {
+            apiStatus.className = `alert alert-${type}`;
+            apiStatus.textContent = message;
+        }
+    }
+    
+    function updateApiResponse(data) {
+        const apiResponse = document.getElementById('apiResponse');
+        if (apiResponse) {
+            apiResponse.textContent = JSON.stringify(data, null, 2);
+        }
     }
 
-    // Refresh stats every 30 seconds
-    setInterval(refreshDashboardStats, 30000);
+    // Function to check blockchain status and data
+    function checkBlockchainStatus(data) {
+        const blockchainStatusEl = document.getElementById('blockchainStatus');
+        if (!blockchainStatusEl) return;
+        
+        if (!data.success) {
+            blockchainStatusEl.className = 'alert alert-danger mt-3';
+            blockchainStatusEl.innerHTML = `<strong>Error:</strong> ${data.error || 'Unknown error'}`;
+            return;
+        }
+        
+        if (!data.blockchain_connected) {
+            blockchainStatusEl.className = 'alert alert-warning mt-3';
+            blockchainStatusEl.innerHTML = '<strong>Warning:</strong> Blockchain is not connected. Using database fallbacks.';
+            return;
+        }
+        
+        const stats = data.stats;
+        const hasData = stats.total_stocks > 0 || stats.total_requests > 0 || stats.total_ration_requests > 0;
+        
+        if (!hasData) {
+            blockchainStatusEl.className = 'alert alert-warning mt-3';
+            blockchainStatusEl.innerHTML = `
+                <strong>No Blockchain Data:</strong> The blockchain is connected but has no stocks or requests.
+                <ul class="mt-2 mb-0">
+                    <li>This is normal if you haven't added any data to the blockchain yet.</li>
+                    <li>Try creating some stocks or requests to see them reflected here.</li>
+                </ul>
+            `;
+        } else {
+            blockchainStatusEl.className = 'alert alert-success mt-3';
+            blockchainStatusEl.innerHTML = `
+                <strong>Blockchain Connected:</strong> Data found on blockchain.
+                <ul class="mt-2 mb-0">
+                    <li>Stocks: ${stats.total_stocks}</li>
+                    <li>Requests: ${stats.total_requests}</li>
+                    <li>Ration Requests: ${stats.total_ration_requests}</li>
+                    <li>Transactions: ${stats.confirmed_transactions} confirmed, ${stats.pending_transactions} pending</li>
+                </ul>
+            `;
+        }
+    }
 
-    // Initial refresh after 5 seconds
-    setTimeout(refreshDashboardStats, 5000);
+    // Refresh stats every 10 seconds (reduced from 30 seconds for faster updates)
+    setInterval(refreshDashboardStats, 10000);
+
+    // Initial refresh immediately
+    setTimeout(refreshDashboardStats, 500);
 </script>
 {% endblock %} 

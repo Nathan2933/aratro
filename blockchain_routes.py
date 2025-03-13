@@ -882,34 +882,135 @@ def view_ration_stock_request(request_id):
 @login_required
 def get_stats():
     """Get blockchain statistics."""
-    if blockchain_manager and blockchain_manager.w3 and blockchain_manager.w3.isConnected():
+    logger.info("Fetching blockchain statistics for dashboard")
+    
+    # Initialize with default values
+    total_stocks = 0
+    total_requests = 0
+    total_ration_requests = 0
+    pending_transactions = 0
+    confirmed_transactions = 0
+    
+    # Always get transaction counts from database (reliable)
+    try:
+        pending_transactions = BlockchainTransaction.query.filter_by(status='pending').count()
+        confirmed_transactions = BlockchainTransaction.query.filter_by(status='confirmed').count()
+        logger.info(f"Database transaction counts - Pending: {pending_transactions}, Confirmed: {confirmed_transactions}")
+    except Exception as e:
+        logger.error(f"Error getting transaction counts from database: {e}")
+        logger.error(traceback.format_exc())
+    
+    # Try to get blockchain stats
+    blockchain_connected = False
+    error_message = None
+    
+    if blockchain_manager and blockchain_manager.w3:
         try:
-            total_stocks = blockchain_manager.get_total_stocks()
-            total_requests = blockchain_manager.get_total_stock_requests()
-            total_ration_requests = blockchain_manager.get_total_ration_stock_requests()
-            
-            # Get transaction counts
-            pending_transactions = BlockchainTransaction.query.filter_by(status='pending').count()
-            confirmed_transactions = BlockchainTransaction.query.filter_by(status='confirmed').count()
-            
-            return jsonify({
-                'success': True,
-                'stats': {
-                    'total_stocks': total_stocks,
-                    'total_requests': total_requests,
-                    'total_ration_requests': total_ration_requests,
-                    'pending_transactions': pending_transactions,
-                    'confirmed_transactions': confirmed_transactions
-                }
-            })
+            blockchain_connected = blockchain_manager.w3.isConnected()
+            logger.info(f"Blockchain connection status: {blockchain_connected}")
         except Exception as e:
-            logger.error(f"Error getting blockchain statistics: {e}")
-            return jsonify({
-                'success': False,
-                'error': str(e)
-            }), 500
+            logger.error(f"Error checking blockchain connection: {e}")
+            logger.error(traceback.format_exc())
+            error_message = f"Connection error: {str(e)}"
     else:
-        return jsonify({
-            'success': False,
-            'error': 'Blockchain manager not initialized or not connected'
-        }), 503 
+        error_message = "Blockchain manager not initialized"
+        logger.error(error_message)
+    
+    if blockchain_connected:
+        try:
+            logger.info("Retrieving total stocks from blockchain...")
+            total_stocks = blockchain_manager.get_total_stocks()
+            logger.info(f"Total stocks retrieved: {total_stocks}")
+        except Exception as e:
+            logger.error(f"Error getting total stocks from blockchain: {e}")
+            logger.error(traceback.format_exc())
+            error_message = f"Blockchain error: {str(e)}"
+            # Fallback to database count
+            try:
+                total_stocks = Stock.query.filter(Stock.blockchain_id.isnot(None)).count()
+                logger.info(f"Using database fallback for total stocks: {total_stocks}")
+            except Exception as db_e:
+                logger.error(f"Error getting total stocks from database: {db_e}")
+                logger.error(traceback.format_exc())
+        
+        try:
+            logger.info("Retrieving total stock requests from blockchain...")
+            total_requests = blockchain_manager.get_total_stock_requests()
+            logger.info(f"Total requests retrieved: {total_requests}")
+        except Exception as e:
+            logger.error(f"Error getting total stock requests from blockchain: {e}")
+            logger.error(traceback.format_exc())
+            if not error_message:
+                error_message = f"Blockchain error: {str(e)}"
+            # Fallback to database count
+            try:
+                total_requests = StockRequest.query.filter(StockRequest.blockchain_id.isnot(None)).count()
+                logger.info(f"Using database fallback for total requests: {total_requests}")
+            except Exception as db_e:
+                logger.error(f"Error getting total stock requests from database: {db_e}")
+                logger.error(traceback.format_exc())
+        
+        try:
+            logger.info("Retrieving total ration stock requests from blockchain...")
+            total_ration_requests = blockchain_manager.get_total_ration_stock_requests()
+            logger.info(f"Total ration requests retrieved: {total_ration_requests}")
+        except Exception as e:
+            logger.error(f"Error getting total ration stock requests from blockchain: {e}")
+            logger.error(traceback.format_exc())
+            if not error_message:
+                error_message = f"Blockchain error: {str(e)}"
+            # Fallback to database count
+            try:
+                total_ration_requests = RationStockRequest.query.filter(RationStockRequest.blockchain_id.isnot(None)).count()
+                logger.info(f"Using database fallback for total ration requests: {total_ration_requests}")
+            except Exception as db_e:
+                logger.error(f"Error getting total ration stock requests from database: {db_e}")
+                logger.error(traceback.format_exc())
+    else:
+        logger.warning("Blockchain not connected, using database fallbacks")
+        error_message = "Blockchain not connected"
+        # Use database counts as fallbacks
+        try:
+            total_stocks = Stock.query.filter(Stock.blockchain_id.isnot(None)).count()
+            total_requests = StockRequest.query.filter(StockRequest.blockchain_id.isnot(None)).count()
+            total_ration_requests = RationStockRequest.query.filter(RationStockRequest.blockchain_id.isnot(None)).count()
+            logger.info(f"Database fallback stats: stocks={total_stocks}, requests={total_requests}, ration_requests={total_ration_requests}")
+        except Exception as e:
+            logger.error(f"Error getting fallback stats from database: {e}")
+            logger.error(traceback.format_exc())
+            error_message = f"Database error: {str(e)}"
+    
+    response_data = {
+        'success': True,
+        'blockchain_connected': blockchain_connected,
+        'stats': {
+            'total_stocks': total_stocks,
+            'total_requests': total_requests,
+            'total_ration_requests': total_ration_requests,
+            'pending_transactions': pending_transactions,
+            'confirmed_transactions': confirmed_transactions
+        },
+        'timestamp': datetime.utcnow().isoformat()
+    }
+    
+    if error_message:
+        response_data['error'] = error_message
+    
+    logger.info(f"Returning stats: {response_data}")
+    return jsonify(response_data)
+
+@blockchain.route('/api/test_stats')
+def test_stats():
+    """Simple test endpoint to verify API is working."""
+    return jsonify({
+        'success': True,
+        'test': True,
+        'stats': {
+            'total_stocks': 5,
+            'total_requests': 10,
+            'total_ration_requests': 15,
+            'pending_transactions': 2,
+            'confirmed_transactions': 20
+        },
+        'timestamp': datetime.utcnow().isoformat()
+    }) 
