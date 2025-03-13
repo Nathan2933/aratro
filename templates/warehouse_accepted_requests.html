@@ -3,113 +3,157 @@
 {% block title %}Accepted Requests{% endblock %}
 
 {% block content %}
-<div class="container-fluid warehouse-dashboard p-0">
-    <div class="row g-0">
-        <div class="col-12 d-flex justify-content-center">
-            <div class="content-wrapper">
-                <!-- Page Header -->
-                <div class="dashboard-header">
-                    <h1 class="dashboard-title">Accepted Requests</h1>
-                    <p class="dashboard-subtitle">View and manage all accepted requests</p>
-                </div>
-                
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% endwith %}
-                
-                <!-- Tabs for Farmer and Ration Shop Requests -->
-                <div class="dashboard-card mb-4">
-                    <div class="dashboard-card-header">
-                        <div class="request-tabs">
-                            <div class="request-tab active" id="farmer-tab">
-                                <i class="bi bi-person-fill"></i>
-                                <span>Farmer Requests</span>
-                            </div>
-                            <div class="request-tab" id="ration-tab">
-                                <i class="bi bi-shop"></i>
-                                <span>Ration Shop Requests</span>
-                            </div>
+<div class="warehouse-dashboard">
+    <div class="dashboard-container">
+        <!-- Page Header -->
+        <div class="dashboard-header">
+            <div class="header-content">
+                <h1 class="dashboard-title">Accepted Requests</h1>
+                <p class="dashboard-subtitle">View and manage all accepted requests</p>
+            </div>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Tabs for Farmer and Ration Shop Requests -->
+        <div class="request-tabs">
+            <button id="farmer-tab" class="request-tab active">
+                <i class="bi bi-person-fill"></i>
+                Farmer Requests
+            </button>
+            <button id="ration-tab" class="request-tab">
+                <i class="bi bi-shop"></i>
+                Ration Shop Requests
+            </button>
+        </div>
+        
+        <!-- Farmer Requests Content -->
+        <div class="request-content active" id="farmer-content">
+            <div class="card request-card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-list-check me-2"></i>
+                            Farmer Accepted Requests
+                        </h5>
+                        <div class="search-container">
+                            <input type="text" class="form-control search-input" id="farmerSearchInput" placeholder="Search requests...">
+                            <i class="bi bi-search search-icon"></i>
                         </div>
                     </div>
-                    <div class="dashboard-card-body p-0">
-                        <!-- Farmer Requests Content -->
-                        <div class="request-content active" id="farmer-content">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead class="custom-table-header">
-                                        <tr>
-                                            <th class="text-uppercase fw-bold">Request ID</th>
-                                            <th class="text-uppercase fw-bold">Farmer</th>
-                                            <th class="text-uppercase fw-bold">Stock Type</th>
-                                            <th class="text-uppercase fw-bold">Requested Quantity</th>
-                                            <th class="text-uppercase fw-bold">Approved Quantity</th>
-                                            <th class="text-uppercase fw-bold">Request Date</th>
-                                            <th class="text-uppercase fw-bold">Approval Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for request in approved_requests %}
-                                        <tr>
-                                            <td>#{{ request.id }}</td>
-                                            <td>{{ request.farmer.name }}</td>
-                                            <td>{{ request.stock.type }}</td>
-                                            <td>{{ request.stock.requested_quantity }} tons</td>
-                                            <td>{{ request.stock.quantity }} tons</td>
-                                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
-                                            <td>{{ request.updated_at.strftime('%Y-%m-%d') }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                        {% if not approved_requests %}
-                                        <tr>
-                                            <td colspan="7" class="text-center py-4">No accepted farmer requests found</td>
-                                        </tr>
-                                        {% endif %}
-                                    </tbody>
-                                </table>
-                            </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table custom-table">
+                            <thead>
+                                <tr>
+                                    <th>REQUEST ID</th>
+                                    <th>FARMER</th>
+                                    <th>STOCK TYPE</th>
+                                    <th>REQUESTED QUANTITY</th>
+                                    <th>APPROVED QUANTITY</th>
+                                    <th>REQUEST DATE</th>
+                                    <th>APPROVAL DATE</th>
+                                    <th>ACTIONS</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in approved_requests %}
+                                {% if request.stock and request.farmer %}
+                                <tr>
+                                    <td><span class="id-badge">#{{ request.id }}</span></td>
+                                    <td>{{ request.farmer.name }}</td>
+                                    <td><span class="stock-type">{{ request.stock.type }}</span></td>
+                                    <td>{{ request.stock.requested_quantity }} tons</td>
+                                    <td>{{ request.stock.quantity }} tons</td>
+                                    <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ request.updated_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <button class="btn btn-primary btn-sm action-btn" onclick="showFCIQualityCheck('{{ request.id }}')">
+                                            <i class="bi bi-clipboard-check"></i>
+                                            FCI Quality Check
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                {% endfor %}
+                                {% if not approved_requests %}
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 empty-state">
+                                        <div class="empty-state-container">
+                                            <i class="bi bi-inbox-fill empty-icon"></i>
+                                            <p>No accepted farmer requests found</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Ration Shop Requests Content -->
+        <div class="request-content" id="ration-content">
+            <div class="card request-card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="bi bi-shop me-2"></i>
+                            Ration Shop Accepted Requests
+                        </h5>
+                        <div class="search-container">
+                            <input type="text" class="form-control search-input" id="rationSearchInput" placeholder="Search requests...">
+                            <i class="bi bi-search search-icon"></i>
                         </div>
-                        
-                        <!-- Ration Shop Requests Content -->
-                        <div class="request-content" id="ration-content">
-                            <div class="table-responsive">
-                                <table class="table table-hover mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th>Request ID</th>
-                                            <th>Ration Shop</th>
-                                            <th>Stock Type</th>
-                                            <th>Quantity</th>
-                                            <th>Request Date</th>
-                                            <th>Approval Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {% for request in ration_approved_requests %}
-                                        <tr>
-                                            <td>#{{ request.id }}</td>
-                                            <td>{{ request.ration_shop.name }}</td>
-                                            <td>{{ request.stock_type }}</td>
-                                            <td>{{ request.quantity }} tons</td>
-                                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
-                                            <td>{{ request.processed_date.strftime('%Y-%m-%d') if request.processed_date else 'N/A' }}</td>
-                                        </tr>
-                                        {% endfor %}
-                                        {% if not ration_approved_requests %}
-                                        <tr>
-                                            <td colspan="6" class="text-center py-4">No accepted ration shop requests found</td>
-                                        </tr>
-                                        {% endif %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table custom-table">
+                            <thead>
+                                <tr>
+                                    <th>REQUEST ID</th>
+                                    <th>RATION SHOP</th>
+                                    <th>STOCK TYPE</th>
+                                    <th>QUANTITY</th>
+                                    <th>REQUEST DATE</th>
+                                    <th>APPROVAL DATE</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for request in ration_approved_requests %}
+                                <tr>
+                                    <td><span class="id-badge">#{{ request.id }}</span></td>
+                                    <td>{{ request.ration_shop.name }}</td>
+                                    <td><span class="stock-type">{{ request.stock_type }}</span></td>
+                                    <td>{{ request.quantity }} tons</td>
+                                    <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ request.processed_date.strftime('%Y-%m-%d') if request.processed_date else 'N/A' }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% if not ration_approved_requests %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 empty-state">
+                                        <div class="empty-state-container">
+                                            <i class="bi bi-inbox-fill empty-icon"></i>
+                                            <p>No accepted ration shop requests found</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -117,180 +161,93 @@
     </div>
 </div>
 
-<style>
-    /* Center content and set width */
-    .content-wrapper {
-        width: 85%;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    
-    /* Table styling */
-    .table {
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-    
-    .table thead {
-        background-color: #ffffff;
-    }
-    
-    .table th {
-        background-color: #fff;
-    }
-    
-    .custom-table-header {
-        background-color: #fff !important;
-    }
-    
-    .custom-table-header th {
-        color: #2e7d32 !important;
-        border-bottom: 2px solid #a5d6a7 !important;
-    }
-    
-    .table thead th {
-        font-size: 0.85rem;
-        letter-spacing: 0.5px;
-        padding: 12px 15px;
-        border-bottom: 2px solid #dee2e6;
-        color: #495057;
-    }
-    
-    .table tbody td {
-        padding: 12px 15px;
-        vertical-align: middle;
-        border-top: 1px solid #f0f0f0;
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(46, 125, 50, 0.05) !important;
-    }
-    
-    /* Badge styling */
-    .badge {
-        font-weight: 500;
-        padding: 6px 10px;
-        letter-spacing: 0.5px;
-    }
-    
-    /* Dashboard card styling */
-    .dashboard-card {
-        background-color: #fff;
-        border-radius: 10px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        margin-bottom: 20px;
-        overflow: hidden;
-    }
-    
-    .dashboard-card-header {
-        padding: 15px 20px;
-        border-bottom: 1px solid #f0f0f0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .dashboard-card-title {
-        margin: 0;
-        font-size: 1.1rem;
-        font-weight: 600;
-        color: #333;
-    }
-    
-    .dashboard-card-body {
-        padding: 20px;
-    }
-    
-    /* Request tabs styling */
-    .request-tabs {
-        display: flex;
-        gap: 20px;
-    }
-    
-    .request-tab {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: 20px;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-    
-    .request-tab.active {
-        background-color: #e8f5e9;
-        color: #2e7d32;
-        font-weight: 500;
-    }
-    
-    .request-tab:hover:not(.active) {
-        background-color: #f5f5f5;
-    }
-    
-    .request-content {
-        display: none;
-    }
-    
-    .request-content.active {
-        display: block;
-    }
-    
-    @media (max-width: 768px) {
-        .content-wrapper {
-            width: 95%;
-        }
-        
-        .request-tabs {
-            flex-direction: column;
-            gap: 10px;
-        }
-    }
-    .content-area.with-sidebar{
-    margin-left: 0;
-    width: 120%;
-}
-</style>
+<!-- FCI Quality Check Modal -->
+<div class="modal fade" id="fciQualityModal" tabindex="-1" aria-labelledby="fciQualityModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="fciQualityModalLabel">
+                    <i class="bi bi-clipboard-check me-2"></i>
+                    FCI Quality Check
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="fciQualityForm">
+                    <input type="hidden" id="fci_request_id" name="request_id">
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Moisture Content (1-10)</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="range" class="form-range custom-range" name="moisture_content" min="1" max="10" value="5" oninput="updateRatingValue(this)">
+                            <span id="moisture_content_value" class="rating-value">5</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Foreign Matter (1-10)</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="range" class="form-range custom-range" name="foreign_matter" min="1" max="10" value="5" oninput="updateRatingValue(this)">
+                            <span id="foreign_matter_value" class="rating-value">5</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Damaged Grains (1-10)</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="range" class="form-range custom-range" name="damaged_grains" min="1" max="10" value="5" oninput="updateRatingValue(this)">
+                            <span id="damaged_grains_value" class="rating-value">5</span>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label">Weevilled Grains (1-10)</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <input type="range" class="form-range custom-range" name="weevilled_grains" min="1" max="10" value="5" oninput="updateRatingValue(this)">
+                            <span id="weevilled_grains_value" class="rating-value">5</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="submitFCIRatingBtn">Submit Rating</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<!-- Add Bootstrap CSS and JS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<!-- Add SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Mobile sidebar toggle
-    const sidebarToggle = document.getElementById('sidebarToggle');
-    const sidebar = document.getElementById('warehouseSidebar');
-    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+function updateRatingValue(input) {
+    const value = document.getElementById(`${input.name}_value`);
+    value.textContent = input.value;
     
-    if (sidebarToggle && sidebar) {
-        sidebarToggle.addEventListener('click', function() {
-            sidebar.classList.add('show');
-            document.body.classList.add('sidebar-open');
-        });
-        
-        if (closeSidebarBtn) {
-            closeSidebarBtn.addEventListener('click', function() {
-                sidebar.classList.remove('show');
-                document.body.classList.remove('sidebar-open');
-            });
-        }
-        
-        // Close sidebar when clicking outside
-        document.addEventListener('click', function(event) {
-            const isClickInsideSidebar = sidebar.contains(event.target);
-            const isClickOnToggle = sidebarToggle.contains(event.target);
-            
-            if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                document.body.classList.remove('sidebar-open');
-            }
-        });
-        
-        // Close sidebar when pressing Escape
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape' && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-                document.body.classList.remove('sidebar-open');
-            }
-        });
+    // Update color based on value
+    if (input.value >= 8) {
+        value.className = 'rating-value high-rating';
+    } else if (input.value >= 5) {
+        value.className = 'rating-value medium-rating';
+    } else {
+        value.className = 'rating-value low-rating';
     }
-    
+}
+
+function showFCIQualityCheck(requestId) {
+    document.getElementById('fci_request_id').value = requestId;
+    const modal = new bootstrap.Modal(document.getElementById('fciQualityModal'));
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
     // Tab switching functionality
     const farmerTab = document.getElementById('farmer-tab');
     const rationTab = document.getElementById('ration-tab');
@@ -312,11 +269,535 @@ document.addEventListener('DOMContentLoaded', function() {
             farmerContent.classList.remove('active');
         });
     }
+    
+    // Search functionality
+    const farmerSearchInput = document.getElementById('farmerSearchInput');
+    const rationSearchInput = document.getElementById('rationSearchInput');
+    
+    if (farmerSearchInput) {
+        farmerSearchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const tableBody = document.querySelector('#farmer-content tbody');
+            const rows = tableBody.querySelectorAll('tr:not(.empty-state)');
+            
+            let hasVisibleRows = false;
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const isVisible = text.includes(searchTerm);
+                row.style.display = isVisible ? '' : 'none';
+                
+                if (isVisible) {
+                    hasVisibleRows = true;
+                }
+            });
+            
+            // Show or hide empty state message
+            const emptyStateRow = tableBody.querySelector('.empty-state');
+            if (emptyStateRow) {
+                emptyStateRow.style.display = hasVisibleRows ? 'none' : '';
+            }
+        });
+    }
+    
+    if (rationSearchInput) {
+        rationSearchInput.addEventListener('keyup', function() {
+            const searchTerm = this.value.toLowerCase();
+            const tableBody = document.querySelector('#ration-content tbody');
+            const rows = tableBody.querySelectorAll('tr:not(.empty-state)');
+            
+            let hasVisibleRows = false;
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                const isVisible = text.includes(searchTerm);
+                row.style.display = isVisible ? '' : 'none';
+                
+                if (isVisible) {
+                    hasVisibleRows = true;
+                }
+            });
+            
+            // Show or hide empty state message
+            const emptyStateRow = tableBody.querySelector('.empty-state');
+            if (emptyStateRow) {
+                emptyStateRow.style.display = hasVisibleRows ? 'none' : '';
+            }
+        });
+    }
+    
+    // Initialize rating value colors
+    document.querySelectorAll('.form-range').forEach(range => {
+        updateRatingValue(range);
+    });
+    
+    // FCI Quality Rating submission
+    document.getElementById('submitFCIRatingBtn').addEventListener('click', function() {
+        const form = document.getElementById('fciQualityForm');
+        const formData = new FormData(form);
+        const data = {};
+        formData.forEach((value, key) => {
+            data[key] = value;
+        });
+        
+        // Show loading state
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Submitting FCI quality rating',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Submit FCI rating
+        fetch("{{ url_for('warehouse_dashboard.rate_fci_quality') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Don't close the modal automatically
+                // const modal = bootstrap.Modal.getInstance(document.getElementById('fciQualityModal'));
+                // modal.hide();
+                
+                // Show success message with grade
+                Swal.fire({
+                    icon: 'success',
+                    title: 'FCI Quality Rating Saved',
+                    html: `
+                        <div class="text-center">
+                            <p>Overall Rating: <strong>${data.overall_rating.toFixed(1)}/10</strong></p>
+                            <div class="grade-badge grade-${data.grade.toLowerCase()}">${data.grade}</div>
+                        </div>
+                    `,
+                    showConfirmButton: true,
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Don't reload the page automatically
+                    // location.reload();
+                    
+                    // Reset the form for a new rating if needed
+                    document.querySelectorAll('.form-range').forEach(range => {
+                        range.value = 5;
+                        updateRatingValue(range);
+                    });
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: data.message || 'Failed to save FCI quality rating.'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'An unexpected error occurred: ' + error.message
+            });
+        });
+    });
 });
 </script>
+
+<style>
+    /* Main Layout */
+    .warehouse-dashboard {
+        background-color: #f8f9fa;
+        min-height: auto;
+        padding: 2rem 0;
+        width: 120%;
+    }
+    
+    .dashboard-container {
+        width: 92%;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    /* Header Styling */
+    .dashboard-header {
+        margin-bottom: 2rem;
+        position: relative;
+        border-bottom: 2px solid #e9ecef;
+        padding-bottom: 1.5rem;
+    }
+    
+    .header-content {
+        position: relative;
+    }
+    
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2e7d32;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dashboard-title::after {
+        content: '';
+        display: block;
+        position: absolute;
+        bottom: -8px;
+        left: 0;
+        width: 60px;
+        height: 4px;
+        background: #2e7d32;
+        border-radius: 2px;
+    }
+    body {
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  line-height: 1.6;
+  padding-top: 4rem;
+  min-height: 100vh;
+}
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 1.1rem;
+        margin-top: 0.75rem;
+    }
+    
+    /* Tabs Styling */
+    .request-tabs {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .request-tab {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: #f0f0f0;
+        border: none;
+        color: #555;
+        font-weight: 500;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+    
+    .request-tab.active {
+        background-color: #2e7d32;
+        color: white;
+        font-weight: 500;
+        box-shadow: 0 4px 8px rgba(46, 125, 50, 0.2);
+        transform: translateY(-2px);
+    }
+    
+    .request-tab:hover:not(.active) {
+        background-color: #e0e0e0;
+        transform: translateY(-2px);
+    }
+    
+    .request-content {
+        display: none;
+        animation: fadeIn 0.4s ease;
+    }
+    
+    .request-content.active {
+        display: block;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Card Styling */
+    .request-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        margin-bottom: 2rem;
+        background-color: white;
+    }
+    
+    .card-header {
+        background-color: white;
+        border-bottom: 1px solid #eaeaea;
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .card-header h5 {
+        color: #2e7d32;
+        font-weight: 600;
+    }
+    
+    /* Search Input */
+    .search-container {
+        position: relative;
+        width: 300px;
+    }
+    
+    .search-input {
+        padding-left: 2.5rem;
+        border-radius: 50px;
+        border: 1px solid #e0e0e0;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        box-shadow: 0 0 0 0.25rem rgba(46, 125, 50, 0.25);
+        border-color: #2e7d32;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #adb5bd;
+    }
+    
+    /* Table Styling */
+    .custom-table {
+        margin-bottom: 0;
+    }
+    
+    .custom-table thead {
+        background-color: #f8f9fa;
+    }
+    
+    .custom-table th {
+        font-weight: 600;
+        color: #2e7d32;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.5px;
+        padding: 1rem 1.5rem;
+        border-bottom: 2px solid #e9ecef;
+        white-space: nowrap;
+    }
+    
+    .custom-table td {
+        padding: 1rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f0f0f0;
+        color: #495057;
+    }
+    
+    .custom-table tbody tr {
+        transition: all 0.2s ease;
+    }
+    
+    .custom-table tbody tr:hover {
+        background-color: rgba(46, 125, 50, 0.04);
+    }
+    
+    .custom-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* Empty State */
+    .empty-state-container {
+        padding: 2rem;
+        text-align: center;
+        color: #6c757d;
+    }
+    
+    .empty-icon {
+        font-size: 3rem;
+        color: #dee2e6;
+        margin-bottom: 1rem;
+    }
+    
+    /* Badges and Labels */
+    .id-badge {
+        background-color: #f0f0f0;
+        color: #495057;
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .stock-type {
+        background-color: rgba(46, 125, 50, 0.1);
+        color: #2e7d32;
+        padding: 0.25rem 0.75rem;
+        border-radius: 50px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Action Buttons */
+    .action-btn {
+        background-color: #2e7d32;
+        border-color: #2e7d32;
+        border-radius: 50px;
+        padding: 0.375rem 1rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .action-btn:hover {
+        background-color: #1b5e20;
+        border-color: #1b5e20;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(27, 94, 32, 0.2);
+    }
+    
+    .action-btn:active {
+        transform: translateY(0);
+    }
+    
+    /* Modal Styling */
+    .modal-content {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #eaeaea;
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .modal-title {
+        color: #2e7d32;
+        font-weight: 600;
+    }
+    
+    .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-footer {
+        border-top: 1px solid #eaeaea;
+        padding: 1.25rem 1.5rem;
+    }
+    
+    /* Form Elements */
+    .form-label {
+        color: #495057;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .custom-range {
+        height: 8px;
+        border-radius: 4px;
+    }
+    
+    .custom-range::-webkit-slider-thumb {
+        background: #2e7d32;
+        width: 18px;
+        height: 18px;
+    }
+    
+    .custom-range::-moz-range-thumb {
+        background: #2e7d32;
+        width: 18px;
+        height: 18px;
+    }
+    
+    .rating-value {
+        font-weight: 600;
+        min-width: 30px;
+        text-align: center;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        color: white;
+        background-color: #6c757d;
+    }
+    
+    .high-rating {
+        background-color: #2e7d32;
+    }
+    
+    .medium-rating {
+        background-color: #ffc107;
+        color: #212529;
+    }
+    
+    .low-rating {
+        background-color: #dc3545;
+    }
+    
+    /* Grade Badge */
+    .grade-badge {
+        display: inline-block;
+        width: 60px;
+        height: 60px;
+        line-height: 60px;
+        border-radius: 50%;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px auto;
+        color: white;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .grade-a {
+        background-color: #4CAF50;
+    }
+
+    .grade-b {
+        background-color: #FFC107;
+    }
+
+    .grade-c {
+        background-color: #F44336;
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 992px) {
+        .dashboard-container {
+            width: 95%;
+        }
+        
+        .search-container {
+            width: 200px;
+        }
+        
+        .custom-table th,
+        .custom-table td {
+            padding: 0.75rem 1rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-title {
+            font-size: 1.75rem;
+        }
+        
+        .request-tabs {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .search-container {
+            display: none;
+        }
+    }
+    @media (min-width: 768px) {
+  .content-area.with-sidebar {
+    margin-left: 0;
+    width: 100%;
+    max-width: none;
+    padding-right: 1rem;
+  }
+}
+</style>
+{% endblock %}
 {% endblock %}
 
-{% block scripts %}
-<!-- Add Bootstrap Icons CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-{% endblock %} 

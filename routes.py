@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, session
 from flask_login import login_user, current_user, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop, RationStockRequest, OTP, BlockchainTransaction, CropPrice, StockQualityRating
+from models import db, User, Farmer, Warehouse, Stock, StockRequest, WarehouseRequest, Notification, Admin, RationShop, RationStockRequest, OTP, BlockchainTransaction, CropPrice, StockQualityRating, FCIQualityRating
 from blockchain_integration import create_stock_on_blockchain, create_stock_request_on_blockchain, update_stock_request_status_on_blockchain
 import re
 from datetime import datetime, timedelta
@@ -3181,3 +3181,104 @@ def get_base_price(stock_type):
         'success': True,
         'base_price': crop_price.price_per_kg
     })
+
+@warehouse_dashboard.route('/rate_fci_quality', methods=['POST'])
+@login_required
+def rate_fci_quality():
+    # Check if user is a warehouse manager
+    if not current_user.is_authenticated or current_user.role != 'warehouse_manager':
+        return jsonify({'success': False, 'message': 'Unauthorized access'}), 403
+    
+    # Get the warehouse data
+    warehouse = Warehouse.query.filter_by(user_id=current_user.id).first()
+    if not warehouse:
+        return jsonify({'success': False, 'message': 'Warehouse not found'}), 404
+    
+    # Get form data
+    data = request.json if request.is_json else request.form
+    request_id = data.get('request_id')
+    
+    # Get FCI parameters
+    moisture_content = int(data.get('moisture_content', 0))
+    foreign_matter = int(data.get('foreign_matter', 0))
+    damaged_grains = int(data.get('damaged_grains', 0))
+    weevilled_grains = int(data.get('weevilled_grains', 0))
+    
+    if not request_id:
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+    
+    # Validate ratings
+    if any(rating < 1 or rating > 10 for rating in [moisture_content, foreign_matter, damaged_grains, weevilled_grains]):
+        return jsonify({'success': False, 'message': 'All ratings must be between 1 and 10'}), 400
+    
+    try:
+        # Find the stock request
+        stock_request = StockRequest.query.get(request_id)
+        if not stock_request or stock_request.to_id != warehouse.id:
+            return jsonify({'success': False, 'message': 'Request not found'}), 404
+        
+        # Calculate overall rating
+        overall_rating = (moisture_content + foreign_matter + damaged_grains + weevilled_grains) / 4.0
+        
+        # Determine grade based on overall rating
+        grade = 'C'
+        if overall_rating >= 8:
+            grade = 'A'
+        elif overall_rating >= 6:
+            grade = 'B'
+        
+        # Check if FCI rating already exists
+        existing_rating = FCIQualityRating.query.filter_by(stock_id=stock_request.stock_id).first()
+        if existing_rating:
+            # Update existing rating
+            existing_rating.moisture_content = moisture_content
+            existing_rating.foreign_matter = foreign_matter
+            existing_rating.damaged_grains = damaged_grains
+            existing_rating.weevilled_grains = weevilled_grains
+            existing_rating.overall_rating = overall_rating
+        else:
+            # Create new rating
+            new_rating = FCIQualityRating(
+                stock_id=stock_request.stock_id,
+                moisture_content=moisture_content,
+                foreign_matter=foreign_matter,
+                damaged_grains=damaged_grains,
+                weevilled_grains=weevilled_grains,
+                overall_rating=overall_rating,
+                rated_by=current_user.id
+            )
+            db.session.add(new_rating)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': 'FCI quality rating saved successfully',
+            'overall_rating': overall_rating,
+            'grade': grade
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@admin.route('/fci_quality_ratings')
+@login_required
+def fci_quality_ratings():
+    # Check if user is an admin
+    if not current_user.is_authenticated or current_user.role != 'admin':
+        flash('You need to be logged in as an admin to access this page.', 'error')
+        return redirect(url_for('auth.login'))
+    
+    # Get all FCI quality ratings with related data
+    fci_ratings = FCIQualityRating.query.join(
+        Stock, FCIQualityRating.stock_id == Stock.id
+    ).join(
+        StockRequest, Stock.id == StockRequest.stock_id
+    ).join(
+        Farmer, StockRequest.from_id == Farmer.id
+    ).join(
+        Warehouse, Stock.warehouse_id == Warehouse.id
+    ).order_by(FCIQualityRating.created_at.desc()).all()
+    
+    return render_template('admin/fci_quality_ratings.html', fci_ratings=fci_ratings)

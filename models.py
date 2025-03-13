@@ -239,3 +239,24 @@ class StockQualityRating(db.Model):
     
     def __repr__(self):
         return f'<StockQualityRating {self.id}: {self.overall_rating}/10 for Stock {self.stock_id}>'
+
+class FCIQualityRating(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
+    
+    # FCI specific parameters
+    moisture_content = db.Column(db.Integer, nullable=False)  # Scale of 1-10
+    foreign_matter = db.Column(db.Integer, nullable=False)  # Scale of 1-10
+    damaged_grains = db.Column(db.Integer, nullable=False)  # Scale of 1-10
+    weevilled_grains = db.Column(db.Integer, nullable=False)  # Scale of 1-10
+    
+    overall_rating = db.Column(db.Float, nullable=False)  # Average of all ratings
+    rated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Warehouse manager who rated
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    # Relationships
+    stock = db.relationship('Stock', backref='fci_quality_rating', uselist=False)
+    rater = db.relationship('User', backref='fci_ratings_given')
+    
+    def __repr__(self):
+        return f'<FCIQualityRating {self.id}: {self.overall_rating}/10 for Stock {self.stock_id}>'

@@ -1,0 +1,164 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}FCI Quality Ratings{% endblock %}
+
+{% block admin_content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">FCI Quality Ratings</h1>
+        <p class="page-subtitle">View and manage FCI quality ratings for farmer stocks</p>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<!-- FCI Quality Ratings Table -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-clipboard-check me-2"></i>
+            FCI Quality Ratings
+        </h5>
+        <div class="admin-card-tools">
+            <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search...">
+        </div>
+    </div>
+    <div class="admin-card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Farmer</th>
+                        <th>Stock Type</th>
+                        <th>Warehouse</th>
+                        <th>Moisture Content</th>
+                        <th>Foreign Matter</th>
+                        <th>Damaged Grains</th>
+                        <th>Weevilled Grains</th>
+                        <th>Overall Rating</th>
+                        <th>Grade</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rating in fci_ratings %}
+                    <tr>
+                        <td>#{{ rating.id }}</td>
+                        <td>{{ rating.stock.farmer.name }}</td>
+                        <td>{{ rating.stock.type }}</td>
+                        <td>{{ rating.stock.warehouse.name }}</td>
+                        <td>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar" style="width: {{ rating.moisture_content * 10 }}%"></div>
+                            </div>
+                            {{ rating.moisture_content }}/10
+                        </td>
+                        <td>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar" style="width: {{ rating.foreign_matter * 10 }}%"></div>
+                            </div>
+                            {{ rating.foreign_matter }}/10
+                        </td>
+                        <td>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar" style="width: {{ rating.damaged_grains * 10 }}%"></div>
+                            </div>
+                            {{ rating.damaged_grains }}/10
+                        </td>
+                        <td>
+                            <div class="rating-bar-container">
+                                <div class="rating-bar" style="width: {{ rating.weevilled_grains * 10 }}%"></div>
+                            </div>
+                            {{ rating.weevilled_grains }}/10
+                        </td>
+                        <td>{{ rating.overall_rating|round(1) }}/10</td>
+                        <td>
+                            {% set grade = 'C' %}
+                            {% if rating.overall_rating >= 8 %}
+                                {% set grade = 'A' %}
+                            {% elif rating.overall_rating >= 6 %}
+                                {% set grade = 'B' %}
+                            {% endif %}
+                            <span class="grade-badge grade-{{ grade|lower }}">{{ grade }}</span>
+                        </td>
+                        <td>{{ rating.created_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% endfor %}
+                    {% if not fci_ratings %}
+                    <tr>
+                        <td colspan="11" class="text-center py-4">No FCI quality ratings found</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.rating-bar-container {
+    height: 8px;
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.rating-bar {
+    height: 100%;
+    background-color: #2e7d32;
+    border-radius: 4px;
+}
+
+.grade-badge {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    line-height: 24px;
+    text-align: center;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+}
+
+.grade-a {
+    background-color: #4CAF50;
+}
+
+.grade-b {
+    background-color: #FFC107;
+}
+
+.grade-c {
+    background-color: #F44336;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const tableRows = document.querySelectorAll('tbody tr');
+    
+    searchInput.addEventListener('keyup', function() {
+        const searchTerm = this.value.toLowerCase();
+        
+        tableRows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+});
+</script>
+{% endblock %} 
