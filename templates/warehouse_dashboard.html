@@ -70,7 +70,7 @@
                                         <i class="bi bi-inbox"></i>
                                     </div>
                                     <div class="stats-info">
-                                        <h2 class="stats-number">{{ (pending_requests|length) + (ration_pending_requests|length) }}</h2>
+                                        <h2 class="stats-number">{{ total_pending_count }}</h2>
                                         <p class="stats-label">Pending Requests</p>
                                     </div>
                                 </div>
@@ -86,7 +86,7 @@
                                         <i class="bi bi-check-circle"></i>
                                     </div>
                                     <div class="stats-info">
-                                        <h2 class="stats-number">{{ (accepted_requests|length) + (ration_accepted_requests|length) }}</h2>
+                                        <h2 class="stats-number">{{ total_accepted_count }}</h2>
                                         <p class="stats-label">Accepted Requests</p>
                                     </div>
                                 </div>
@@ -102,7 +102,7 @@
                                         <i class="bi bi-x-circle"></i>
                                     </div>
                                     <div class="stats-info">
-                                        <h2 class="stats-number">{{ (rejected_requests|length) + (ration_rejected_requests|length) }}</h2>
+                                        <h2 class="stats-number">{{ total_rejected_count }}</h2>
                                         <p class="stats-label">Rejected Requests</p>
                                     </div>
                                 </div>
@@ -159,6 +159,44 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+                
+                <!-- Crop Prices Section -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h5 class="dashboard-card-title">
+                            <i class="bi bi-currency-rupee me-2"></i>
+                            Current Crop Prices
+                        </h5>
+                    </div>
+                    <div class="dashboard-card-body">
+                        {% if crop_prices %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Crop Type</th>
+                                            <th>Price per Kg</th>
+                                            <th>Last Updated</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for price in crop_prices %}
+                                            <tr>
+                                                <td>{{ price.crop_type }}</td>
+                                                <td>₹{{ price.price_per_kg }}</td>
+                                                <td>{{ price.updated_at.strftime('%Y-%m-%d') }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                No crop prices have been set by the administrator yet.
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
                 

@@ -201,3 +201,41 @@ class BlockchainTransaction(db.Model):
     
     def __repr__(self):
         return f'<BlockchainTransaction {self.id}: {self.tx_type} for {self.entity_type} {self.entity_id}>'
+
+class CropPrice(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    crop_type = db.Column(db.String(100), unique=True, nullable=False)  # Type of crop (e.g., 'Rice', 'Wheat')
+    price_per_kg = db.Column(db.Float, nullable=False)  # Price per kg in currency
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    def __repr__(self):
+        return f'<CropPrice {self.crop_type}: {self.price_per_kg} per kg>'
+
+class StockQualityRating(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    stock_id = db.Column(db.Integer, db.ForeignKey('stock.id'), nullable=False)
+    stock_type = db.Column(db.String(50), nullable=False)  # 'perishable' or 'non_perishable'
+    
+    # Common parameters
+    hygiene_rating = db.Column(db.Integer, nullable=False)  # Scale of 1-10
+    damaged_goods_rating = db.Column(db.Integer, nullable=False)  # Scale of 1-10
+    
+    # Perishable specific parameters
+    perishability_level = db.Column(db.Integer, nullable=True)  # Scale of 1-10
+    preservation_rating = db.Column(db.Integer, nullable=True)  # Scale of 1-10
+    
+    # Non-perishable specific parameters
+    water_content_rating = db.Column(db.Integer, nullable=True)  # Scale of 1-10
+    grain_grade_rating = db.Column(db.Integer, nullable=True)  # Scale of 1-10
+    
+    overall_rating = db.Column(db.Float, nullable=False)  # Average of all applicable ratings
+    rated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Warehouse manager who rated
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    
+    # Relationships
+    stock = db.relationship('Stock', backref='quality_rating', uselist=False)
+    rater = db.relationship('User', backref='ratings_given')
+    
+    def __repr__(self):
+        return f'<StockQualityRating {self.id}: {self.overall_rating}/10 for Stock {self.stock_id}>'

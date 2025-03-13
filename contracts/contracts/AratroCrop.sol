@@ -407,4 +407,54 @@ contract AratroCrop {
     function getTotalRationStockRequests() public view returns (uint256) {
         return rationStockRequestIdCounter;
     }
+    
+    /**
+     * @dev Get ration stock request details
+     * @param _requestId ID of the ration stock request
+     * @return id ID of the request
+     * @return rationShop Ration shop's address
+     * @return warehouse Warehouse's address
+     * @return stockType Type of stock
+     * @return quantity Quantity in kg
+     * @return status Status of the request
+     * @return requestDate Date of the request
+     * @return processedDate Date when the request was processed
+     * @return notes Notes
+     * @return adminNotes Admin notes
+     * @return createdAt Creation timestamp
+     * @return updatedAt Last update timestamp
+     */
+    function getRationStockRequest(uint256 _requestId) public view returns (
+        uint256 id,
+        address rationShop,
+        address warehouse,
+        string memory stockType,
+        uint256 quantity,
+        StockStatus status,
+        uint256 requestDate,
+        uint256 processedDate,
+        string memory notes,
+        string memory adminNotes,
+        uint256 createdAt,
+        uint256 updatedAt
+    ) {
+        require(_requestId <= rationStockRequestIdCounter, "Ration stock request does not exist");
+        
+        RationStockRequest storage request = rationStockRequests[_requestId];
+        
+        return (
+            request.id,
+            request.rationShop,
+            request.warehouse,
+            request.stockType,
+            request.quantity,
+            request.status,
+            request.requestDate,
+            request.processedDate,
+            request.notes,
+            request.adminNotes,
+            request.createdAt,
+            request.updatedAt
+        );
+    }
 } 

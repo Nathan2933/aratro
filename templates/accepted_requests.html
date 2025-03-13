@@ -132,47 +132,57 @@
                         <input type="text" class="search-bar" placeholder="Search requests..." onkeyup="searchRequests()">
 
                         <div id="requests-container">
-                            {% for request in accepted_requests %}
+                            {% for request_tuple in accepted_requests %}
+                            {% set request = request_tuple[0] %}
+                            {% set price_per_kg = request_tuple[1] %}
                             <div class="request-item">
-                                <div class="request-summary">
-                                    <div>
-                                        <strong>Stock Type:</strong> {{ request.stock.type }}<br>
-                                        <strong>Quantity:</strong> {{ request.stock.quantity }} tons<br>
-                                        <strong>Warehouse:</strong> {{ request.warehouse.name }}
-                                    </div>
-                                    {% if request.stock.quantity == request.stock.requested_quantity %}
-                                    <div class="status-badge status-accepted">
-                                        <i class="bi bi-check-circle-fill"></i>
-                                        Accepted
-                                    </div>
-                                    {% else %}
-                                    <div class="status-badge status-partial">
-                                        <i class="bi bi-check-circle-fill"></i>
-                                        Partially Accepted
-                                    </div>
+                                <div>
+                                    <strong>Stock Type:</strong> {{ request.stock.type }}<br>
+                                    <strong>Quantity:</strong> {{ request.stock.quantity }} tons<br>
+                                    <strong>Warehouse:</strong> {{ request.warehouse.name }}<br>
+                                    {% if request.stock.quality_rating and request.stock.quality_rating|length > 0 %}
+                                    {% set rating = request.stock.quality_rating[0] %}
+                                    <strong>Grade:</strong> 
+                                    {% if rating.overall_rating >= 8 %}A
+                                    {% elif rating.overall_rating >= 6 %}B
+                                    {% else %}C{% endif %}<br>
+                                    {% endif %}
+                                    {% if price_per_kg %}
+                                    <strong>Price:</strong> ₹{{ price_per_kg }}/kg
                                     {% endif %}
                                 </div>
-                                <button class="view-details-btn" onclick="toggleDetails(this)">View Details</button>
-                                <div class="request-details" style="display: none;">
-                                    <div class="detail-row"><strong>Request ID:</strong> {{ request.id }}</div>
-                                    <div class="detail-row"><strong>Request Date:</strong> {{ request.updated_at.strftime('%Y-%m-%d') }}</div>
-                                    <div class="detail-row"><strong>Requested Quantity:</strong> {{ request.stock.requested_quantity }} tons</div>
-                                    <div class="detail-row"><strong>Approved Quantity:</strong> {{ request.stock.quantity }} tons</div>
-                                    <div class="detail-row"><strong>Status:</strong> 
-                                        {% if request.stock.quantity == request.stock.requested_quantity %}
-                                            Accepted
-                                        {% else %}
-                                            Partially Accepted
-                                        {% endif %}
-                                    </div>
-                                    
-                                    <div class="warehouse-section">
-                                        <h4 class="section-title">Warehouse Details</h4>
-                                        <div class="detail-row"><strong>Warehouse Name:</strong> {{ request.warehouse.name }}</div>
-                                        <div class="detail-row"><strong>Location:</strong> {{ request.warehouse.location }}</div>
-                                        <div class="detail-row"><strong>Contact:</strong> {{ request.warehouse.contact_number }}</div>
-                                        <div class="detail-row"><strong>Email:</strong> {{ request.warehouse.email }}</div>
-                                    </div>
+                                {% if request.stock.quantity == request.stock.requested_quantity %}
+                                <div class="status-badge status-accepted">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Accepted
+                                </div>
+                                {% else %}
+                                <div class="status-badge status-partial">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    Partially Accepted
+                                </div>
+                                {% endif %}
+                            </div>
+                            <button class="view-details-btn" onclick="toggleDetails(this)">View Details</button>
+                            <div class="request-details" style="display: none;">
+                                <div class="detail-row"><strong>Request ID:</strong> {{ request.id }}</div>
+                                <div class="detail-row"><strong>Request Date:</strong> {{ request.updated_at.strftime('%Y-%m-%d') }}</div>
+                                <div class="detail-row"><strong>Requested Quantity:</strong> {{ request.stock.requested_quantity }} tons</div>
+                                <div class="detail-row"><strong>Approved Quantity:</strong> {{ request.stock.quantity }} tons</div>
+                                <div class="detail-row"><strong>Status:</strong> 
+                                    {% if request.stock.quantity == request.stock.requested_quantity %}
+                                        Accepted
+                                    {% else %}
+                                        Partially Accepted
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="warehouse-section">
+                                    <h4 class="section-title">Warehouse Details</h4>
+                                    <div class="detail-row"><strong>Warehouse Name:</strong> {{ request.warehouse.name }}</div>
+                                    <div class="detail-row"><strong>Location:</strong> {{ request.warehouse.location }}</div>
+                                    <div class="detail-row"><strong>Contact:</strong> {{ request.warehouse.contact_number }}</div>
+                                    <div class="detail-row"><strong>Email:</strong> {{ request.warehouse.email }}</div>
                                 </div>
                             </div>
                             {% endfor %}

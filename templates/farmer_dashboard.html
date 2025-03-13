@@ -116,6 +116,7 @@
                     {% endif %}
                 {% endwith %}
                 
+                
                 <!-- Statistics Cards -->
                 <div class="stats-cards-container">
                     <div class="stats-card green">
@@ -124,7 +125,7 @@
                                 <i class="bi bi-file-text"></i>
                             </div>
                             <div class="stats-info">
-                                <h2 class="stats-number">{{ requests|length }}</h2>
+                                <h2 class="stats-number">{{ stock_requests|length }}</h2>
                                 <p class="stats-label">Total Requests</p>
                             </div>
                         </div>
@@ -150,7 +151,7 @@
                                 <i class="bi bi-check-circle"></i>
                             </div>
                             <div class="stats-info">
-                                <h2 class="stats-number">{{ requests|selectattr('status', 'equalto', 'approved')|list|length }}</h2>
+                                <h2 class="stats-number">{{ stock_requests|selectattr('status', 'equalto', 'stored')|list|length }}</h2>
                                 <p class="stats-label">Accepted Requests</p>
                             </div>
                         </div>
@@ -163,7 +164,7 @@
                                 <i class="bi bi-clock"></i>
                             </div>
                             <div class="stats-info">
-                                <h2 class="stats-number">{{ requests|selectattr('status', 'equalto', 'pending')|list|length }}</h2>
+                                <h2 class="stats-number">{{ stock_requests|selectattr('status', 'equalto', 'pending')|list|length }}</h2>
                                 <p class="stats-label">Pending Requests</p>
                             </div>
                         </div>
@@ -207,6 +208,44 @@
                                     <i class="bi bi-clipboard-check"></i>
                                 </div>
                                 <p>No recent activity to display</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Crop Prices Section -->
+                <div class="dashboard-section">
+                    <div class="section-header">
+                        <h2 class="section-title">
+                            <i class="bi bi-currency-rupee me-2"></i>
+                            Current Crop Prices
+                        </h2>
+                    </div>
+                    <div class="section-content">
+                        {% if crop_prices %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Crop Type</th>
+                                            <th>Price per Kg</th>
+                                            <th>Last Updated</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for price in crop_prices %}
+                                            <tr>
+                                                <td>{{ price.crop_type }}</td>
+                                                <td>₹{{ price.price_per_kg }}</td>
+                                                <td>{{ price.updated_at.strftime('%Y-%m-%d') }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                No crop prices have been set by the administrator yet.
                             </div>
                         {% endif %}
                     </div>

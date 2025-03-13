@@ -457,6 +457,13 @@
             </div>
             
             <div class="sidebar-item">
+                <a href="{{ url_for('admin.crop_prices') }}" class="sidebar-link {% if request.endpoint == 'admin.crop_prices' %}active{% endif %}">
+                    <i class="bi bi-currency-rupee"></i>
+                    <span>Crop Prices</span>
+                </a>
+            </div>
+            
+            <div class="sidebar-item">
                 <a href="{{ url_for('admin.requests') }}" class="sidebar-link {% if request.endpoint == 'admin.requests' %}active{% endif %}">
                     <i class="bi bi-list-check"></i>
                     <span>Requests</span>

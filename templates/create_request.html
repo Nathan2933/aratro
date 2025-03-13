@@ -148,12 +148,47 @@
                                     <option value="Rice" {% if warehouse_request and warehouse_request.stock_type == 'Rice' %}selected{% endif %}>Rice</option>
                                     <option value="Wheat" {% if warehouse_request and warehouse_request.stock_type == 'Wheat' %}selected{% endif %}>Wheat</option>
                                     <option value="Corn" {% if warehouse_request and warehouse_request.stock_type == 'Corn' %}selected{% endif %}>Corn</option>
-                                    <option value="Sugarcane" {% if warehouse_request and warehouse_request.stock_type == 'Sugarcane' %}selected{% endif %}>Sugarcane</option>
-                                    <option value="Vegetables" {% if warehouse_request and warehouse_request.stock_type == 'Vegetables' %}selected{% endif %}>Vegetables</option>
-                                    <option value="Fruits" {% if warehouse_request and warehouse_request.stock_type == 'Fruits' %}selected{% endif %}>Fruits</option>
-                                    <option value="Other" {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}selected{% endif %}>Other</option>
+                                    <option value="Barley" {% if warehouse_request and warehouse_request.stock_type == 'Barley' %}selected{% endif %}>Barley</option>
+                                    <option value="Sorghum" {% if warehouse_request and warehouse_request.stock_type == 'Sorghum' %}selected{% endif %}>Sorghum</option>
+                                    <option value="Millet" {% if warehouse_request and warehouse_request.stock_type == 'Millet' %}selected{% endif %}>Millet</option>
+                                    <option value="Oats" {% if warehouse_request and warehouse_request.stock_type == 'Oats' %}selected{% endif %}>Oats</option>
+                                    <option value="Rye" {% if warehouse_request and warehouse_request.stock_type == 'Rye' %}selected{% endif %}>Rye</option>
+                                    <option value="Soybeans" {% if warehouse_request and warehouse_request.stock_type == 'Soybeans' %}selected{% endif %}>Soybeans</option>
+                                    <option value="Pulses" {% if warehouse_request and warehouse_request.stock_type == 'Pulses' %}selected{% endif %}>Pulses</option>
+                                    <option value="Other" {% if warehouse_request and warehouse_request.stock_type == 'Other' %}selected{% endif %}>Other</option>
                                 </select>
                             </div>
+                            
+                            <!-- Crop Prices Reference -->
+                            <div class="form-group mb-3">
+                                <label class="form-label">Current Crop Prices (Reference)</label>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Crop Type</th>
+                                                <th>Price per Kg</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% if crop_prices %}
+                                                {% for price in crop_prices %}
+                                                    <tr>
+                                                        <td>{{ price.crop_type }}</td>
+                                                        <td>₹{{ price.price_per_kg }}</td>
+                                                    </tr>
+                                                {% endfor %}
+                                            {% else %}
+                                                <tr>
+                                                    <td colspan="2" class="text-center">No crop prices have been set by the administrator yet.</td>
+                                                </tr>
+                                            {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <small class="text-muted">These prices are set by the administrator and are for reference only.</small>
+                            </div>
+                            
                             <div class="form-group mb-3" id="otherStockTypeGroup" {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}style="display: block;"{% else %}style="display: none;"{% endif %}>
                                 <label for="otherStockType" class="form-label">Specify Stock Type</label>
                                 <input type="text" id="otherStockType" name="other_stock_type" class="form-control" placeholder="Enter stock type" {% if warehouse_request and warehouse_request.stock_type not in ['Rice', 'Wheat', 'Corn', 'Sugarcane', 'Vegetables', 'Fruits'] %}value="{{ warehouse_request.stock_type }}"{% endif %}>

@@ -7,6 +7,7 @@ from solcx import compile_source, install_solc
 from dotenv import load_dotenv
 import logging
 import traceback
+import secrets
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
@@ -864,6 +865,12 @@ def get_eth_address(user_id, role):
     Generate a deterministic Ethereum address for a user.
     In a real application, users would have their own wallets.
     """
+    # Check if user_id is None
+    if user_id is None:
+        # Generate a random address for entities without an ID
+        random_id = secrets.randbits(160)  # 160 bits for Ethereum address
+        return f"0x{random_id:040x}"
+        
     # This is a simplified approach for demo purposes
     # In production, users should have their own wallets and private keys
     return f"0x{user_id:040x}" 

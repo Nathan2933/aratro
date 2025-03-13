@@ -6,7 +6,7 @@ import os
 import subprocess
 from dotenv import load_dotenv
 from app import app, db
-from models import User, Farmer, Warehouse, Admin, Stock, StockRequest, RationShop, RationStockRequest, BlockchainTransaction, Notification, WarehouseRequest, OTP
+from models import User, Farmer, Warehouse, Admin, Stock, StockRequest, RationShop, RationStockRequest, BlockchainTransaction, Notification, WarehouseRequest, OTP, CropPrice
 from flask_migrate import Migrate
 
 # Load environment variables
@@ -31,15 +31,12 @@ def update_schema():
         print("Applying migration...")
         subprocess.run(['flask', 'db', 'upgrade'])
         
+        # Create tables if they don't exist
+        db.create_all()
+        
         print("Database schema updated successfully!")
 
 if __name__ == "__main__":
-    # Check if using local database
-    if os.environ.get('USE_LOCAL_DB', 'false').lower() != 'true':
-        print("Error: USE_LOCAL_DB is not set to 'true' in .env file.")
-        print("Please set USE_LOCAL_DB=true in .env file to use local database.")
-        exit(1)
-    
     # Set Flask app environment variable
     os.environ['FLASK_APP'] = 'app.py'
     

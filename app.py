@@ -43,33 +43,40 @@ supabase_url = os.environ.get('SUPABASE_DB_URL')
 if local_db_url and os.environ.get('USE_LOCAL_DB', 'false').lower() == 'true':
     logger.info("Using LOCAL database")
     app.config['SQLALCHEMY_DATABASE_URI'] = local_db_url
+    # SQLite-specific configuration
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'connect_args': {
+            'check_same_thread': False
+        }
+    }
 elif supabase_url:
     logger.info("Using SUPABASE database")
     app.config['SQLALCHEMY_DATABASE_URI'] = supabase_url
+    # PostgreSQL-specific configuration
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_size': 5,
+        'max_overflow': 10,
+        'pool_timeout': 30,
+        'pool_recycle': 1800,
+        'pool_pre_ping': True,
+        'isolation_level': 'AUTOCOMMIT',
+        'connect_args': {
+            'sslmode': 'prefer',
+            'connect_timeout': 10,
+            'keepalives': 1,
+            'keepalives_idle': 30,
+            'keepalives_interval': 10,
+            'keepalives_count': 5,
+            'application_name': 'aratro',
+            'options': '-c statement_timeout=30000'
+        }
+    }
 else:
     logger.error("No database URL found in environment variables")
     raise ValueError("Either LOCAL_DB_URL or SUPABASE_DB_URL must be set in .env file")
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_size': 5,  # Reduced from 20 to prevent too many connections
-    'max_overflow': 10,  # Allow up to 10 additional connections when pool is full
-    'pool_timeout': 30,  # Timeout after 30 seconds of waiting for a connection
-    'pool_recycle': 1800,  # Recycle connections every 30 minutes
-    'pool_pre_ping': True,  # Check connection health before using
-    'isolation_level': 'AUTOCOMMIT',  # Use autocommit mode to avoid transaction issues
-    'connect_args': {
-        'sslmode': 'prefer' if not os.environ.get('USE_LOCAL_DB', 'false').lower() == 'true' else 'disable',
-        'connect_timeout': 10,  # Connection timeout in seconds
-        'keepalives': 1,  # Enable TCP keepalive
-        'keepalives_idle': 30,  # Time between keepalive probes
-        'keepalives_interval': 10,  # Time between probes if previous probe failed
-        'keepalives_count': 5,  # Number of failed probes before connection is considered dead
-        'application_name': 'aratro',  # Identify your application in database logs
-        'options': '-c statement_timeout=30000'  # 30 second statement timeout
-    }
-}
-
 app.config['GOOGLE_MAPS_API_KEY'] = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyCRhQb3mjxdmiYnS3K1NihMxYOO5NULF48')
 
 # Email configuration
