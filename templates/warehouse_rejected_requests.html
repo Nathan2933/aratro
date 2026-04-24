@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Rejected Requests{% endblock %}
+
+{% block content %}
+<div class="container-fluid warehouse-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12 d-flex justify-content-center">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Rejected Requests</h1>
+                    <p class="dashboard-subtitle">View all rejected requests</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Tabs for Farmer and Ration Shop Requests -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <div class="request-tabs">
+                            <div class="request-tab active" id="farmer-tab">
+                                <i class="bi bi-person-fill"></i>
+                                <span>Farmer Requests</span>
+                            </div>
+                            <div class="request-tab" id="ration-tab">
+                                <i class="bi bi-shop"></i>
+                                <span>Ration Shop Requests</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-body p-0">
+                        <!-- Farmer Requests Content -->
+                        <div class="request-content active" id="farmer-content">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="custom-table-header">
+                                        <tr>
+                                            <th class="text-uppercase fw-bold">Request ID</th>
+                                            <th class="text-uppercase fw-bold">Farmer</th>
+                                            <th class="text-uppercase fw-bold">Stock Type</th>
+                                            <th class="text-uppercase fw-bold">Requested Quantity</th>
+                                            <th class="text-uppercase fw-bold">Request Date</th>
+                                            <th class="text-uppercase fw-bold">Rejection Date</th>
+                                            <th class="text-uppercase fw-bold">Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for request in rejected_requests %}
+                                        <tr>
+                                            <td>#{{ request.id }}</td>
+                                            <td>{{ request.farmer.name }}</td>
+                                            <td>{{ request.stock.type }}</td>
+                                            <td>{{ request.stock.requested_quantity }} tons</td>
+                                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ request.updated_at.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                {% if request.admin_notes %}
+                                                {{ request.admin_notes }}
+                                                {% else %}
+                                                <span class="text-muted">No reason provided</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if not rejected_requests %}
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">No rejected farmer requests found</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Ration Shop Requests Content -->
+                        <div class="request-content" id="ration-content">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Request ID</th>
+                                            <th>Ration Shop</th>
+                                            <th>Stock Type</th>
+                                            <th>Quantity</th>
+                                            <th>Request Date</th>
+                                            <th>Rejection Date</th>
+                                            <th>Reason</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for request in ration_rejected_requests %}
+                                        <tr>
+                                            <td>#{{ request.id }}</td>
+                                            <td>{{ request.ration_shop.name }}</td>
+                                            <td>{{ request.stock_type }}</td>
+                                            <td>{{ request.quantity }} tons</td>
+                                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>{{ request.processed_date.strftime('%Y-%m-%d') if request.processed_date else 'N/A' }}</td>
+                                            <td>
+                                                {% if request.notes %}
+                                                {{ request.notes }}
+                                                {% else %}
+                                                <span class="text-muted">No reason provided</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if not ration_rejected_requests %}
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">No rejected ration shop requests found</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Center content and set width */
+    .content-wrapper {
+        width: 85%;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .table thead {
+        background-color: #ffffff;
+    }
+    
+    .table th {
+        background-color: #fff;
+    }
+    
+    .custom-table-header {
+        background-color: #fff !important;
+    }
+    
+    .custom-table-header th {
+        color: #2e7d32 !important;
+        border-bottom: 2px solid #a5d6a7 !important;
+    }
+    
+    .table thead th {
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        padding: 12px 15px;
+        border-bottom: 2px solid #dee2e6;
+        color: #495057;
+    }
+    
+    .table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-top: 1px solid #f0f0f0;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(46, 125, 50, 0.05) !important;
+    }
+    
+    /* Badge styling */
+    .badge {
+        font-weight: 500;
+        padding: 6px 10px;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Dashboard card styling */
+    .dashboard-card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .dashboard-card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .dashboard-card-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .dashboard-card-body {
+        padding: 20px;
+    }
+    
+    /* Request tabs styling */
+    .request-tabs {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .request-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .request-tab.active {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        font-weight: 500;
+    }
+    
+    .request-tab:hover:not(.active) {
+        background-color: #f5f5f5;
+    }
+    
+    .request-content {
+        display: none;
+    }
+    
+    .request-content.active {
+        display: block;
+    }
+    
+    @media (max-width: 768px) {
+        .content-wrapper {
+            width: 95%;
+        }
+        
+        .request-tabs {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+    .content-area.with-sidebar{
+    margin-left: 0;
+    width: 120%;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching functionality
+    const farmerTab = document.getElementById('farmer-tab');
+    const rationTab = document.getElementById('ration-tab');
+    const farmerContent = document.getElementById('farmer-content');
+    const rationContent = document.getElementById('ration-content');
+    
+    farmerTab.addEventListener('click', function() {
+        farmerTab.classList.add('active');
+        rationTab.classList.remove('active');
+        farmerContent.classList.add('active');
+        rationContent.classList.remove('active');
+    });
+    
+    rationTab.addEventListener('click', function() {
+        rationTab.classList.add('active');
+        farmerTab.classList.remove('active');
+        rationContent.classList.add('active');
+        farmerContent.classList.remove('active');
+    });
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+{% endblock %} 

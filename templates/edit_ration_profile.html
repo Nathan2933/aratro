@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Ration Shop Profile{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <div class="col-12">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Edit Ration Shop Profile</h1>
+                    <p class="dashboard-subtitle">Update your shop information</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Shop Information</h2>
+                    </div>
+                    <div class="card-body">
+                        <form action="{{ url_for('auth.edit_ration_profile') }}" method="POST">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="name" class="form-label">Shop Name</label>
+                                    <input type="text" id="name" name="name" class="form-control" value="{{ shop.name }}" required>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="email" class="form-label">Email</label>
+                                    <input type="email" id="email" name="email" class="form-control" value="{{ shop.email }}" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location</label>
+                                <input type="text" id="location" name="location" class="form-control" value="{{ shop.location }}" required>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="latitude" class="form-label">Latitude</label>
+                                    <input type="text" id="latitude" name="latitude" class="form-control" value="{{ shop.latitude }}" required>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="longitude" class="form-label">Longitude</label>
+                                    <input type="text" id="longitude" name="longitude" class="form-control" value="{{ shop.longitude }}" required>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="shop_id" class="form-label">Shop ID</label>
+                                <input type="text" id="shop_id" class="form-control" value="{{ shop.shop_id }}" disabled>
+                                <small class="text-muted">Shop ID cannot be changed</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="aadhar_number" class="form-label">Aadhar Number</label>
+                                <input type="text" id="aadhar_number" class="form-control" value="{{ shop.aadhar_number }}" disabled>
+                                <small class="text-muted">Aadhar number cannot be changed</small>
+                            </div>
+                            
+                            <!-- Map for location selection -->
+                            <div class="mb-3">
+                                <label class="form-label">Select Location on Map</label>
+                                <div id="map" style="height: 300px; width: 100%; border-radius: 0.375rem;"></div>
+                                <small class="text-muted">Click on the map to set your shop location</small>
+                            </div>
+                            
+                            <div class="form-actions d-flex gap-2 mt-4">
+                                <a href="{{ url_for('main.ration_dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    .dashboard-header {
+        margin-bottom: 2rem;
+        width: 100%;
+        text-align: center;
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dashboard-title::after {
+        content: '';
+        position: absolute;
+        bottom: -0.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 3rem;
+        height: 0.25rem;
+        background: var(--primary-color);
+        border-radius: 0.125rem;
+    }
+    
+    .dashboard-subtitle {
+        color: #6c757d;
+        font-size: 1rem;
+    }
+    
+    .content-wrapper {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .card {
+        background-color: white;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        width: 100%;
+        margin-bottom: 2rem;
+    }
+    
+    .card-header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid #f0f0f0;
+        background-color: #f8f9fa;
+    }
+    
+    .card-header h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin: 0;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        border: 1px solid #e2e8f0;
+        border-radius: 0.375rem;
+        padding: 0.625rem 0.75rem;
+        font-size: 0.875rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-control:focus {
+        border-color: #4a6fdc;
+        box-shadow: 0 0 0 3px rgba(74, 111, 220, 0.1);
+    }
+    
+    .form-control:disabled {
+        background-color: #f8f9fa;
+        cursor: not-allowed;
+    }
+    
+    .text-muted {
+        color: #6c757d;
+        font-size: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+    }
+    
+    .btn-primary {
+        background-color: #4a6fdc;
+        border-color: #4a6fdc;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #3a5fc9;
+        border-color: #3a5fc9;
+    }
+    
+    .btn-outline-secondary {
+        color: #6c757d;
+        border-color: #6c757d;
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: #6c757d;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://maps.googleapis.com/maps/api/js?key={{ maps_api_key }}&libraries=places"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize map
+        const latitude = parseFloat(document.getElementById('latitude').value) || 20.5937;
+        const longitude = parseFloat(document.getElementById('longitude').value) || 78.9629;
+        
+        const mapOptions = {
+            center: { lat: latitude, lng: longitude },
+            zoom: 12,
+            mapTypeId: google.maps.MapTypeId.ROADMAP
+        };
+        
+        const map = new google.maps.Map(document.getElementById('map'), mapOptions);
+        
+        // Add marker for current location
+        let marker = new google.maps.Marker({
+            position: { lat: latitude, lng: longitude },
+            map: map,
+            draggable: true,
+            title: 'Shop Location'
+        });
+        
+        // Update coordinates when marker is dragged
+        google.maps.event.addListener(marker, 'dragend', function() {
+            const position = marker.getPosition();
+            document.getElementById('latitude').value = position.lat();
+            document.getElementById('longitude').value = position.lng();
+            
+            // Get address from coordinates
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: position }, function(results, status) {
+                if (status === 'OK' && results[0]) {
+                    document.getElementById('location').value = results[0].formatted_address;
+                }
+            });
+        });
+        
+        // Add click event to map
+        google.maps.event.addListener(map, 'click', function(event) {
+            marker.setPosition(event.latLng);
+            document.getElementById('latitude').value = event.latLng.lat();
+            document.getElementById('longitude').value = event.latLng.lng();
+            
+            // Get address from coordinates
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: event.latLng }, function(results, status) {
+                if (status === 'OK' && results[0]) {
+                    document.getElementById('location').value = results[0].formatted_address;
+                }
+            });
+        });
+        
+        // Initialize Places Autocomplete
+        const locationInput = document.getElementById('location');
+        const autocomplete = new google.maps.places.Autocomplete(locationInput);
+        
+        // Update map when place is selected
+        autocomplete.addListener('place_changed', function() {
+            const place = autocomplete.getPlace();
+            
+            if (!place.geometry) {
+                return;
+            }
+            
+            // Update map and marker
+            map.setCenter(place.geometry.location);
+            marker.setPosition(place.geometry.location);
+            
+            // Update form fields
+            document.getElementById('latitude').value = place.geometry.location.lat();
+            document.getElementById('longitude').value = place.geometry.location.lng();
+        });
+    });
+</script>
+{% endblock %} 

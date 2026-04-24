@@ -1,0 +1,144 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Admin - Stocks{% endblock %}
+
+{% block admin_content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Stocks Management</h1>
+        <p class="page-subtitle">View and manage all stock inventory</p>
+    </div>
+    <div>
+        <span class="admin-badge admin-badge-primary">
+            <i class="bi bi-person-badge me-1"></i>
+            Admin
+        </span>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-box me-2"></i>
+            All Stocks
+        </h5>
+        <div class="search-input">
+            <i class="bi bi-search"></i>
+            <input type="text" id="stockSearch" class="form-control form-control-sm" placeholder="Search stocks...">
+        </div>
+    </div>
+    <div class="admin-card-body">
+        <div class="table-responsive">
+            <table class="admin-table" id="stocksTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Type</th>
+                        <th>Quantity (tons)</th>
+                        <th>Requested Quantity (tons)</th>
+                        <th>Status</th>
+                        <th>Farmer</th>
+                        <th>Warehouse</th>
+                        <th>Created At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if stocks %}
+                        {% for stock in stocks %}
+                            <tr>
+                                <td>{{ stock.id }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-warning text-white d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px; border-radius: 50%;">
+                                            <i class="bi bi-box"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-medium">{{ stock.type }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ stock.quantity }}</td>
+                                <td>{{ stock.requested_quantity }}</td>
+                                <td>
+                                    {% if stock.status == 'pending' %}
+                                        <span class="admin-badge admin-badge-warning">
+                                            <i class="bi bi-hourglass-split me-1"></i>
+                                            Pending
+                                        </span>
+                                    {% elif stock.status == 'stored' %}
+                                        <span class="admin-badge admin-badge-success">
+                                            <i class="bi bi-check-circle me-1"></i>
+                                            Stored
+                                        </span>
+                                    {% elif stock.status == 'rejected' %}
+                                        <span class="admin-badge admin-badge-danger">
+                                            <i class="bi bi-x-circle me-1"></i>
+                                            Rejected
+                                        </span>
+                                    {% else %}
+                                        <span class="admin-badge admin-badge-primary">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            {{ stock.status }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ stock.farmer.name }}</td>
+                                <td>{{ stock.warehouse.name }}</td>
+                                <td>{{ stock.created_at.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-box-seam-fill fs-3 mb-3 d-block"></i>
+                                    <p>No stocks available.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('stockSearch');
+    const table = document.getElementById('stocksTable');
+    const rows = table.getElementsByTagName('tr');
+    
+    searchInput.addEventListener('keyup', function() {
+        const query = searchInput.value.toLowerCase();
+        
+        for (let i = 1; i < rows.length; i++) {
+            let found = false;
+            const cells = rows[i].getElementsByTagName('td');
+            
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j].textContent.toLowerCase().indexOf(query) > -1) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            rows[i].style.display = found ? '' : 'none';
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

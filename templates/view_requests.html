@@ -1,525 +1,980 @@
 {% extends "base.html" %}
 
+{% block title %}Incoming Requests{% endblock %}
+
 {% block content %}
-<div class="flex items-center mb-4">
-    <a href="/farmer_dashboard" class="btn btn-outline mr-4">
-        <i class="fas fa-arrow-left"></i>
-        Back to Dashboard
-    </a>
-    <h1>Stock Requests</h1>
-</div>
-
-<div class="flex gap-4">
-    <!-- Left side: Your requests -->
-    <div class="card" style="flex: 2;">
-        <div class="card-header">
-            <h2>Your Stock Requests</h2>
-        </div>
-        <div class="card-body">
-            <div class="search-container mb-4">
-                <div class="input-group">
-                    <input type="text" id="requestSearchInput" class="form-control" placeholder="Search requests...">
-                    <div class="input-group-append">
-                        <button class="btn btn-outline-secondary" type="button">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
+<div class="container-fluid warehouse-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12 d-flex justify-content-center">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header">
+                    <h1 class="dashboard-title">Incoming Requests</h1>
+                    <p class="dashboard-subtitle">View and respond to incoming requests</p>
                 </div>
-            </div>
-            
-            <div class="table-container">
-                <table class="table" id="requestsTable">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Warehouse</th>
-                            <th>Stock Type</th>
-                            <th>Quantity</th>
-                            <th>Status</th>
-                            <th>Date</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for request in requests %}
-                        <tr>
-                            <td>{{ request.id }}</td>
-                            <td>
-                                {% if request.warehouse %}
-                                    {{ request.warehouse.name }}
-                                {% elif request.warehouse_id is defined %}
-                                    {% set warehouse = request.warehouse %}
-                                    {% if warehouse %}
-                                        {{ warehouse.name }}
-                                    {% else %}
-                                        Unknown
-                                    {% endif %}
-                                {% else %}
-                                    {% set warehouse = request.from_id|int %}
-                                    Unknown
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if request.stock_type is defined %}
-                                    {{ request.stock_type }}
-                                {% elif request.crop_type is defined %}
-                                    {{ request.crop_type }}
-                                {% else %}
-                                    Unknown
-                                {% endif %}
-                            </td>
-                            <td>{{ request.quantity }}</td>
-                            <td>
-                                {% if request.status == 'pending' %}
-                                <span class="badge badge-warning">Pending</span>
-                                {% elif request.status == 'approved' %}
-                                <span class="badge badge-success">Approved</span>
-                                {% elif request.status == 'rejected' %}
-                                <span class="badge badge-danger">Rejected</span>
-                                {% elif request.status == 'canceled' %}
-                                <span class="badge badge-secondary">Canceled</span>
-                                {% else %}
-                                <span class="badge badge-secondary">{{ request.status|capitalize }}</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if request.date_requested is defined %}
-                                    {{ request.date_requested.strftime('%Y-%m-%d') }}
-                                {% elif request.request_date is defined %}
-                                    {{ request.request_date.strftime('%Y-%m-%d') }}
-                                {% else %}
-                                    Unknown
-                                {% endif %}
-                            </td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" onclick="viewRequestDetails({{ request.id }})">
-                                    <i class="fas fa-eye"></i>
-                                    View
-                                </button>
-                                {% if request.status == 'pending' %}
-                                <button class="btn btn-sm btn-danger" onclick="cancelRequest({{ request.id }})">
-                                    <i class="fas fa-times"></i>
-                                    Cancel
-                                </button>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% if not requests %}
-                        <tr>
-                            <td colspan="7" class="text-center">
-                                <div class="empty-state-container py-5">
-                                    <i class="fas fa-box fa-3x mb-3"></i>
-                                    <p class="mb-3">You haven't made any stock requests yet</p>
-                                    <a href="/create_request" class="btn btn-primary">
-                                        <i class="fas fa-plus"></i>
-                                        Create New Request
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Right side: Open warehouse requests -->
-    <div class="card" style="flex: 1;">
-        <div class="card-header">
-            <h2>Open Warehouse Requests</h2>
-            <span class="text-muted">Warehouses looking for stock</span>
-        </div>
-        <div class="card-body">
-            <div class="table-container">
-                <table class="table" id="warehouseRequestsTable">
-                    <thead>
-                        <tr>
-                            <th>Warehouse</th>
-                            <th>Stock Type</th>
-                            <th>Quantity</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for req in warehouse_requests %}
-                        <tr>
-                            <td>{{ req.warehouse.name }}</td>
-                            <td>{{ req.stock_type }}</td>
-                            <td>{{ req.quantity }} tons</td>
-                            <td>
-                                <button class="btn btn-sm btn-primary" onclick="viewWarehouseRequestDetails({{ req.id }})">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-success" onclick="respondToWarehouseRequest({{ req.id }})">
-                                    <i class="fas fa-reply"></i>
-                                    Respond
-                                </button>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                        {% if not warehouse_requests %}
-                        <tr>
-                            <td colspan="4" class="text-center">
-                                <div class="empty-state-container py-5">
-                                    <i class="fas fa-warehouse fa-3x mb-3"></i>
-                                    <p class="mb-3">No open warehouse requests at this time</p>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Request Details Modal -->
-<div class="modal fade" id="requestDetailsModal" tabindex="-1" role="dialog" aria-labelledby="requestDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="requestDetailsModalLabel">Request Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body" id="requestDetailsModalBody">
-                <div class="text-center">
-                    <div class="spinner-border" role="status">
-                        <span class="sr-only">Loading...</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-danger" id="cancelRequestBtn" style="display: none;">Cancel Request</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Warehouse Request Details Modal -->
-<div class="modal fade" id="warehouseRequestDetailsModal" tabindex="-1" role="dialog" aria-labelledby="warehouseRequestDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="warehouseRequestDetailsModalLabel">Warehouse Request Details</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body" id="warehouseRequestDetailsModalBody">
-                <div class="text-center">
-                    <div class="spinner-border" role="status">
-                        <span class="sr-only">Loading...</span>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success" id="respondToRequestBtn">Respond to Request</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-let currentRequestId = null;
-let currentWarehouseRequestId = null;
-
-// Search functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('requestSearchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            const searchTerm = this.value.toLowerCase();
-            const table = document.getElementById('requestsTable');
-            const rows = table.querySelectorAll('tbody tr');
-            
-            rows.forEach(row => {
-                let found = false;
-                const cells = row.querySelectorAll('td');
-                cells.forEach(cell => {
-                    if (cell.textContent.toLowerCase().includes(searchTerm)) {
-                        found = true;
-                    }
-                });
                 
-                if (found) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            
+                <!-- Tabs for Farmer and Ration Shop Requests -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <div class="request-tabs">
+                            <div class="request-tab active" id="farmer-tab">
+                                <i class="bi bi-person-fill"></i>
+                                <span>Farmer Requests</span>
+                            </div>
+                            <div class="request-tab" id="ration-tab">
+                                <i class="bi bi-shop"></i>
+                                <span>Ration Shop Requests</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="dashboard-card-body p-0">
+                        <!-- Farmer Requests Content -->
+                        <div class="request-content active" id="farmer-content">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="custom-table-header">
+                                        <tr>
+                                            <th class="text-uppercase fw-bold">Request ID</th>
+                                            <th class="text-uppercase fw-bold">Farmer</th>
+                                            <th class="text-uppercase fw-bold">Stock Type</th>
+                                            <th class="text-uppercase fw-bold">Requested Quantity</th>
+                                            <th class="text-uppercase fw-bold">Approve Quantity</th>
+                                            <th class="text-uppercase fw-bold">Date</th>
+                                            <th class="text-uppercase fw-bold">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for request in pending_requests %}
+                                        <tr>
+                                            <td>#{{ request.id }}</td>
+                                            <td>{{ request.farmer.name }}</td>
+                                            <td>{{ request.stock.type }}</td>
+                                            <td>{{ request.stock.requested_quantity }} tons</td>
+                                            <td>
+                                                <input type="number" id="quantity_{{ request.id }}" 
+                                                       class="form-control form-control-sm" 
+                                                       value="{{ request.stock.requested_quantity }}" 
+                                                       min="0.01" step="0.01" 
+                                                       max="{{ request.stock.requested_quantity }}">
+                                            </td>
+                                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-success btn-sm" 
+                                                            onclick="approveRequest({{ request.id }})">
+                                                        <i class="bi bi-check-lg"></i> Approve
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm" 
+                                                            onclick="rejectRequest({{ request.id }})">
+                                                        <i class="bi bi-x-lg"></i> Reject
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if not pending_requests %}
+                                        <tr>
+                                            <td colspan="7" class="text-center py-4">No pending farmer requests found</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Ration Shop Requests Content -->
+                        <div class="request-content" id="ration-content">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Request ID</th>
+                                            <th>Ration Shop</th>
+                                            <th>Stock Type</th>
+                                            <th>Requested Quantity</th>
+                                            <th>Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for request in ration_pending_requests %}
+                                        <tr>
+                                            <td>#{{ request.id }}</td>
+                                            <td>{{ request.ration_shop.name }}</td>
+                                            <td>{{ request.stock_type }}</td>
+                                            <td>{{ request.quantity }} tons</td>
+                                            <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button class="btn btn-success btn-sm" 
+                                                            onclick="approveRationRequest({{ request.id }})">
+                                                        <i class="bi bi-check-lg"></i> Approve
+                                                    </button>
+                                                    <button class="btn btn-danger btn-sm" 
+                                                            onclick="rejectRationRequest({{ request.id }})">
+                                                        <i class="bi bi-x-lg"></i> Reject
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        {% if not ration_pending_requests %}
+                                        <tr>
+                                            <td colspan="6" class="text-center py-4">No pending ration shop requests found</td>
+                                        </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Center content and set width */
+    .content-wrapper {
+        width: 85%;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Table styling */
+    .table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    
+    .table thead {
+        background-color: #ffffff;
+    }
+    
+    .table th {
+        background-color: #fff;
+    }
+    
+    .custom-table-header {
+        background-color: #fff !important;
+    }
+    
+    .custom-table-header th {
+        color: #2e7d32 !important;
+        border-bottom: 2px solid #a5d6a7 !important;
+    }
+    
+    .table thead th {
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+        padding: 12px 15px;
+        border-bottom: 2px solid #dee2e6;
+        color: #495057;
+    }
+    
+    .table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+        border-top: 1px solid #f0f0f0;
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(46, 125, 50, 0.05) !important;
+    }
+    
+    /* Badge styling */
+    .badge {
+        font-weight: 500;
+        padding: 6px 10px;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Dashboard card styling */
+    .dashboard-card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .dashboard-card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .dashboard-card-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .dashboard-card-body {
+        padding: 20px;
+    }
+    
+    /* Request tabs styling */
+    .request-tabs {
+        display: flex;
+        gap: 20px;
+    }
+    
+    .request-tab {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: 20px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .request-tab.active {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        font-weight: 500;
+    }
+    
+    .request-tab:hover:not(.active) {
+        background-color: #f5f5f5;
+    }
+    
+    .request-content {
+        display: none;
+    }
+    
+    .request-content.active {
+        display: block;
+    }
+    
+    /* Action buttons styling */
+    .action-buttons {
+        display: flex;
+        gap: 5px;
+    }
+    
+    .btn-respond {
+        background-color: #2e7d32;
+        border-color: #2e7d32;
+        color: white;
+    }
+    
+    .btn-respond:hover {
+        background-color: #1b5e20;
+        border-color: #1b5e20;
+    }
+    
+    @media (max-width: 768px) {
+        .content-wrapper {
+            width: 95%;
+        }
+        
+        .request-tabs {
+            flex-direction: column;
+            gap: 10px;
+        }
+    }
+    .content-area.with-sidebar{
+    margin-left: 0;
+    width: 120%;
+}
+</style>
+
+<!-- Include SweetAlert2 library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mobile sidebar toggle
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebar = document.getElementById('warehouseSidebar');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    
+    if (sidebarToggle && sidebar) {
+        sidebarToggle.addEventListener('click', function() {
+            sidebar.classList.add('show');
+            document.body.classList.add('sidebar-open');
+        });
+        
+        if (closeSidebarBtn) {
+            closeSidebarBtn.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
             });
+        }
+        
+        // Close sidebar when clicking outside
+        document.addEventListener('click', function(event) {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnToggle = sidebarToggle.contains(event.target);
+            
+            if (!isClickInsideSidebar && !isClickOnToggle && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+        
+        // Close sidebar when pressing Escape
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && sidebar.classList.contains('show')) {
+                sidebar.classList.remove('show');
+                document.body.classList.remove('sidebar-open');
+            }
+        });
+    }
+    
+    // Tab switching functionality
+    const farmerTab = document.getElementById('farmer-tab');
+    const rationTab = document.getElementById('ration-tab');
+    const farmerContent = document.getElementById('farmer-content');
+    const rationContent = document.getElementById('ration-content');
+    
+    if (farmerTab && rationTab) {
+        farmerTab.addEventListener('click', function() {
+            farmerTab.classList.add('active');
+            rationTab.classList.remove('active');
+            farmerContent.classList.add('active');
+            rationContent.classList.remove('active');
+        });
+        
+        rationTab.addEventListener('click', function() {
+            rationTab.classList.add('active');
+            farmerTab.classList.remove('active');
+            rationContent.classList.add('active');
+            farmerContent.classList.remove('active');
         });
     }
 });
 
-// View request details
-function viewRequestDetails(requestId) {
-    currentRequestId = requestId;
+function approveRequest(requestId) {
+    const quantity = parseFloat(document.getElementById(`quantity_${requestId}`).value);
+    const availableSpace = {{ warehouse.capacity - total_allocated_space }};
     
-    // Show loading state
-    const modalBody = document.getElementById('requestDetailsModalBody');
-    modalBody.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border" role="status">
-                <span class="sr-only">Loading...</span>
-            </div>
-        </div>
-    `;
-    
-    // Show/hide cancel button based on request status
-    document.getElementById('cancelRequestBtn').style.display = 'none';
-    
-    // Show modal
-    $('#requestDetailsModal').modal('show');
-    
-    // Fetch request details
-    fetch(`/request_details/${requestId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const request = data.request;
-                
-                // Format the details
-                let statusBadge = '';
-                if (request.status === 'pending') {
-                    statusBadge = '<span class="badge badge-warning">Pending</span>';
-                    document.getElementById('cancelRequestBtn').style.display = 'block';
-                } else if (request.status === 'approved') {
-                    statusBadge = '<span class="badge badge-success">Approved</span>';
-                } else if (request.status === 'rejected') {
-                    statusBadge = '<span class="badge badge-danger">Rejected</span>';
-                } else if (request.status === 'canceled') {
-                    statusBadge = '<span class="badge badge-secondary">Canceled</span>';
-                } else {
-                    statusBadge = `<span class="badge badge-secondary">${request.status}</span>`;
-                }
-                
-                // Update modal content
-                modalBody.innerHTML = `
-                    <div class="request-details">
-                        <div class="detail-item">
-                            <strong>Request ID:</strong> ${request.id}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Warehouse:</strong> ${request.warehouse_name}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Stock Type:</strong> ${request.stock_type}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Quantity:</strong> ${request.quantity} tons
-                        </div>
-                        <div class="detail-item">
-                            <strong>Status:</strong> ${statusBadge}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Date Requested:</strong> ${request.date_requested}
-                        </div>
-                        ${request.date_processed ? `
-                        <div class="detail-item">
-                            <strong>Date Processed:</strong> ${request.date_processed}
-                        </div>
-                        ` : ''}
-                        <div class="detail-item">
-                            <strong>Notes:</strong> 
-                            <p>${request.notes ? request.notes : 'No notes provided'}</p>
-                        </div>
-                        ${request.admin_notes ? `
-                        <div class="detail-item">
-                            <strong>Admin Notes:</strong>
-                            <p>${request.admin_notes}</p>
-                        </div>
-                        ` : ''}
-                    </div>
-                `;
-                
-                // Set up cancel button
-                document.getElementById('cancelRequestBtn').onclick = function() {
-                    cancelRequest(currentRequestId);
-                };
-            } else {
-                modalBody.innerHTML = `
-                    <div class="alert alert-danger">
-                        ${data.message || 'Failed to load request details'}
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching request details:', error);
-            modalBody.innerHTML = `
-                <div class="alert alert-danger">
-                    An error occurred while fetching request details
-                </div>
-            `;
-        });
-}
-
-// Cancel request
-function cancelRequest(requestId) {
-    if (!confirm('Are you sure you want to cancel this request?')) {
+    if (quantity <= 0) {
+        showAlert('Please enter a valid quantity greater than zero', 'error');
         return;
     }
     
-    fetch(`/cancel_request/${requestId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Close modal if open
-            $('#requestDetailsModal').modal('hide');
+    if (quantity > availableSpace) {
+        showAlert(`Cannot approve more than available space (${availableSpace.toFixed(2)} tons)`, 'error');
+        return;
+    }
+    
+    // Show quality rating modal with SweetAlert2
+    Swal.fire({
+        title: 'Stock Quality Rating',
+        html: `
+            <form id="qualityRatingForm">
+                <input type="hidden" id="rating_request_id" name="request_id" value="${requestId}">
+                <div class="mb-3">
+                    <label class="form-label">Stock Type</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="stock_type" id="perishable" value="perishable" checked>
+                        <label class="form-check-label" for="perishable">Perishable</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="stock_type" id="non_perishable" value="non_perishable">
+                        <label class="form-check-label" for="non_perishable">Non-Perishable</label>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Hygiene Rating (1-10)</label>
+                    <input type="range" class="form-range" name="hygiene_rating" min="1" max="10" value="5" oninput="this.nextElementSibling.value = this.value">
+                    <output>5</output>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Damaged Goods Rating (1-10)</label>
+                    <input type="range" class="form-range" name="damaged_goods_rating" min="1" max="10" value="5" oninput="this.nextElementSibling.value = this.value">
+                    <output>5</output>
+                </div>
+                <div id="perishableFields">
+                    <div class="mb-3">
+                        <label class="form-label">Perishability Level (1-10)</label>
+                        <input type="range" class="form-range" name="perishability_level" min="1" max="10" value="5" oninput="this.nextElementSibling.value = this.value">
+                        <output>5</output>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Preservation Rating (1-10)</label>
+                        <input type="range" class="form-range" name="preservation_rating" min="1" max="10" value="5" oninput="this.nextElementSibling.value = this.value">
+                        <output>5</output>
+                    </div>
+                </div>
+                <div id="nonPerishableFields" style="display: none;">
+                    <div class="mb-3">
+                        <label class="form-label">Water Content Rating (1-10)</label>
+                        <input type="range" class="form-range" name="water_content_rating" min="1" max="10" value="5" oninput="this.nextElementSibling.value = this.value">
+                        <output>5</output>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Grain Grade Rating (1-10)</label>
+                        <input type="range" class="form-range" name="grain_grade_rating" min="1" max="10" value="5" oninput="this.nextElementSibling.value = this.value">
+                        <output>5</output>
+                    </div>
+                </div>
+            </form>
+        `,
+        didOpen: () => {
+            // Add event listeners for stock type radio buttons
+            document.querySelectorAll('input[name="stock_type"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const perishableFields = document.getElementById('perishableFields');
+                    const nonPerishableFields = document.getElementById('nonPerishableFields');
+                    if (this.value === 'perishable') {
+                        perishableFields.style.display = 'block';
+                        nonPerishableFields.style.display = 'none';
+                    } else {
+                        perishableFields.style.display = 'none';
+                        nonPerishableFields.style.display = 'block';
+                    }
+                });
+            });
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Submit Rating',
+        preConfirm: () => {
+            const form = document.getElementById('qualityRatingForm');
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => {
+                data[key] = value;
+            });
             
-            // Show success message
-            alert('Request canceled successfully');
-            
-            // Reload page to reflect changes
-            window.location.reload();
-        } else {
-            alert(data.message || 'Failed to cancel request');
+            return fetch("{{ url_for('warehouse_dashboard.rate_stock_quality') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to save quality rating');
+                }
+                return data;
+            });
         }
-    })
-    .catch(error => {
-        console.error('Error canceling request:', error);
-        alert('An error occurred while canceling the request');
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const data = result.value;
+            // Show success message with grade and proceed with price setting
+            Swal.fire({
+                icon: 'success',
+                title: 'Quality Rating Saved',
+                html: `
+                    <div class="text-center">
+                        <p>Overall Rating: <strong>${data.overall_rating.toFixed(1)}/10</strong></p>
+                        <div class="grade-badge grade-${data.grade.toLowerCase()}">${data.grade}</div>
+                        <div class="mt-4">
+                            <h5>Set Stock Price</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Current Base Price: ₹<span id="basePrice">0</span> per kg</label>
+                                <input type="number" id="pricePerKg" class="form-control" step="0.01" min="0" 
+                                       placeholder="Enter price per kg" required>
+                                <small class="text-muted">Price must be equal to or above the base price</small>
+                            </div>
+                        </div>
+                    </div>
+                `,
+                didOpen: () => {
+                    // Get stock type from the request row
+                    const requestRow = document.querySelector(`tr:has(button[onclick="approveRequest(${requestId})"])`);
+                    const stockType = requestRow.querySelector('td:nth-child(3)').textContent.trim();
+                    
+                    // Fetch base price for the stock type
+                    fetch(`/warehouse/get_base_price/${encodeURIComponent(stockType)}`)
+                        .then(response => response.json())
+                        .then(priceData => {
+                            if (priceData.success) {
+                                document.getElementById('basePrice').textContent = priceData.base_price;
+                                document.getElementById('pricePerKg').min = priceData.base_price;
+                                document.getElementById('pricePerKg').value = priceData.base_price;
+                            } else {
+                                Swal.showValidationMessage(priceData.message || 'Failed to fetch base price');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching base price:', error);
+                            Swal.showValidationMessage('Failed to fetch base price');
+                        });
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Set Price & Approve',
+                cancelButtonText: 'Cancel',
+                preConfirm: () => {
+                    const priceInput = document.getElementById('pricePerKg');
+                    const basePrice = parseFloat(document.getElementById('basePrice').textContent);
+                    const enteredPrice = parseFloat(priceInput.value);
+                    
+                    if (!enteredPrice) {
+                        Swal.showValidationMessage('Please enter a price');
+                        return false;
+                    }
+                    
+                    if (enteredPrice < basePrice) {
+                        Swal.showValidationMessage(`Price cannot be lower than the base price (₹${basePrice} per kg)`);
+                        return false;
+                    }
+                    
+                    return {
+                        price_per_kg: enteredPrice
+                    };
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Proceed with approval including the set price
+                    fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            request_id: requestId,
+                            approved_quantity: quantity,
+                            price_per_kg: result.value.price_per_kg,
+                            action: 'approve'
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: 'Request approved successfully',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: data.message || 'Error approving request'
+                            });
+                        }
+                    });
+                }
+            });
+        }
     });
 }
 
-// View warehouse request details
-function viewWarehouseRequestDetails(requestId) {
-    currentWarehouseRequestId = requestId;
-    
-    // Show loading state
-    const modalBody = document.getElementById('warehouseRequestDetailsModalBody');
-    modalBody.innerHTML = `
-        <div class="text-center">
-            <div class="spinner-border" role="status">
-                <span class="sr-only">Loading...</span>
+function rejectRequest(requestId) {
+    Swal.fire({
+        title: 'Reject Request',
+        text: 'Are you sure you want to reject this request?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, reject it',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'reject'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request rejected successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Error rejecting request'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Error processing request'
+                });
+                console.error('Error:', error);
+            });
+        }
+    });
+}
+
+// Function to approve ration shop request
+function approveRationRequest(requestId) {
+    // Show modal for notes
+    Swal.fire({
+        title: 'Approve Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Notes (optional):</label>
+                <textarea id="notes" class="form-control"></textarea>
             </div>
-        </div>
-    `;
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Approve',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            return {
+                notes: document.getElementById('notes').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Approving the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send approval request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'approve',
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request approved successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to approve request.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An unexpected error occurred: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// Function to reject ration shop request
+function rejectRationRequest(requestId) {
+    // Show modal for rejection reason
+    Swal.fire({
+        title: 'Reject Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Reason for rejection:</label>
+                <textarea id="notes" class="form-control" required></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const notes = document.getElementById('notes').value;
+            if (!notes) {
+                Swal.showValidationMessage('Please provide a reason for rejection');
+                return false;
+            }
+            return {
+                notes: notes
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Rejecting the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send rejection request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_ration_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'reject',
+                    notes: notes
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request rejected successfully.',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Failed to reject request.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'An unexpected error occurred: ' + error.message
+                });
+            });
+        }
+    });
+}
+
+// Add these new functions at the end of the script section
+function updateRatingValue(input) {
+    document.getElementById(`${input.id}_value`).textContent = input.value;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ... existing code ...
     
-    // Show modal
-    $('#warehouseRequestDetailsModal').modal('show');
+    // Stock type radio button change event
+    const stockTypeRadios = document.querySelectorAll('input[name="stock_type"]');
+    stockTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const perishableFields = document.querySelector('.perishable-fields');
+            const nonPerishableFields = document.querySelector('.non-perishable-fields');
+            
+            if (this.value === 'perishable') {
+                perishableFields.style.display = 'block';
+                nonPerishableFields.style.display = 'none';
+            } else {
+                perishableFields.style.display = 'none';
+                nonPerishableFields.style.display = 'block';
+            }
+        });
+    });
     
-    // Fetch warehouse request details
-    fetch(`/warehouse_request_details/${requestId}`)
-        .then(response => response.json())
+    // Submit rating button click event
+    document.getElementById('submitRatingBtn').addEventListener('click', function() {
+        const form = document.getElementById('qualityRatingForm');
+        const formData = new FormData(form);
+        const requestId = formData.get('request_id');
+        const stockType = formData.get('stock_type');
+        
+        // Convert FormData to JSON
+        const data = {};
+        formData.forEach((value, key) => {
+            data[key] = value;
+        });
+        
+        // Show loading state
+        Swal.fire({
+            title: 'Processing...',
+            text: 'Submitting quality rating',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Submit rating
+        fetch("{{ url_for('warehouse_dashboard.rate_stock_quality') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
             if (data.success) {
-                const request = data.request;
+                // Close the modal
+                const qualityRatingModal = bootstrap.Modal.getInstance(document.getElementById('qualityRatingModal'));
+                qualityRatingModal.hide();
                 
-                // Update modal content
-                modalBody.innerHTML = `
-                    <div class="request-details">
-                        <div class="detail-item">
-                            <strong>Warehouse:</strong> ${request.warehouse_name}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Stock Type:</strong> ${request.stock_type}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Quantity Needed:</strong> ${request.quantity} tons
-                        </div>
-                        <div class="detail-item">
-                            <strong>Price Offered:</strong> ₹${request.price_per_ton}/ton
-                        </div>
-                        <div class="detail-item">
-                            <strong>Date Posted:</strong> ${request.date_posted}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Expiry Date:</strong> ${request.expiry_date}
-                        </div>
-                        <div class="detail-item">
-                            <strong>Description:</strong> 
-                            <p>${request.description ? request.description : 'No description provided'}</p>
-                        </div>
-                    </div>
-                `;
+                // Use grade from response
+                const grade = data.grade;
                 
-                // Set up respond button
-                document.getElementById('respondToRequestBtn').onclick = function() {
-                    respondToWarehouseRequest(currentWarehouseRequestId);
-                };
+                // Show success message with grade
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Quality Rating Saved',
+                    html: `
+                        <div class="text-center">
+                            <p>Overall Rating: <strong>${data.overall_rating.toFixed(1)}/10</strong></p>
+                            <div class="grade-badge grade-${grade.toLowerCase()}">${grade}</div>
+                            <p class="mt-3">Do you want to proceed with approving this request?</p>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Approve Request',
+                    cancelButtonText: 'No, Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Proceed with approval
+                        const approvedQuantity = form.dataset.approvedQuantity;
+                        
+                        fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                request_id: requestId,
+                                approved_quantity: approvedQuantity,
+                                action: 'approve'
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: 'Request approved successfully',
+                                    showConfirmButton: false,
+                                    timer: 1500
+                                }).then(() => {
+                                    location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: data.message || 'Error approving request'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'Error processing request'
+                            });
+                            console.error('Error:', error);
+                        });
+                    }
+                });
             } else {
-                modalBody.innerHTML = `
-                    <div class="alert alert-danger">
-                        ${data.message || 'Failed to load warehouse request details'}
-                    </div>
-                `;
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: data.message || 'Failed to save quality rating.'
+                });
             }
         })
         .catch(error => {
-            console.error('Error fetching warehouse request details:', error);
-            modalBody.innerHTML = `
-                <div class="alert alert-danger">
-                    An error occurred while fetching warehouse request details
-                </div>
-            `;
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: 'An unexpected error occurred: ' + error.message
+            });
         });
-}
-
-// Respond to warehouse request
-function respondToWarehouseRequest(requestId) {
-    // Close details modal if open
-    $('#warehouseRequestDetailsModal').modal('hide');
-    
-    // Redirect to create request page with pre-filled info
-    window.location.href = `/create_request?warehouse_request_id=${requestId}`;
-}
+    });
+});
 </script>
 
+<!-- Add Bootstrap Icons CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+<!-- Add this CSS for the grade badge -->
 <style>
-.detail-item {
-    margin-bottom: 15px;
-}
-
-.detail-item strong {
-    display: inline-block;
-    min-width: 120px;
-}
-
-.badge {
-    display: inline-block;
-    padding: 0.25em 0.4em;
-    font-size: 75%;
-    font-weight: 700;
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-    vertical-align: baseline;
-    border-radius: 0.25rem;
-}
-
-.badge-warning {
-    color: #212529;
-    background-color: #ffc107;
-}
-
-.badge-success {
-    color: #fff;
-    background-color: #28a745;
-}
-
-.badge-danger {
-    color: #fff;
-    background-color: #dc3545;
-}
-
-.badge-secondary {
-    color: #fff;
-    background-color: #6c757d;
-}
+    .grade-badge {
+        display: inline-block;
+        width: 60px;
+        height: 60px;
+        line-height: 60px;
+        border-radius: 50%;
+        font-size: 24px;
+        font-weight: bold;
+        margin: 10px auto;
+        color: white;
+    }
+    
+    .grade-a {
+        background-color: #4CAF50;
+    }
+    
+    .grade-b {
+        background-color: #FFC107;
+    }
+    
+    .grade-c {
+        background-color: #F44336;
+    }
 </style>
 {% endblock %}

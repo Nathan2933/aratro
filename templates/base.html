@@ -8,11 +8,14 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     {% endif %}
-    <title>Supply Chain Management</title>
+    <title>Aratro</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    {% block additional_css %}{% endblock %}
     <style>
         .flash-messages {
             position: fixed;
@@ -191,128 +194,565 @@
         .welcome-banner.hidden {
             display: none;
         }
+
+        /* Status indicators */
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            display: inline-block;
+        }
+
+        .status-dot.warning {
+            background-color: var(--warning-color);
+        }
+
+        .status-dot.success {
+            background-color: var(--success-color);
+        }
+
+        .status-dot.error {
+            background-color: var(--error-color);
+        }
+
+        .status-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .status-item {
+            padding: 1rem;
+            border-radius: 8px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s ease;
+        }
+
+        .status-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            transform: translateX(4px);
+        }
+
+        .status-label {
+            font-weight: 500;
+            flex-grow: 1;
+        }
+
+        .status-count {
+            font-weight: 600;
+            font-size: 1.125rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            background-color: var(--hover-color);
+            margin-left: 1rem;
+        }
+
+        .status-details {
+            margin-top: 0.5rem;
+            margin-left: 1rem;
+            padding-left: 1rem;
+            border-left: 2px solid var(--border-color);
+        }
+
+        .dashboard-option-card {
+            flex: 1;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .dashboard-option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .text-success {
+            color: var(--success-color);
+        }
+
+        .text-error {
+            color: var(--error-color);
+        }
+
+        .text-warning {
+            color: var(--warning-color);
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .form-select {
+            padding: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+
+        .form-select:hover {
+            border-color: var(--primary-color);
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+        }
+
+        /* Partial Acceptances and Rejected Requests Styles */
+        .partial-requests-grid, .rejected-requests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .partial-request-card, .rejected-request-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .partial-request-card:hover, .rejected-request-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .partial-request-card .card-header, .rejected-request-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .stock-details, .warehouse-details {
+            padding: 1rem;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .detail-group {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .detail-group .label {
+            color: #666;
+            font-size: 0.875rem;
+        }
+        
+        .detail-group .value {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .detail-group.highlight .value {
+            color: #55c759;
+            font-weight: 600;
+        }
+        
+        .warehouse-details h4, .stock-details h4 {
+            margin-bottom: 0.75rem;
+            color: #444;
+            font-size: 1rem;
+        }
+        
+        .action-buttons {
+            padding: 1rem;
+            display: flex;
+            gap: 0.5rem;
+            flex-direction: column;
+        }
+        
+        .badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            color: #aaa;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+        
+        .empty-state p {
+            color: #777;
+            margin-bottom: 1.5rem;
+        }
+        
+        .warehouse-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .warehouse-info h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        
+        .warehouse-info p {
+            color: #666;
+            margin-bottom: 0.25rem;
+        }
+        
+        .warehouse-actions {
+            flex-shrink: 0;
+        }
+        
+        .empty-message {
+            text-align: center;
+            padding: 2rem;
+            color: #777;
+        }
+
+        .user-details {
+            text-align: center;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        .user-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 0.25rem;
+            display: block;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .user-role {
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: capitalize;
+        }
+
+        .content-area.with-sidebar {
+            margin-left: 0;
+        }
+
+        @media (min-width: 768px) {
+            .content-area.with-sidebar {
+                margin-left: 250px; /* Same as sidebar width */
+                width: calc(100% - 250px);
+                max-width: none;
+                padding-right: 1rem;
+            }
+        }
     </style>
+    {% block style %}{% endblock %}
 </head>
 <body>
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <a href="{{ url_for('main.index') }}" class="brand-link">
-                <i class="fas fa-link"></i>
-                Supply Chain
-            </a>
-        </div>
-
-        {% if current_user.is_authenticated %}
-        <div class="navbar-menu">
-            <a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">
-                <i class="fas fa-chart-line"></i>
-                Dashboard
-            </a>
-            {% if current_user.role == 'farmer' %}
-            <a href="#" class="nav-link">
-                <i class="fas fa-warehouse"></i>
-                Find Warehouses
-            </a>
-            {% elif current_user.role == 'warehouse_manager' %}
-            <a href="#" class="nav-link">
-                <i class="fas fa-boxes"></i>
-                Manage Stock
-            </a>
-            {% endif %}
-        </div>
-
-        <div class="navbar-end">
-            <div class="user-menu">
-                <button type="button" class="user-menu-btn" id="userMenuBtn" aria-expanded="false" aria-haspopup="true">
-                    <i class="fas fa-user-circle"></i>
+    <div class="main-container {% if current_user.is_authenticated and current_user.role == 'farmer' %}no-navbar{% endif %}">
+        {% if current_user.is_authenticated and current_user.role != 'farmer' %}
+        <!-- Sidebar -->
+        <div class="sidebar-wrapper" id="mainSidebar">
+            <div class="sidebar-header" style="display: flex; justify-content: center; align-items: center; width: 100%; padding: 10px 0;">
+                <h5 class="sidebar-brand">
+                    <a href="{{ url_for('main.index') }}" class="brand-link">
+                        <i class="bi bi-link-45deg"></i>
+                        
+                        Aratro
+                        
+                    </a>
+                </h5>
+               
+            </div>
+            <div class="user-info" style="display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; padding: 10px 0;">
+                <div class="user-avatar">
+                    <i class="bi bi-person-circle"></i>
+                </div>
+                <div class="user-details">
                     <span class="user-name">
                     {% if current_user.role == 'warehouse_manager' and user_warehouse %}
                         {{ user_warehouse.manager_name }}
-                    {% elif current_user.role == 'farmer' and user_farmer %}
-                        {{ user_farmer.name }}
+                    {% elif current_user.role == 'admin' %}
+                        Administrator
+                    {% elif current_user.role == 'ration_shop' and shop %}
+                        {{ shop.name }}
                     {% else %}
                         {{ current_user.role|replace('_', ' ')|title }}
                     {% endif %}
                     </span>
-                    <i class="fas fa-chevron-down"></i>
-                </button>
-                <div class="user-menu-dropdown" id="userMenuDropdown">
-                    <a href="#" class="dropdown-item">
-                        <i class="fas fa-user"></i>
-                        Profile
-                    </a>
-                    <a href="#" class="dropdown-item">
-                        <i class="fas fa-cog"></i>
-                        Settings
-                    </a>
-                    <div style="height: 1px; background-color: var(--border-color); margin: 0.5rem 0;"></div>
-                    <a href="{{ url_for('auth.logout') }}" class="dropdown-item logout-item">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Logout
-                    </a>
+                    <span class="user-role">{{ current_user.role|replace('_', ' ')|title }}</span>
                 </div>
             </div>
-        </div>
-        {% else %}
-        <div class="navbar-end">
-            <a href="{{ url_for('auth.login') }}" class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}">
-                <i class="fas fa-sign-in-alt"></i>
-                Login
-            </a>
-            <a href="{{ url_for('auth.register') }}" class="nav-link {% if request.endpoint == 'auth.register' %}active{% endif %}">
-                <i class="fas fa-user-plus"></i>
-                Register
-            </a>
-        </div>
-        {% endif %}
-    </nav>
-
-    <div class="main-container">
-        {% if current_user.is_authenticated %}
-        <div class="welcome-banner" id="welcomeBanner">
-            <div class="welcome-banner-content">
-                {% if current_user.role == 'warehouse_manager' and user_warehouse %}
-                    Welcome back, {{ user_warehouse.manager_name }}!
-                {% elif current_user.role == 'farmer' and user_farmer %}
-                    Welcome back, {{ user_farmer.name }}!
-                {% else %}
-                    Welcome back, {{ current_user.role|replace('_', ' ')|title }}!
-                {% endif %}
-                <span class="banner-hint">(Click the X to dismiss)</span>
+            <div class="sidebar-menu">
+                <ul>
+                    {% if current_user.role == 'warehouse_manager' %}
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.warehouse_home') }}" class="{% if request.endpoint == 'warehouse_dashboard.warehouse_home' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2-fill"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.view_announcements') }}" class="{% if request.endpoint == 'warehouse_dashboard.view_announcements' %}active{% endif %}">
+                            <i class="bi bi-megaphone-fill"></i>
+                            <span>Announcements</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.respond_to_request') }}" class="{% if request.endpoint == 'warehouse_dashboard.respond_to_request' %}active{% endif %}">
+                            <i class="bi bi-inbox-fill"></i>
+                            <span>Incoming Requests</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.accepted_requests') }}" class="{% if request.endpoint == 'warehouse_dashboard.accepted_requests' %}active{% endif %}">
+                            <i class="bi bi-check-circle-fill"></i>
+                            <span>Accepted Requests</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('warehouse_dashboard.rejected_requests') }}" class="{% if request.endpoint == 'warehouse_dashboard.rejected_requests' %}active{% endif %}">
+                            <i class="bi bi-x-circle-fill"></i>
+                            <span>Rejected Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.edit_profile') }}" class="{% if request.endpoint == 'auth.edit_warehouse_profile' %}active{% endif %}">
+                            <i class="bi bi-person-fill-gear"></i>
+                            <span>Edit Profile</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.change_password') }}" class="{% if request.endpoint == 'auth.change_password' %}active{% endif %}">
+                            <i class="bi bi-key-fill"></i>
+                            <span>Change Password</span>
+                        </a>
+                    </li>
+                    
+                    
+                    
+                    {% elif current_user.role == 'admin' %}
+                    <li>
+                        <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin.dashboard') }}" class="{% if request.endpoint == 'admin.dashboard' %}active{% endif %}">
+                            <i class="fas fa-cogs"></i>
+                            <span>Admin Panel</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.change_password') }}" class="{% if request.endpoint == 'auth.change_password' %}active{% endif %}">
+                            <i class="bi bi-key-fill"></i>
+                            <span>Change Password</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-item">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                    
+                    {% elif current_user.role == 'ration_shop' %}
+                    <li>
+                        <a href="{{ url_for('main.ration_dashboard') }}" class="{% if request.endpoint == 'main.ration_dashboard' %}active{% endif %}">
+                            <i class="bi bi-grid-1x2-fill"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('main.ration_request_stock') }}" class="{% if request.endpoint == 'main.ration_request_stock' %}active{% endif %}">
+                            <i class="bi bi-cart-plus"></i>
+                            <span>Request Stock</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('main.ration_stock_requests') }}" class="{% if request.endpoint == 'main.ration_stock_requests' %}active{% endif %}">
+                            <i class="bi bi-clipboard-check"></i>
+                            <span>Your Requests</span>
+                        </a>
+                    </li>
+                    
+                    <li class="sidebar-divider"></li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.edit_profile') }}" class="{% if request.endpoint == 'auth.edit_ration_profile' %}active{% endif %}">
+                            <i class="bi bi-person-fill-gear"></i>
+                            <span>Edit Profile</span>
+                        </a>
+                    </li>
+                    
+                    <li>
+                        <a href="{{ url_for('auth.change_password') }}" class="{% if request.endpoint == 'auth.change_password' %}active{% endif %}">
+                            <i class="bi bi-key-fill"></i>
+                            <span>Change Password</span>
+                        </a>
+                    </li>
+                    
+                    
+                    
+                    {% else %}
+                    <li>
+                        <a href="{{ url_for('main.dashboard') }}" class="{% if request.endpoint == 'main.dashboard' %}active{% endif %}">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="sidebar-divider"></li>
+                    <li>
+                        <a href="{{ url_for('auth.logout') }}" class="logout-item">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>Logout</span>
+                        </a>
+                    </li>
+                </ul>
             </div>
-            <button type="button" class="close-banner-btn" aria-label="Close" id="closeBannerBtn">
-                <i class="fas fa-times"></i>
+        </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none hide-on-pc">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
             </button>
         </div>
         {% endif %}
-
-        <div class="flash-messages">
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        <div class="flash-message {{ category }}" role="alert">
-                            <div class="flash-message-content">
-                                {% if category == 'success' %}
-                                    <i class="fas fa-check-circle"></i>
-                                {% elif category == 'error' %}
-                                    <i class="fas fa-exclamation-circle"></i>
-                                {% elif category == 'info' %}
-                                    <i class="fas fa-info-circle"></i>
-                                {% elif category == 'warning' %}
-                                    <i class="fas fa-exclamation-triangle"></i>
-                                {% endif %}
-                                <span>{{ message }}</span>
-                            </div>
-                            <button type="button" class="close-flash-btn" aria-label="Close">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+        
+        {% if not current_user.is_authenticated and 'register' not in request.endpoint %}
+        <!-- Sidebar for non-authenticated users (hidden on register pages and index page) -->
+        {% if request.endpoint != 'main.index' %}
+        <div class="sidebar-wrapper" id="mainSidebar">
+            <div class="sidebar-header">
+                <h5 class="sidebar-brand">
+                    <a href="{{ url_for('main.index') }}" class="brand-link">
+                        <i class="fas fa-link"></i>
+                        Aratro
+                    </a>
+                </h5>
+                <button type="button" class="btn-close-sidebar d-md-none" id="closeSidebarBtn">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="sidebar-menu">
+                <ul>
+                    <li>
+                        <a href="{{ url_for('auth.login') }}" class="{% if request.endpoint == 'auth.login' %}active{% endif %}">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Login</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.ration_login') }}" class="{% if request.endpoint == 'auth.ration_login' %}active{% endif %}">
+                            <i class="fas fa-store"></i>
+                            <span>Ration Shop</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('auth.register') }}" class="{% if request.endpoint == 'auth.register' %}active{% endif %}">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Register</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
+        
+        <!-- Mobile Sidebar Toggle -->
+        <div class="mobile-sidebar-toggle d-md-none hide-on-pc">
+            <button class="btn btn-sidebar-toggle" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+        </div>
+        {% endif %}
+        {% endif %}
 
-        {% block content %}{% endblock %}
+        <div class="content-area {% if (current_user.is_authenticated and current_user.role != 'farmer') or (not current_user.is_authenticated and 'register' not in request.endpoint and request.endpoint != 'main.index') %}with-sidebar{% endif %}">
+            {% if current_user.is_authenticated and current_user.role != 'farmer' %}
+            <div class="welcome-banner" id="welcomeBanner">
+                <div class="welcome-banner-content">
+                    {% if current_user.role == 'warehouse_manager' and user_warehouse %}
+                        Welcome back, {{ user_warehouse.manager_name }}!
+                    {% elif current_user.role == 'admin' %}
+                        Welcome back, Administrator!
+                    {% else %}
+                        Welcome back, {{ current_user.role|replace('_', ' ')|title }}!
+                    {% endif %}
+                    <span class="banner-hint">(Click the X to dismiss)</span>
+                </div>
+                <button type="button" class="close-banner-btn" aria-label="Close" id="closeBannerBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            {% endif %}
+
+            <div class="flash-messages">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="flash-message {{ category }}" role="alert">
+                                <div class="flash-message-content">
+                                    {% if category == 'success' %}
+                                        <i class="fas fa-check-circle"></i>
+                                    {% elif category == 'error' %}
+                                        <i class="fas fa-exclamation-circle"></i>
+                                    {% elif category == 'info' %}
+                                        <i class="fas fa-info-circle"></i>
+                                    {% elif category == 'warning' %}
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    {% endif %}
+                                    <span>{{ message }}</span>
+                                </div>
+                                <button type="button" class="close-flash-btn" aria-label="Close">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            </div>
+
+            {% block content %}{% endblock %}
+        </div>
     </div>
 
     <script>
@@ -320,49 +760,37 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM fully loaded');
             
-            // User dropdown functionality
-            const userMenuBtn = document.getElementById('userMenuBtn');
-            const userMenuDropdown = document.getElementById('userMenuDropdown');
+            // Sidebar toggle functionality
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainSidebar = document.getElementById('mainSidebar');
+            const closeSidebarBtn = document.getElementById('closeSidebarBtn');
             
-            if (userMenuBtn && userMenuDropdown) {
-                console.log('User menu elements found');
-                
-                // Toggle dropdown on button click
-                userMenuBtn.addEventListener('click', function(event) {
-                    console.log('User menu button clicked');
-                    event.preventDefault();
-                    event.stopPropagation();
-                    
-                    const expanded = this.getAttribute('aria-expanded') === 'true';
-                    this.setAttribute('aria-expanded', !expanded);
-                    
-                    if (expanded) {
-                        userMenuDropdown.style.display = 'none';
-                    } else {
-                        userMenuDropdown.style.display = 'block';
-                    }
+            if (sidebarToggle && mainSidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    mainSidebar.classList.add('show');
+                    document.body.classList.add('sidebar-open');
                 });
-                
-                // Close dropdown when clicking elsewhere
-                document.addEventListener('click', function(event) {
-                    if (!userMenuBtn.contains(event.target) && !userMenuDropdown.contains(event.target)) {
-                        userMenuBtn.setAttribute('aria-expanded', 'false');
-                        userMenuDropdown.style.display = 'none';
-                    }
-                });
-                
-                // Close dropdown when pressing Escape
-                document.addEventListener('keydown', function(event) {
-                    if (event.key === 'Escape' && userMenuBtn.getAttribute('aria-expanded') === 'true') {
-                        userMenuBtn.setAttribute('aria-expanded', 'false');
-                        userMenuDropdown.style.display = 'none';
-                    }
-                });
-            } else {
-                console.log('User menu elements not found');
-                if (!userMenuBtn) console.log('userMenuBtn not found');
-                if (!userMenuDropdown) console.log('userMenuDropdown not found');
             }
+            
+            if (closeSidebarBtn && mainSidebar) {
+                closeSidebarBtn.addEventListener('click', function() {
+                    mainSidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                });
+            }
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768 && 
+                    mainSidebar && 
+                    mainSidebar.classList.contains('show') && 
+                    !mainSidebar.contains(event.target) && 
+                    sidebarToggle && 
+                    !sidebarToggle.contains(event.target)) {
+                    mainSidebar.classList.remove('show');
+                    document.body.classList.remove('sidebar-open');
+                }
+            });
             
             // Flash message close buttons
             const closeButtons = document.querySelectorAll('.close-flash-btn');
@@ -395,94 +823,17 @@
             const welcomeBanner = document.getElementById('welcomeBanner');
             const closeBannerBtn = document.getElementById('closeBannerBtn');
             
-            function closeBanner() {
-                console.log('Closing banner');
-                if (welcomeBanner) {
-                    welcomeBanner.style.animation = 'fadeOut 0.3s forwards';
-                    setTimeout(function() {
-                        welcomeBanner.classList.add('hidden');
-                        // Store in local storage that the banner was closed
-                        localStorage.setItem('welcomeBannerClosed', 'true');
-                    }, 300);
-                }
-            }
-            
-            if (welcomeBanner) {
-                console.log('Welcome banner found');
-                // Check if banner should be hidden based on localStorage
+            if (welcomeBanner && closeBannerBtn) {
+                closeBannerBtn.addEventListener('click', function() {
+                    welcomeBanner.classList.add('hidden');
+                    // Store the banner state in localStorage
+                    localStorage.setItem('welcomeBannerClosed', 'true');
+                });
+                
+                // Check if the banner was previously closed
                 if (localStorage.getItem('welcomeBannerClosed') === 'true') {
                     welcomeBanner.classList.add('hidden');
                 }
-                
-                // Add event listener to close button
-                if (closeBannerBtn) {
-                    console.log('Close banner button found with ID:', closeBannerBtn.id);
-                    closeBannerBtn.addEventListener('click', function(event) {
-                        console.log('Close banner button clicked');
-                        event.preventDefault();
-                        event.stopPropagation();
-                        closeBanner();
-                    });
-                } else {
-                    console.log('Close banner button not found');
-                }
-                
-                // Make the entire banner clickable to close
-                welcomeBanner.addEventListener('click', function(event) {
-                    // Only close if clicking on the banner itself, not its children
-                    if (event.target === welcomeBanner) {
-                        closeBanner();
-                    }
-                });
-            } else {
-                console.log('Welcome banner not found');
-            }
-            
-            // Function to show alert
-            function showAlert(message, type) {
-                const flashMessages = document.querySelector('.flash-messages');
-                const newFlash = document.createElement('div');
-                newFlash.className = `flash-message ${type}`;
-                newFlash.role = 'alert';
-                
-                let icon = '';
-                if (type === 'success') icon = '<i class="fas fa-check-circle"></i>';
-                else if (type === 'error') icon = '<i class="fas fa-exclamation-circle"></i>';
-                else if (type === 'info') icon = '<i class="fas fa-info-circle"></i>';
-                else if (type === 'warning') icon = '<i class="fas fa-exclamation-triangle"></i>';
-                
-                newFlash.innerHTML = `
-                    <div class="flash-message-content">
-                        ${icon}
-                        <span>${message}</span>
-                    </div>
-                    <button type="button" class="close-flash-btn" aria-label="Close">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-                
-                flashMessages.appendChild(newFlash);
-                
-                // Add click event to the new close button
-                const closeBtn = newFlash.querySelector('.close-flash-btn');
-                closeBtn.addEventListener('click', function() {
-                    newFlash.style.animation = 'fadeOut 0.3s forwards';
-                    setTimeout(function() {
-                        newFlash.remove();
-                    }, 300);
-                });
-                
-                // Auto-hide after 5 seconds
-                setTimeout(function() {
-                    if (document.body.contains(newFlash)) {
-                        newFlash.style.animation = 'fadeOut 0.3s forwards';
-                        setTimeout(function() {
-                            if (document.body.contains(newFlash)) {
-                                newFlash.remove();
-                            }
-                        }, 300);
-                    }
-                }, 5000);
             }
         });
     </script>

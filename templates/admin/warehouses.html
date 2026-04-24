@@ -1,0 +1,128 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Admin - Warehouses{% endblock %}
+
+{% block admin_content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Warehouses Management</h1>
+        <p class="page-subtitle">View and manage all registered warehouses</p>
+    </div>
+    <div>
+        <span class="admin-badge admin-badge-primary">
+            <i class="bi bi-person-badge me-1"></i>
+            Admin
+        </span>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-building me-2"></i>
+            Registered Warehouses
+        </h5>
+        <div class="search-input">
+            <i class="bi bi-search"></i>
+            <input type="text" id="warehouseSearch" class="form-control form-control-sm" placeholder="Search warehouses...">
+        </div>
+    </div>
+    <div class="admin-card-body">
+        <div class="table-responsive">
+            <table class="admin-table" id="warehousesTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Manager</th>
+                        <th>Type</th>
+                        <th>Capacity (tons)</th>
+                        <th>Available Space (tons)</th>
+                        <th>Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if warehouses %}
+                        {% for warehouse in warehouses %}
+                            <tr>
+                                <td>{{ warehouse.id }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-success text-white d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px; border-radius: 50%;">
+                                            <i class="bi bi-building"></i>
+                                        </div>
+                                        <div>
+                                            <span class="fw-medium">{{ warehouse.name }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ warehouse.manager_name }}</td>
+                                <td>{{ warehouse.warehouse_type }}</td>
+                                <td>{{ warehouse.capacity }}</td>
+                                <td>
+                                    {% set percentage = (warehouse.available_space / warehouse.capacity * 100) | int %}
+                                    <div class="d-flex align-items-center">
+                                        <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ percentage }}%;" aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="small">{{ warehouse.available_space }}</span>
+                                    </div>
+                                </td>
+                                <td>{{ warehouse.location }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-building-x fs-3 mb-3 d-block"></i>
+                                    <p>No warehouses registered yet.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('warehouseSearch');
+    const table = document.getElementById('warehousesTable');
+    const rows = table.getElementsByTagName('tr');
+    
+    searchInput.addEventListener('keyup', function() {
+        const query = searchInput.value.toLowerCase();
+        
+        for (let i = 1; i < rows.length; i++) {
+            let found = false;
+            const cells = rows[i].getElementsByTagName('td');
+            
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j].textContent.toLowerCase().indexOf(query) > -1) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            rows[i].style.display = found ? '' : 'none';
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 

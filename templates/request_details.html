@@ -1,0 +1,761 @@
+{% extends "base.html" %}
+
+{% block title %}Request Details{% endblock %}
+
+{% block content %}
+<div class="container-fluid warehouse-dashboard p-0">
+    <div class="row g-0">
+        <div class="col-12 d-flex justify-content-center">
+            <div class="content-wrapper">
+                <!-- Page Header -->
+                <div class="dashboard-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h1 class="dashboard-title">Request Details</h1>
+                        <a href="{{ url_for('warehouse_dashboard.respond_to_request') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Back to Requests
+                        </a>
+                    </div>
+                    <p class="dashboard-subtitle">View detailed information about this stock request</p>
+                </div>
+                
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+                
+                <!-- Request Details Card -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h2 class="dashboard-card-title">Request #{{ request.id }}</h2>
+                        <span class="badge {% if request.status == 'approved' %}bg-success{% elif request.status == 'rejected' %}bg-danger{% else %}bg-warning{% endif %}">
+                            {{ request.status|capitalize }}
+                        </span>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h3 class="section-title">Request Information</h3>
+                                <div class="info-group">
+                                    <div class="info-label">Farmer Name</div>
+                                    <div class="info-value">{{ request.farmer.name }}</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Stock Type</div>
+                                    <div class="info-value">{{ request.stock.type }}</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Requested Quantity</div>
+                                    <div class="info-value">{{ request.stock.requested_quantity }} tons</div>
+                                </div>
+                                {% if request.status == 'approved' %}
+                                <div class="info-group">
+                                    <div class="info-label">Approved Quantity</div>
+                                    <div class="info-value">{{ request.stock.quantity }} tons</div>
+                                </div>
+                                {% endif %}
+                                <div class="info-group">
+                                    <div class="info-label">Request Date</div>
+                                    <div class="info-value">{{ request.request_date.strftime('%Y-%m-%d %H:%M') }}</div>
+                                </div>
+                                {% if request.admin_notes %}
+                                <div class="info-group">
+                                    <div class="info-label">Admin Notes</div>
+                                    <div class="info-value">{{ request.admin_notes }}</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <h3 class="section-title">Farmer Information</h3>
+                                <div class="info-group">
+                                    <div class="info-label">Address</div>
+                                    <div class="info-value">{{ request.farmer.address }}</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Phone Number</div>
+                                    <div class="info-value">{{ request.farmer.phone_number }}</div>
+                                </div>
+                                <div class="info-group">
+                                    <div class="info-label">Aadhar Number</div>
+                                    <div class="info-value">{{ request.farmer.aadhar_number }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Quality Rating Card -->
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h2 class="dashboard-card-title">Stock Quality Rating</h2>
+                        {% if quality_rating %}
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-primary me-2">Overall Rating: {{ quality_rating.overall_rating|round(1) }}/10</span>
+                            {% set grade = 'C' %}
+                            {% if quality_rating.overall_rating >= 8 %}
+                                {% set grade = 'A' %}
+                            {% elif quality_rating.overall_rating >= 6 %}
+                                {% set grade = 'B' %}
+                            {% endif %}
+                            <span class="grade-badge grade-{{ grade|lower }}">{{ grade }}</span>
+                        </div>
+                        {% else %}
+                        <span class="badge bg-secondary">Not Rated</span>
+                        {% endif %}
+                    </div>
+                    <div class="dashboard-card-body">
+                        {% if quality_rating %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h3 class="section-title">Common Parameters</h3>
+                                <div class="rating-group">
+                                    <div class="rating-label">Hygiene Rating</div>
+                                    <div class="rating-bar-container">
+                                        <div class="rating-bar" style="width: {{ quality_rating.hygiene_rating * 10 }}%"></div>
+                                    </div>
+                                    <div class="rating-value">{{ quality_rating.hygiene_rating }}/10</div>
+                                </div>
+                                <div class="rating-group">
+                                    <div class="rating-label">Damaged Goods Rating</div>
+                                    <div class="rating-bar-container">
+                                        <div class="rating-bar" style="width: {{ quality_rating.damaged_goods_rating * 10 }}%"></div>
+                                    </div>
+                                    <div class="rating-value">{{ quality_rating.damaged_goods_rating }}/10</div>
+                                </div>
+                            </div>
+                            
+                            {% if quality_rating.stock_type == 'perishable' %}
+                            <div class="col-md-6">
+                                <h3 class="section-title">Perishable Parameters</h3>
+                                <div class="rating-group">
+                                    <div class="rating-label">Perishability Level</div>
+                                    <div class="rating-bar-container">
+                                        <div class="rating-bar" style="width: {{ quality_rating.perishability_level * 10 }}%"></div>
+                                    </div>
+                                    <div class="rating-value">{{ quality_rating.perishability_level }}/10</div>
+                                </div>
+                                <div class="rating-group">
+                                    <div class="rating-label">Preservation Rating</div>
+                                    <div class="rating-bar-container">
+                                        <div class="rating-bar" style="width: {{ quality_rating.preservation_rating * 10 }}%"></div>
+                                    </div>
+                                    <div class="rating-value">{{ quality_rating.preservation_rating }}/10</div>
+                                </div>
+                            </div>
+                            {% elif quality_rating.stock_type == 'non_perishable' %}
+                            <div class="col-md-6">
+                                <h3 class="section-title">Non-Perishable Parameters</h3>
+                                <div class="rating-group">
+                                    <div class="rating-label">Water Content Rating</div>
+                                    <div class="rating-bar-container">
+                                        <div class="rating-bar" style="width: {{ quality_rating.water_content_rating * 10 }}%"></div>
+                                    </div>
+                                    <div class="rating-value">{{ quality_rating.water_content_rating }}/10</div>
+                                </div>
+                                <div class="rating-group">
+                                    <div class="rating-label">Grain Grade Rating</div>
+                                    <div class="rating-bar-container">
+                                        <div class="rating-bar" style="width: {{ quality_rating.grain_grade_rating * 10 }}%"></div>
+                                    </div>
+                                    <div class="rating-value">{{ quality_rating.grain_grade_rating }}/10</div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            {% if request.status == 'pending' %}
+                            <p>This stock has not been rated yet. You need to rate the stock quality before approving the request.</p>
+                            <button class="btn btn-primary" onclick="showRatingModal({{ request.id }})">
+                                <i class="bi bi-star-fill"></i> Rate Stock Quality
+                            </button>
+                            {% else %}
+                            <p>This stock was not rated before processing the request.</p>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Actions Card -->
+                {% if request.status == 'pending' %}
+                <div class="dashboard-card mb-4">
+                    <div class="dashboard-card-header">
+                        <h2 class="dashboard-card-title">Actions</h2>
+                    </div>
+                    <div class="dashboard-card-body">
+                        <div class="d-flex gap-3">
+                            {% if quality_rating %}
+                            <button class="btn btn-success" onclick="approveRequest({{ request.id }})">
+                                <i class="bi bi-check-lg"></i> Approve Request
+                            </button>
+                            {% else %}
+                            <button class="btn btn-success" onclick="showRatingModal({{ request.id }})">
+                                <i class="bi bi-star-fill"></i> Rate & Approve
+                            </button>
+                            {% endif %}
+                            <button class="btn btn-danger" onclick="rejectRequest({{ request.id }})">
+                                <i class="bi bi-x-lg"></i> Reject Request
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quality Rating Modal -->
+<div class="modal fade" id="qualityRatingModal" tabindex="-1" aria-labelledby="qualityRatingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="qualityRatingModalLabel">Stock Quality Rating</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Please rate the quality of the stock before approving the request. All ratings are on a scale of 1-10.</p>
+                
+                <form id="qualityRatingForm">
+                    <input type="hidden" id="rating_request_id" name="request_id" value="{{ request.id }}">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Stock Type</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="stock_type" id="perishable" value="perishable" checked>
+                            <label class="form-check-label" for="perishable">
+                                Perishable
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="stock_type" id="non_perishable" value="non_perishable">
+                            <label class="form-check-label" for="non_perishable">
+                                Non-Perishable
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="mb-3">Common Parameters</h6>
+                            
+                            <div class="mb-3">
+                                <label for="hygiene_rating" class="form-label">Hygiene Rating (1-10)</label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" id="hygiene_rating" name="hygiene_rating" value="5" oninput="updateRatingValue(this)">
+                                <div class="d-flex justify-content-between">
+                                    <span>Poor (1)</span>
+                                    <span id="hygiene_rating_value">5</span>
+                                    <span>Excellent (10)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="damaged_goods_rating" class="form-label">Damaged Goods Rating (1-10)</label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" id="damaged_goods_rating" name="damaged_goods_rating" value="5" oninput="updateRatingValue(this)">
+                                <div class="d-flex justify-content-between">
+                                    <span>Heavily Damaged (1)</span>
+                                    <span id="damaged_goods_rating_value">5</span>
+                                    <span>No Damage (10)</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 perishable-fields">
+                            <h6 class="mb-3">Perishable Parameters</h6>
+                            
+                            <div class="mb-3">
+                                <label for="perishability_level" class="form-label">Perishability Level (1-10)</label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" id="perishability_level" name="perishability_level" value="5" oninput="updateRatingValue(this)">
+                                <div class="d-flex justify-content-between">
+                                    <span>Highly Perishable (1)</span>
+                                    <span id="perishability_level_value">5</span>
+                                    <span>Long Shelf Life (10)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="preservation_rating" class="form-label">Preservation Rating (1-10)</label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" id="preservation_rating" name="preservation_rating" value="5" oninput="updateRatingValue(this)">
+                                <div class="d-flex justify-content-between">
+                                    <span>Poor (1)</span>
+                                    <span id="preservation_rating_value">5</span>
+                                    <span>Excellent (10)</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 non-perishable-fields" style="display: none;">
+                            <h6 class="mb-3">Non-Perishable Parameters</h6>
+                            
+                            <div class="mb-3">
+                                <label for="water_content_rating" class="form-label">Water Content Rating (1-10)</label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" id="water_content_rating" name="water_content_rating" value="5" oninput="updateRatingValue(this)">
+                                <div class="d-flex justify-content-between">
+                                    <span>High Water Content (1)</span>
+                                    <span id="water_content_rating_value">5</span>
+                                    <span>Optimal Water Content (10)</span>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="grain_grade_rating" class="form-label">Grain Grade Rating (1-10)</label>
+                                <input type="range" class="form-range" min="1" max="10" step="1" id="grain_grade_rating" name="grain_grade_rating" value="5" oninput="updateRatingValue(this)">
+                                <div class="d-flex justify-content-between">
+                                    <span>Low Grade (1)</span>
+                                    <span id="grain_grade_rating_value">5</span>
+                                    <span>High Grade (10)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="submitRatingBtn">Submit Rating</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Center content and set width */
+    .content-wrapper {
+        width: 85%;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Dashboard card styling */
+    .dashboard-card {
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .dashboard-card-header {
+        padding: 15px 20px;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .dashboard-card-title {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .dashboard-card-body {
+        padding: 20px;
+    }
+    
+    /* Section title */
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 15px;
+        color: #2e7d32;
+        border-bottom: 1px solid #e8f5e9;
+        padding-bottom: 8px;
+    }
+    
+    /* Info group styling */
+    .info-group {
+        margin-bottom: 12px;
+    }
+    
+    .info-label {
+        font-weight: 500;
+        color: #666;
+        font-size: 0.9rem;
+    }
+    
+    .info-value {
+        font-size: 1rem;
+        color: #333;
+    }
+    
+    /* Rating bar styling */
+    .rating-group {
+        margin-bottom: 15px;
+    }
+    
+    .rating-label {
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+    
+    .rating-bar-container {
+        height: 10px;
+        background-color: #f0f0f0;
+        border-radius: 5px;
+        overflow: hidden;
+        flex-grow: 1;
+        margin: 0 10px;
+    }
+    
+    .rating-bar {
+        height: 100%;
+        background-color: #2e7d32;
+        border-radius: 5px;
+    }
+    
+    .rating-group {
+        display: flex;
+        align-items: center;
+    }
+    
+    .rating-label {
+        width: 150px;
+    }
+    
+    .rating-value {
+        width: 50px;
+        text-align: right;
+    }
+    
+    /* Grade badge styling */
+    .grade-badge {
+        display: inline-block;
+        width: 30px;
+        height: 30px;
+        line-height: 30px;
+        text-align: center;
+        border-radius: 50%;
+        font-size: 16px;
+        font-weight: bold;
+        color: white;
+    }
+    
+    .grade-a {
+        background-color: #4CAF50;
+    }
+    
+    .grade-b {
+        background-color: #FFC107;
+    }
+    
+    .grade-c {
+        background-color: #F44336;
+    }
+    
+    @media (max-width: 768px) {
+        .content-wrapper {
+            width: 95%;
+        }
+        
+        .rating-group {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .rating-label {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .rating-bar-container {
+            width: 100%;
+            margin: 5px 0;
+        }
+        
+        .rating-value {
+            width: 100%;
+            text-align: left;
+            margin-top: 5px;
+        }
+    }
+</style>
+
+<!-- Include SweetAlert2 library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Stock type radio button change event
+    const stockTypeRadios = document.querySelectorAll('input[name="stock_type"]');
+    stockTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            const perishableFields = document.querySelector('.perishable-fields');
+            const nonPerishableFields = document.querySelector('.non-perishable-fields');
+            
+            if (this.value === 'perishable') {
+                perishableFields.style.display = 'block';
+                nonPerishableFields.style.display = 'none';
+            } else {
+                perishableFields.style.display = 'none';
+                nonPerishableFields.style.display = 'block';
+            }
+        });
+    });
+    
+    // Submit rating button click event
+    document.getElementById('submitRatingBtn').addEventListener('click', function() {
+        submitRating();
+    });
+});
+
+function updateRatingValue(input) {
+    document.getElementById(`${input.id}_value`).textContent = input.value;
+}
+
+function showRatingModal(requestId) {
+    const qualityRatingModal = new bootstrap.Modal(document.getElementById('qualityRatingModal'));
+    qualityRatingModal.show();
+}
+
+function submitRating() {
+    const form = document.getElementById('qualityRatingForm');
+    const formData = new FormData(form);
+    
+    // Convert FormData to JSON
+    const data = {};
+    formData.forEach((value, key) => {
+        data[key] = value;
+    });
+    
+    // Show loading state
+    Swal.fire({
+        title: 'Processing...',
+        text: 'Submitting quality rating',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    // Submit rating
+    fetch("{{ url_for('warehouse_dashboard.rate_stock_quality') }}", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Close the modal
+            const qualityRatingModal = bootstrap.Modal.getInstance(document.getElementById('qualityRatingModal'));
+            qualityRatingModal.hide();
+            
+            // Show success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: `Quality rating saved successfully. Overall rating: ${data.overall_rating.toFixed(1)}/10`,
+                showConfirmButton: true,
+                confirmButtonText: 'Reload Page'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    location.reload();
+                }
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: data.message || 'Failed to save quality rating.'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error!',
+            text: 'An unexpected error occurred: ' + error.message
+        });
+    });
+}
+
+function approveRequest(requestId) {
+    const availableSpace = {{ warehouse.capacity - (warehouse.stocks|selectattr('status', 'equalto', 'stored')|sum(attribute='quantity')) }};
+    
+    Swal.fire({
+        title: 'Approve Request',
+        html: `
+            <div class="form-group">
+                <label for="approved_quantity">Approved Quantity (tons):</label>
+                <input type="number" id="approved_quantity" class="form-control" value="{{ request.stock.requested_quantity }}" min="0.01" step="0.01" max="{{ request.stock.requested_quantity }}">
+                <small class="text-muted">Available space: ${availableSpace.toFixed(2)} tons</small>
+            </div>
+            <div class="form-group mt-3">
+                <label for="notes">Notes (optional):</label>
+                <textarea id="notes" class="form-control"></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Approve',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const quantity = parseFloat(document.getElementById('approved_quantity').value);
+            if (isNaN(quantity) || quantity <= 0) {
+                Swal.showValidationMessage('Please enter a valid quantity greater than zero');
+                return false;
+            }
+            if (quantity > availableSpace) {
+                Swal.showValidationMessage(`Cannot approve more than available space (${availableSpace.toFixed(2)} tons)`);
+                return false;
+            }
+            return {
+                approved_quantity: quantity,
+                notes: document.getElementById('notes').value
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const approved_quantity = result.value.approved_quantity;
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Approving the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send approval request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    approved_quantity: approved_quantity,
+                    notes: notes,
+                    action: 'approve'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request approved successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.href = "{{ url_for('warehouse_dashboard.accepted_requests') }}";
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Error approving request'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Error processing request'
+                });
+                console.error('Error:', error);
+            });
+        }
+    });
+}
+
+function rejectRequest(requestId) {
+    Swal.fire({
+        title: 'Reject Request',
+        html: `
+            <div class="form-group">
+                <label for="notes">Reason for rejection:</label>
+                <textarea id="notes" class="form-control" required></textarea>
+            </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'Reject',
+        cancelButtonText: 'Cancel',
+        preConfirm: () => {
+            const notes = document.getElementById('notes').value;
+            if (!notes) {
+                Swal.showValidationMessage('Please provide a reason for rejection');
+                return false;
+            }
+            return {
+                notes: notes
+            };
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const notes = result.value.notes;
+            
+            // Show loading state
+            Swal.fire({
+                title: 'Processing...',
+                text: 'Rejecting the request',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send rejection request
+            fetch("{{ url_for('warehouse_dashboard.respond_to_request') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    request_id: requestId,
+                    action: 'reject',
+                    notes: notes
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Request rejected successfully',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.href = "{{ url_for('warehouse_dashboard.rejected_requests') }}";
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: data.message || 'Error rejecting request'
+                    });
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: 'Error processing request'
+                });
+                console.error('Error:', error);
+            });
+        }
+    });
+}
+</script>
+{% endblock %} 

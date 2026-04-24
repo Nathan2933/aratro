@@ -1,0 +1,684 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Admin - Ration Shops{% endblock %}
+
+{% block admin_content %}
+<div class="page-header">
+    <h1 class="page-title">Ration Shops Management</h1>
+    <p class="page-subtitle">View and manage all registered ration shops</p>
+</div>
+
+<div class="page-actions">
+    <span class="admin-badge admin-badge-primary">
+        <i class="fas fa-user-shield"></i>
+        Admin
+    </span>
+    <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="Search ration shops...">
+        <i class="fas fa-search search-icon"></i>
+    </div>
+</div>
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="fas fa-store"></i>
+            Registered Ration Shops
+        </h5>
+        <div class="card-actions">
+            <button id="refreshBtn" class="btn btn-sm btn-outline">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+    </div>
+    <div class="admin-card-body">
+        {% if ration_shops %}
+        <table class="admin-table" id="rationShopsTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Location</th>
+                    <th>Aadhar Number</th>
+                    <th>Status</th>
+                    <th>Registration Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shop in ration_shops %}
+                <tr data-shop-id="{{ shop.id }}">
+                    <td>{{ shop.id }}</td>
+                    <td>{{ shop.name }}</td>
+                    <td>{{ shop.email }}</td>
+                    <td>{{ shop.location }}</td>
+                    <td>{{ shop.aadhar_number }}</td>
+                    <td class="status-cell">
+                        {% if shop.status == 'pending' %}
+                        <span class="status-badge status-pending">Pending</span>
+                        {% elif shop.status == 'approved' %}
+                        <span class="status-badge status-approved">Approved</span>
+                        {% elif shop.status == 'rejected' %}
+                        <span class="status-badge status-rejected">Rejected</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ shop.created_at.strftime('%d %b %Y') }}</td>
+                    <td>
+                        {% if shop.status == 'pending' %}
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-success approve-btn" data-shop-id="{{ shop.id }}">
+                                <i class="fas fa-check"></i> Accept
+                            </button>
+                            <button class="btn btn-sm btn-danger reject-btn" data-shop-id="{{ shop.id }}">
+                                <i class="fas fa-times"></i> Deny
+                            </button>
+                        </div>
+                        {% elif shop.status == 'approved' %}
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-info view-credentials-btn" data-shop-id="{{ shop.id }}">
+                                <i class="fas fa-key"></i> View Credentials
+                            </button>
+                        </div>
+                        {% elif shop.status == 'rejected' %}
+                        <span class="text-danger"><i class="fas fa-times-circle"></i> Denied</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No ration shops registered yet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal for setting credentials -->
+<div class="modal fade" id="credentialsModal" tabindex="-1" aria-labelledby="credentialsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="credentialsModalLabel">Set Ration Shop Credentials</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="credentialsForm">
+                    <input type="hidden" id="shopId" name="shopId">
+                    <div class="mb-3">
+                        <label for="uniqueId" class="form-label">Unique ID</label>
+                        <input type="text" class="form-control" id="uniqueId" name="uniqueId" required>
+                        <small class="form-text text-muted">This ID will be used for login</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Temporary Password</label>
+                        <input type="text" class="form-control" id="password" name="password" required>
+                        <small class="form-text text-muted">The shop owner will use this password for first login</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveCredentials">Save & Approve</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for viewing credentials -->
+<div class="modal fade" id="viewCredentialsModal" tabindex="-1" aria-labelledby="viewCredentialsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewCredentialsModalLabel">Ration Shop Credentials</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    These are the login credentials for the ration shop.
+                </div>
+                <div class="credentials-container">
+                    <div class="mb-3">
+                        <label class="fw-bold">Shop Name:</label>
+                        <p id="viewShopName" class="mb-0"></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Unique ID (Username):</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="viewUniqueId" readonly>
+                            <button class="btn btn-outline-secondary copy-btn" type="button" data-copy-target="viewUniqueId">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold">Password:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="viewPassword" readonly>
+                            <button class="btn btn-outline-secondary copy-btn" type="button" data-copy-target="viewPassword">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted">This is the initial password set for the shop.</small>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="resetPasswordBtn">Reset Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for rejection reason -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rejectModalLabel">Deny Ration Shop Registration</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="rejectForm">
+                    <input type="hidden" id="rejectShopId" name="rejectShopId">
+                    <div class="mb-3">
+                        <label for="rejectReason" class="form-label">Reason for Denial</label>
+                        <textarea class="form-control" id="rejectReason" name="rejectReason" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmReject">Confirm Denial</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for password reset -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resetPasswordModalLabel">Reset Ration Shop Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This will reset the password for the ration shop. The shop owner will need to use the new password to log in.
+                </div>
+                <form id="resetPasswordForm">
+                    <input type="hidden" id="resetShopId" name="resetShopId">
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="text" class="form-control" id="newPassword" name="newPassword" required>
+                        <small class="form-text text-muted">This will be the new temporary password for the shop</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmResetPassword">Reset Password</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM content loaded');
+        
+        // Search functionality
+        const searchInput = document.getElementById('searchInput');
+        const table = document.getElementById('rationShopsTable');
+        
+        if (searchInput && table) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
+        }
+        
+        // Refresh button
+        const refreshBtn = document.getElementById('refreshBtn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                window.location.reload();
+            });
+        }
+        
+        // Initialize modals
+        try {
+            console.log('Initializing modals');
+            const credentialsModalElement = document.getElementById('credentialsModal');
+            const rejectModalElement = document.getElementById('rejectModal');
+            const viewCredentialsModalElement = document.getElementById('viewCredentialsModal');
+            const resetPasswordModalElement = document.getElementById('resetPasswordModal');
+            
+            console.log('Modal elements:', credentialsModalElement, rejectModalElement, viewCredentialsModalElement);
+            
+            if (!window.bootstrap) {
+                console.error('Bootstrap is not defined. Make sure Bootstrap JS is loaded properly.');
+                // Try to load Bootstrap manually
+                const bootstrapScript = document.createElement('script');
+                bootstrapScript.src = 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js';
+                document.head.appendChild(bootstrapScript);
+                
+                bootstrapScript.onload = function() {
+                    console.log('Bootstrap loaded manually');
+                    initializeModals();
+                };
+            } else {
+                console.log('Bootstrap is defined');
+                initializeModals();
+            }
+            
+            function initializeModals() {
+                const credentialsModal = new bootstrap.Modal(credentialsModalElement);
+                const rejectModal = new bootstrap.Modal(rejectModalElement);
+                const viewCredentialsModal = new bootstrap.Modal(viewCredentialsModalElement);
+                const resetPasswordModal = new bootstrap.Modal(resetPasswordModalElement);
+                
+                console.log('Modals initialized successfully');
+                
+                // Approve button click
+                const approveButtons = document.querySelectorAll('.approve-btn');
+                console.log('Approve buttons:', approveButtons.length);
+                
+                approveButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        console.log('Approve button clicked');
+                        
+                        const shopId = this.getAttribute('data-shop-id');
+                        console.log('Shop ID:', shopId);
+                        
+                        document.getElementById('shopId').value = shopId;
+                        
+                        // Generate a random unique ID and password
+                        const uniqueId = 'RS' + Math.floor(100000 + Math.random() * 900000);
+                        const password = Math.random().toString(36).slice(-8);
+                        
+                        document.getElementById('uniqueId').value = uniqueId;
+                        document.getElementById('password').value = password;
+                        
+                        console.log('Showing credentials modal');
+                        // Show the modal
+                        credentialsModal.show();
+                    });
+                });
+                
+                // Save credentials and approve shop
+                const saveCredentialsBtn = document.getElementById('saveCredentials');
+                const credentialsForm = document.getElementById('credentialsForm');
+                
+                if (saveCredentialsBtn && credentialsForm) {
+                    saveCredentialsBtn.addEventListener('click', function() {
+                        console.log('Save credentials button clicked');
+                        
+                        const shopId = document.getElementById('shopId').value;
+                        const uniqueId = document.getElementById('uniqueId').value;
+                        const password = document.getElementById('password').value;
+                        
+                        console.log('Shop ID:', shopId, 'Unique ID:', uniqueId, 'Password:', password);
+                        
+                        if (!uniqueId || !password) {
+                            alert('Please fill in all fields');
+                            return;
+                        }
+                        
+                        // Use fetch API instead of form submission
+                        fetch('/admin/approve-ration-shop', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                shop_id: shopId,
+                                unique_id: uniqueId,
+                                password: password
+                            })
+                        })
+                        .then(response => {
+                            console.log('Response status:', response.status);
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Response data:', data);
+                            
+                            if (data.success) {
+                                // Close the modal
+                                credentialsModal.hide();
+                                
+                                // Update the UI
+                                const row = document.querySelector(`tr[data-shop-id="${shopId}"]`);
+                                const statusCell = row.querySelector('.status-cell');
+                                const actionsCell = row.querySelector('td:last-child');
+                                
+                                statusCell.innerHTML = '<span class="status-badge status-approved">Approved</span>';
+                                actionsCell.innerHTML = `
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-info view-credentials-btn" data-shop-id="${shopId}">
+                                            <i class="fas fa-key"></i> View Credentials
+                                        </button>
+                                    </div>
+                                `;
+                                
+                                // Add event listener to the new button
+                                const newViewCredentialsBtn = actionsCell.querySelector('.view-credentials-btn');
+                                if (newViewCredentialsBtn) {
+                                    newViewCredentialsBtn.addEventListener('click', handleViewCredentialsClick);
+                                }
+                                
+                                // Show success message
+                                alert('Ration shop approved successfully!');
+                            } else {
+                                alert(data.message || 'Error approving ration shop');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while approving the ration shop');
+                        });
+                    });
+                }
+                
+                // View Credentials button click
+                const viewCredentialsButtons = document.querySelectorAll('.view-credentials-btn');
+                console.log('View Credentials buttons:', viewCredentialsButtons.length);
+                
+                function handleViewCredentialsClick() {
+                    console.log('View Credentials button clicked');
+                    
+                    const shopId = this.getAttribute('data-shop-id');
+                    console.log('Shop ID:', shopId);
+                    
+                    // Fetch shop credentials
+                    fetch(`/admin/get-ration-shop-credentials/${shopId}`)
+                    .then(response => {
+                        console.log('Response status:', response.status);
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Response data:', data);
+                        
+                        if (data.success) {
+                            // Populate the modal with the credentials
+                            document.getElementById('viewShopName').textContent = data.shop_name;
+                            document.getElementById('viewUniqueId').value = data.unique_id;
+                            document.getElementById('viewPassword').value = data.password;
+                            document.getElementById('resetShopId').value = shopId;
+                            
+                            // Show the modal
+                            viewCredentialsModal.show();
+                        } else {
+                            alert(data.message || 'Error fetching ration shop credentials');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('An error occurred while fetching the ration shop credentials');
+                    });
+                }
+                
+                viewCredentialsButtons.forEach(button => {
+                    button.addEventListener('click', handleViewCredentialsClick);
+                });
+                
+                // Copy button functionality
+                const copyButtons = document.querySelectorAll('.copy-btn');
+                copyButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const targetId = this.getAttribute('data-copy-target');
+                        const targetElement = document.getElementById(targetId);
+                        
+                        targetElement.select();
+                        document.execCommand('copy');
+                        
+                        // Change button text temporarily
+                        const originalHTML = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-check"></i>';
+                        
+                        setTimeout(() => {
+                            this.innerHTML = originalHTML;
+                        }, 1500);
+                    });
+                });
+                
+                // Reset Password button click
+                const resetPasswordBtn = document.getElementById('resetPasswordBtn');
+                if (resetPasswordBtn) {
+                    resetPasswordBtn.addEventListener('click', function() {
+                        console.log('Reset Password button clicked');
+                        
+                        // Generate a new random password
+                        const newPassword = Math.random().toString(36).slice(-8);
+                        document.getElementById('newPassword').value = newPassword;
+                        
+                        // Show the reset password modal
+                        viewCredentialsModal.hide();
+                        resetPasswordModal.show();
+                    });
+                }
+                
+                // Confirm Reset Password button click
+                const confirmResetPasswordBtn = document.getElementById('confirmResetPassword');
+                if (confirmResetPasswordBtn) {
+                    confirmResetPasswordBtn.addEventListener('click', function() {
+                        console.log('Confirm Reset Password button clicked');
+                        
+                        const shopId = document.getElementById('resetShopId').value;
+                        const newPassword = document.getElementById('newPassword').value;
+                        
+                        console.log('Shop ID:', shopId, 'New Password:', newPassword);
+                        
+                        if (!newPassword) {
+                            alert('Please enter a new password');
+                            return;
+                        }
+                        
+                        // Use fetch API to reset the password
+                        fetch('/admin/reset-ration-shop-password', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                shop_id: shopId,
+                                new_password: newPassword
+                            })
+                        })
+                        .then(response => {
+                            console.log('Response status:', response.status);
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Response data:', data);
+                            
+                            if (data.success) {
+                                // Close the modal
+                                resetPasswordModal.hide();
+                                
+                                // Show success message
+                                alert('Ration shop password reset successfully!');
+                                
+                                // Update the password in the view credentials modal
+                                document.getElementById('viewPassword').value = newPassword;
+                                
+                                // Show the view credentials modal again
+                                viewCredentialsModal.show();
+                            } else {
+                                alert(data.message || 'Error resetting ration shop password');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while resetting the ration shop password');
+                        });
+                    });
+                }
+                
+                // Reject button click
+                const rejectButtons = document.querySelectorAll('.reject-btn');
+                console.log('Reject buttons:', rejectButtons.length);
+                
+                rejectButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        console.log('Reject button clicked');
+                        
+                        const shopId = this.getAttribute('data-shop-id');
+                        console.log('Shop ID:', shopId);
+                        
+                        document.getElementById('rejectShopId').value = shopId;
+                        
+                        console.log('Showing reject modal');
+                        // Show the modal
+                        rejectModal.show();
+                    });
+                });
+                
+                // Confirm rejection
+                const confirmRejectBtn = document.getElementById('confirmReject');
+                const rejectForm = document.getElementById('rejectForm');
+                
+                if (confirmRejectBtn && rejectForm) {
+                    confirmRejectBtn.addEventListener('click', function() {
+                        console.log('Confirm reject button clicked');
+                        
+                        const shopId = document.getElementById('rejectShopId').value;
+                        const reason = document.getElementById('rejectReason').value;
+                        
+                        console.log('Shop ID:', shopId, 'Reason:', reason);
+                        
+                        // Use fetch API instead of form submission
+                        fetch('/admin/reject-ration-shop', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                shop_id: shopId,
+                                reason: reason
+                            })
+                        })
+                        .then(response => {
+                            console.log('Response status:', response.status);
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log('Response data:', data);
+                            
+                            if (data.success) {
+                                // Close the modal
+                                rejectModal.hide();
+                                
+                                // Update the UI
+                                const row = document.querySelector(`tr[data-shop-id="${shopId}"]`);
+                                const statusCell = row.querySelector('.status-cell');
+                                const actionsCell = row.querySelector('td:last-child');
+                                
+                                statusCell.innerHTML = '<span class="status-badge status-rejected">Rejected</span>';
+                                actionsCell.innerHTML = '<span class="text-danger"><i class="fas fa-times-circle"></i> Denied</span>';
+                                
+                                // Show success message
+                                alert('Ration shop denied successfully!');
+                            } else {
+                                alert(data.message || 'Error denying ration shop');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('An error occurred while denying the ration shop');
+                        });
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Error initializing modals:', error);
+        }
+    });
+</script>
+{% endblock %}
+
+{% block styles %}
+{{ super() }}
+<style>
+    .status-badge {
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .status-pending {
+        background-color: #fff8e1;
+        color: #f57c00;
+        border: 1px solid #ffcc80;
+    }
+    
+    .status-approved {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        border: 1px solid #a5d6a7;
+    }
+    
+    .status-rejected {
+        background-color: #ffebee;
+        color: #c62828;
+        border: 1px solid #ef9a9a;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    
+    .credentials-container {
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .copy-btn {
+        cursor: pointer;
+    }
+    
+    .btn-info {
+        background-color: #0dcaf0;
+        color: #fff;
+    }
+    
+    .btn-info:hover {
+        background-color: #0bacdb;
+        color: #fff;
+    }
+</style>
+{% endblock %} 

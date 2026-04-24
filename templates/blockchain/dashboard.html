@@ -1,0 +1,743 @@
+{% extends "blockchain/base_blockchain.html" %}
+
+{% block title %}Blockchain Dashboard - Aratro{% endblock %}
+
+{% block blockchain_content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Blockchain Dashboard</h1>
+        <p class="page-subtitle">
+            <span class="font-weight-bold">Contract Address:</span> 
+            <code>{{ contract_address }}</code>
+            <span class="text-muted">(Local Ganache Contract)</span>
+        </p>
+    </div>
+    <div class="d-flex align-items-center">
+        <button id="refreshStats" class="btn btn-primary me-2">
+            <i class="bi bi-arrow-clockwise me-1"></i> Refresh Stats
+        </button>
+        <span class="admin-badge admin-badge-primary">
+            <i class="bi bi-link-45deg me-1"></i>
+            Blockchain
+        </span>
+    </div>
+</div>
+
+<div class="alert alert-info" role="alert">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Local Blockchain:</strong> You are currently using a local Ganache blockchain. Transactions are not visible on public Ethereum explorers like Etherscan. Use the "View" links to see transaction details locally.
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+
+
+
+
+<!-- Recent Transactions -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-arrow-left-right me-2"></i>
+            Recent Transactions
+        </h5>
+        <button class="btn btn-sm btn-outline-primary" id="refreshTransactions">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            Refresh
+        </button>
+    </div>
+    <div class="admin-card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Transaction Hash</th>
+                        <th>Type</th>
+                        <th>Entity</th>
+                        <th>Status</th>
+                        <th>Timestamp</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionsTableBody">
+                    {% for tx in recent_transactions %}
+                    <tr>
+                        <td>
+                            <span class="text-truncate d-inline-block" style="max-width: 150px;">{{ tx.tx_hash }}</span>
+                        </td>
+                        <td>{{ tx.tx_type }}</td>
+                        <td>
+                            {% if tx.entity_type == 'stock' %}
+                            <a href="{{ url_for('blockchain.view_stock', stock_id=tx.entity_id) }}">
+                                Stock #{{ tx.entity_id }}
+                            </a>
+                            {% elif tx.entity_type == 'request' %}
+                            <a href="{{ url_for('blockchain.view_request', request_id=tx.entity_id) }}">
+                                Request #{{ tx.entity_id }}
+                            </a>
+                            {% else %}
+                            {{ tx.entity_type }} #{{ tx.entity_id }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if tx.status == 'confirmed' %}
+                            <span class="badge bg-success">Confirmed</span>
+                            {% elif tx.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                            {% elif tx.status == 'failed' %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ tx.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tx.created_at|timeago }}</td>
+                        <td>
+                            <a href="{{ url_for('blockchain.view_transaction', tx_hash=tx.tx_hash) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Blocks -->
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-collection me-2"></i>
+            Recent Blocks
+        </h5>
+        <button class="btn btn-sm btn-outline-primary" id="refreshBlocks">
+            <i class="bi bi-arrow-clockwise me-1"></i>
+            Refresh
+        </button>
+    </div>
+    <div class="admin-card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Block Number</th>
+                        <th>Hash</th>
+                        <th>Transactions</th>
+                        <th>Gas Used</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="blocksTableBody">
+                    {% for block in recent_blocks %}
+                    <tr>
+                        <td>{{ block.number }}</td>
+                        <td>
+                            <span class="text-truncate d-inline-block" style="max-width: 150px;">{{ block.hash }}</span>
+                        </td>
+                        <td>{{ block.transactions }}</td>
+                        <td>{{ block.gasUsed }}</td>
+                        <td>{{ block.timestamp|timeago }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Ration Stock Requests -->
+<div class="admin-card mb-4">
+    <div class="admin-card-header">
+        <h5 class="mb-0">
+            <i class="bi bi-shop me-1"></i>
+            Recent Ration Stock Requests
+        </h5>
+    </div>
+    <div class="admin-card-body">
+        {% if ration_stock_requests %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Blockchain ID</th>
+                        <th>Ration Shop</th>
+                        <th>Warehouse</th>
+                        <th>Stock Type</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for request in ration_stock_requests %}
+                    <tr>
+                        <td>{{ request.id }}</td>
+                        <td>{{ request.blockchain_id }}</td>
+                        <td>{{ request.ration_shop_name }}</td>
+                        <td>{{ request.warehouse_name }}</td>
+                        <td>{{ request.stock_type }}</td>
+                        <td>{{ request.quantity }} tons</td>
+                        <td><span class="badge bg-{{ request.status_color }}">{{ request.status }}</span></td>
+                        <td>{{ request.created_at|timeago }}</td>
+                        <td>
+                            <a href="{{ url_for('blockchain.view_ration_stock_request', request_id=request.id) }}" class="btn btn-sm btn-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            No ration stock requests with blockchain data found.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+    }
+    
+    .icon-circle i {
+        font-size: 1.5rem;
+    }
+    
+    .bg-primary {
+        background-color: var(--primary-color);
+    }
+    
+    .bg-success {
+        background-color: var(--success-color);
+    }
+    
+    .bg-warning {
+        background-color: var(--warning-color);
+    }
+    
+    .bg-info {
+        background-color: var(--info-color);
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Single formatTimeAgo function
+    function formatTimeAgo(timestamp) {
+        if (!timestamp) return '';
+        
+        // Parse the ISO string or timestamp
+        let date;
+        try {
+            if (typeof timestamp === 'string') {
+                // Handle ISO string (from transactions)
+                // Append 'Z' to indicate UTC if no timezone is specified
+                if (!timestamp.endsWith('Z') && !timestamp.includes('+')) {
+                    timestamp += 'Z';
+                }
+                date = new Date(timestamp);
+            } else {
+                // Handle UNIX timestamp (from blocks)
+                date = new Date(timestamp * 1000);
+            }
+            
+            // Check if the date is valid
+            if (isNaN(date.getTime())) {
+                console.error('Invalid date:', timestamp);
+                return '';
+            }
+            
+            const now = new Date();
+            // Convert both dates to UTC for comparison
+            const utcNow = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+            const utcDate = new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+            const diffSeconds = Math.floor((utcNow - utcDate) / 1000);
+            
+            if (diffSeconds < 60) {
+                return 'just now';
+            } else if (diffSeconds < 3600) {
+                const minutes = Math.floor(diffSeconds / 60);
+                return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+            } else if (diffSeconds < 86400) {
+                const hours = Math.floor(diffSeconds / 3600);
+                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+            } else if (diffSeconds < 604800) {
+                const days = Math.floor(diffSeconds / 86400);
+                return `${days} day${days > 1 ? 's' : ''} ago`;
+            } else {
+                // Format date in local timezone
+                return date.toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
+            }
+        } catch (error) {
+            console.error('Error formatting timestamp:', error, 'Value:', timestamp);
+            return '';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add event listener for manual refresh button
+        const refreshStatsBtn = document.getElementById('refreshStats');
+        if (refreshStatsBtn) {
+            refreshStatsBtn.addEventListener('click', function() {
+                refreshDashboardStats();
+            });
+        }
+        
+        // Debug tools event listeners
+        const testApiBtn = document.getElementById('testApi');
+        if (testApiBtn) {
+            testApiBtn.addEventListener('click', function() {
+                testApi();
+            });
+        }
+        
+        const forceRefreshBtn = document.getElementById('forceRefresh');
+        if (forceRefreshBtn) {
+            forceRefreshBtn.addEventListener('click', function() {
+                forceRefresh();
+            });
+        }
+        
+        // Check API status on page load
+        checkApiStatus();
+        
+        // Refresh transactions
+        const refreshTransactionsBtn = document.getElementById('refreshTransactions');
+        if (refreshTransactionsBtn) {
+            refreshTransactionsBtn.addEventListener('click', function() {
+                fetch('{{ url_for("blockchain.api_transactions") }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        const tableBody = document.getElementById('transactionsTableBody');
+                        tableBody.innerHTML = '';
+                        
+                        data.transactions.forEach(tx => {
+                            let statusBadge = '';
+                            if (tx.status === 'confirmed') {
+                                statusBadge = '<span class="badge bg-success">Confirmed</span>';
+                            } else if (tx.status === 'pending') {
+                                statusBadge = '<span class="badge bg-warning text-dark">Pending</span>';
+                            } else if (tx.status === 'failed') {
+                                statusBadge = '<span class="badge bg-danger">Failed</span>';
+                            } else {
+                                statusBadge = `<span class="badge bg-secondary">${tx.status}</span>`;
+                            }
+                            
+                            let entityLink = '';
+                            if (tx.entity_type === 'stock') {
+                                entityLink = `<a href="/blockchain/stock/${tx.entity_id}">Stock #${tx.entity_id}</a>`;
+                            } else if (tx.entity_type === 'request') {
+                                entityLink = `<a href="/blockchain/request/${tx.entity_id}">Request #${tx.entity_id}</a>`;
+                            } else {
+                                entityLink = `${tx.entity_type} #${tx.entity_id}`;
+                            }
+                            
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td><span class="text-truncate d-inline-block" style="max-width: 150px;">${tx.tx_hash}</span></td>
+                                <td>${tx.tx_type}</td>
+                                <td>${entityLink}</td>
+                                <td>${statusBadge}</td>
+                                <td>${formatTimeAgo(tx.created_at)}</td>
+                                <td>
+                                    <a href="/blockchain/transaction/${tx.tx_hash}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching transactions:', error));
+            });
+        }
+        
+        // Refresh blocks
+        const refreshBlocksBtn = document.getElementById('refreshBlocks');
+        if (refreshBlocksBtn) {
+            refreshBlocksBtn.addEventListener('click', function() {
+                fetch('{{ url_for("blockchain.api_blocks") }}')
+                    .then(response => response.json())
+                    .then(data => {
+                        const tableBody = document.getElementById('blocksTableBody');
+                        tableBody.innerHTML = '';
+                        
+                        data.blocks.forEach(block => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${block.number}</td>
+                                <td><span class="text-truncate d-inline-block" style="max-width: 150px;">${block.hash}</span></td>
+                                <td>${block.transactions}</td>
+                                <td>${block.gasUsed}</td>
+                                <td>${formatTimeAgo(block.timestamp)}</td>
+                            `;
+                            tableBody.appendChild(row);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching blocks:', error));
+            });
+        }
+    });
+
+    function refreshDashboardStats() {
+        console.log('Refreshing dashboard stats...');
+        fetch('/blockchain/api/stats')
+            .then(response => {
+                console.log('Response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Stats data received:', data);
+                // Update the API response display
+                updateApiResponse(data);
+                
+                // Check blockchain status
+                checkBlockchainStatus(data);
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    console.log('Updating stats with:', stats);
+                    
+                    // Try multiple approaches to update the stats
+                    
+                    // Approach 1: Use the updateStatCard function
+                    const cards = document.querySelectorAll('.admin-card');
+                    updateStatCard(cards, 'Total Stocks', stats.total_stocks);
+                    updateStatCard(cards, 'Total Requests', stats.total_requests);
+                    updateStatCard(cards, 'Total Ration Requests', stats.total_ration_requests);
+                    updateStatCard(cards, 'Confirmed Transactions', stats.confirmed_transactions);
+                    
+                    // Approach 2: Direct update by index
+                    console.log('Trying direct update by index');
+                    const statCards = Array.from(document.querySelectorAll('.admin-card')).slice(0, 4);
+                    
+                    if (statCards.length >= 4) {
+                        // Update Total Stocks (first card)
+                        const stocksValueEl = statCards[0].querySelector('h3');
+                        if (stocksValueEl) {
+                            console.log('Directly updating Total Stocks to:', stats.total_stocks);
+                            stocksValueEl.textContent = stats.total_stocks;
+                        }
+                        
+                        // Update Total Requests (second card)
+                        const requestsValueEl = statCards[1].querySelector('h3');
+                        if (requestsValueEl) {
+                            console.log('Directly updating Total Requests to:', stats.total_requests);
+                            requestsValueEl.textContent = stats.total_requests;
+                        }
+                        
+                        // Update Total Ration Requests (third card)
+                        const rationRequestsValueEl = statCards[2].querySelector('h3');
+                        if (rationRequestsValueEl) {
+                            console.log('Directly updating Total Ration Requests to:', stats.total_ration_requests);
+                            rationRequestsValueEl.textContent = stats.total_ration_requests;
+                        }
+                        
+                        // Update Confirmed Transactions (fourth card)
+                        const confirmedTxValueEl = statCards[3].querySelector('h3');
+                        if (confirmedTxValueEl) {
+                            console.log('Directly updating Confirmed Transactions to:', stats.confirmed_transactions);
+                            confirmedTxValueEl.textContent = stats.confirmed_transactions;
+                        }
+                    }
+                    
+                    // Approach 3: Most direct approach using all h3 elements
+                    console.log('Trying most direct approach with all h3 elements');
+                    const allH3Elements = document.querySelectorAll('.admin-card h3');
+                    
+                    if (allH3Elements.length >= 4) {
+                        allH3Elements[0].textContent = stats.total_stocks;
+                        allH3Elements[1].textContent = stats.total_requests;
+                        allH3Elements[2].textContent = stats.total_ration_requests;
+                        allH3Elements[3].textContent = stats.confirmed_transactions;
+                        console.log('Updated all stats using direct h3 elements approach');
+                    }
+                } else {
+                    console.error('Error refreshing stats:', data.error);
+                    updateApiStatus('error', `Error: ${data.error || 'Unknown error'}`);
+                }
+            })
+            .catch(error => {
+                console.error('Error refreshing dashboard stats:', error);
+                updateApiStatus('error', `Error: ${error.message || 'Network error'}`);
+            });
+    }
+    
+    // Helper function to update a specific stat card
+    function updateStatCard(cards, titleText, value) {
+        // Log all card titles for debugging
+        console.log('Available cards:');
+        cards.forEach(card => {
+            const titleEl = card.querySelector('h6.text-muted');
+            if (titleEl) {
+                console.log(`- Card title: "${titleEl.textContent.trim()}"`);
+            }
+        });
+        
+        // First try the more specific approach
+        for (const card of cards) {
+            const titleElement = card.querySelector('h6.text-muted');
+            if (titleElement && titleElement.textContent.trim() === titleText) {
+                const valueElement = card.querySelector('h3');
+                if (valueElement) {
+                    console.log(`Updating ${titleText} to:`, value);
+                    valueElement.textContent = value;
+                    return true;
+                }
+            }
+        }
+        
+        // If that fails, try a more direct approach based on the order of cards
+        console.log('First approach failed, trying direct index approach');
+        let index = -1;
+        
+        switch(titleText) {
+            case 'Total Stocks':
+                index = 0;
+                break;
+            case 'Total Requests':
+                index = 1;
+                break;
+            case 'Total Ration Requests':
+                index = 2;
+                break;
+            case 'Confirmed Transactions':
+                index = 3;
+                break;
+        }
+        
+        if (index >= 0 && index < 4) {
+            // Get only the stat cards (first 4 cards)
+            const statCards = Array.from(document.querySelectorAll('.admin-card')).slice(0, 4);
+            if (statCards.length > index) {
+                const card = statCards[index];
+                const valueElement = card.querySelector('h3');
+                if (valueElement) {
+                    console.log(`Updating ${titleText} (by index ${index}) to:`, value);
+                    valueElement.textContent = value;
+                    return true;
+                }
+            }
+        }
+        
+        // If all else fails, try the most direct approach
+        console.log('Second approach failed, trying most direct approach');
+        const allH3Elements = document.querySelectorAll('.admin-card h3');
+        
+        if (allH3Elements.length >= 4) {
+            let h3Index = -1;
+            
+            switch(titleText) {
+                case 'Total Stocks':
+                    h3Index = 0;
+                    break;
+                case 'Total Requests':
+                    h3Index = 1;
+                    break;
+                case 'Total Ration Requests':
+                    h3Index = 2;
+                    break;
+                case 'Confirmed Transactions':
+                    h3Index = 3;
+                    break;
+            }
+            
+            if (h3Index >= 0 && h3Index < allH3Elements.length) {
+                console.log(`Updating ${titleText} (by direct h3 index ${h3Index}) to:`, value);
+                allH3Elements[h3Index].textContent = value;
+                return true;
+            }
+        }
+        
+        console.error(`Could not find card with title: ${titleText}`);
+        return false;
+    }
+    
+    // Debug functions
+    function checkApiStatus() {
+        fetch('/blockchain/api/stats')
+            .then(response => {
+                if (response.ok) {
+                    updateApiStatus('success', 'API is responding normally');
+                    return response.json();
+                } else {
+                    updateApiStatus('warning', `API returned status: ${response.status}`);
+                    throw new Error(`API returned status: ${response.status}`);
+                }
+            })
+            .then(data => {
+                updateApiResponse(data);
+            })
+            .catch(error => {
+                console.error('API check error:', error);
+                updateApiStatus('error', `Error: ${error.message || 'Unknown error'}`);
+            });
+    }
+    
+    function testApi() {
+        updateApiStatus('info', 'Testing API...');
+        fetch('/blockchain/api/test_stats')
+            .then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error(`API returned status: ${response.status}`);
+                }
+            })
+            .then(data => {
+                updateApiResponse(data);
+                updateApiStatus('success', 'Test API responded successfully');
+                
+                // Update the stats with test data
+                if (data.success && data.stats) {
+                    const stats = data.stats;
+                    const cards = document.querySelectorAll('.admin-card');
+                    
+                    updateStatCard(cards, 'Total Stocks', stats.total_stocks);
+                    updateStatCard(cards, 'Total Requests', stats.total_requests);
+                    updateStatCard(cards, 'Total Ration Requests', stats.total_ration_requests);
+                    updateStatCard(cards, 'Confirmed Transactions', stats.confirmed_transactions);
+                }
+            })
+            .catch(error => {
+                console.error('Test API error:', error);
+                updateApiStatus('error', `Error: ${error.message || 'Unknown error'}`);
+            });
+    }
+    
+    function forceRefresh() {
+        updateApiStatus('info', 'Forcing refresh...');
+        
+        // First try the test endpoint
+        fetch('/blockchain/api/test_stats')
+            .then(response => response.json())
+            .then(testData => {
+                // Then try the real endpoint
+                return fetch('/blockchain/api/stats')
+                    .then(response => response.json())
+                    .then(realData => {
+                        // Compare the responses
+                        const comparison = {
+                            test: testData,
+                            real: realData,
+                            timestamp: new Date().toISOString()
+                        };
+                        
+                        updateApiResponse(comparison);
+                        updateApiStatus('success', 'Force refresh completed');
+                        
+                        // Update the stats with real data
+                        if (realData.success && realData.stats) {
+                            const stats = realData.stats;
+                            const cards = document.querySelectorAll('.admin-card');
+                            
+                            updateStatCard(cards, 'Total Stocks', stats.total_stocks);
+                            updateStatCard(cards, 'Total Requests', stats.total_requests);
+                            updateStatCard(cards, 'Total Ration Requests', stats.total_ration_requests);
+                            updateStatCard(cards, 'Confirmed Transactions', stats.confirmed_transactions);
+                        }
+                    });
+            })
+            .catch(error => {
+                console.error('Force refresh error:', error);
+                updateApiStatus('error', `Error: ${error.message || 'Unknown error'}`);
+            });
+    }
+    
+    function updateApiStatus(type, message) {
+        const apiStatus = document.getElementById('apiStatus');
+        if (apiStatus) {
+            apiStatus.className = `alert alert-${type}`;
+            apiStatus.textContent = message;
+        }
+    }
+    
+    function updateApiResponse(data) {
+        const apiResponse = document.getElementById('apiResponse');
+        if (apiResponse) {
+            apiResponse.textContent = JSON.stringify(data, null, 2);
+        }
+    }
+
+    // Function to check blockchain status and data
+    function checkBlockchainStatus(data) {
+        const blockchainStatusEl = document.getElementById('blockchainStatus');
+        if (!blockchainStatusEl) return;
+        
+        if (!data.success) {
+            blockchainStatusEl.className = 'alert alert-danger mt-3';
+            blockchainStatusEl.innerHTML = `<strong>Error:</strong> ${data.error || 'Unknown error'}`;
+            return;
+        }
+        
+        if (!data.blockchain_connected) {
+            blockchainStatusEl.className = 'alert alert-warning mt-3';
+            blockchainStatusEl.innerHTML = '<strong>Warning:</strong> Blockchain is not connected. Using database fallbacks.';
+            return;
+        }
+        
+        const stats = data.stats;
+        const hasData = stats.total_stocks > 0 || stats.total_requests > 0 || stats.total_ration_requests > 0;
+        
+        if (!hasData) {
+            blockchainStatusEl.className = 'alert alert-warning mt-3';
+            blockchainStatusEl.innerHTML = `
+                <strong>No Blockchain Data:</strong> The blockchain is connected but has no stocks or requests.
+                <ul class="mt-2 mb-0">
+                    <li>This is normal if you haven't added any data to the blockchain yet.</li>
+                    <li>Try creating some stocks or requests to see them reflected here.</li>
+                </ul>
+            `;
+        } else {
+            blockchainStatusEl.className = 'alert alert-success mt-3';
+            blockchainStatusEl.innerHTML = `
+                <strong>Blockchain Connected:</strong> Data found on blockchain.
+                <ul class="mt-2 mb-0">
+                    <li>Stocks: ${stats.total_stocks}</li>
+                    <li>Requests: ${stats.total_requests}</li>
+                    <li>Ration Requests: ${stats.total_ration_requests}</li>
+                    <li>Transactions: ${stats.confirmed_transactions} confirmed, ${stats.pending_transactions} pending</li>
+                </ul>
+            `;
+        }
+    }
+
+    // Refresh stats every 10 seconds (reduced from 30 seconds for faster updates)
+    setInterval(refreshDashboardStats, 10000);
+
+    // Initial refresh immediately
+    setTimeout(refreshDashboardStats, 500);
+</script>
+{% endblock %} 

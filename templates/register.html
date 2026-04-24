@@ -6,7 +6,7 @@
         <div class="auth-header">
             <i class="fas fa-user-plus"></i>
             <h2>Choose Your Role</h2>
-            <p>Select your role in the supply chain network</p>
+            <p>Select your role in Aratro</p>
         </div>
 
         <div class="role-selection">
@@ -21,10 +21,17 @@
                 <h3>Warehouse Manager</h3>
                 <p>Register to manage warehouse operations and storage</p>
             </a>
+            
+            <a href="{{ url_for('auth.ration_register') }}" class="role-card">
+                <i class="fas fa-store"></i>
+                <h3>Ration Shop</h3>
+                <p>Register your ration shop for approval and distribution management</p>
+            </a>
         </div>
 
         <div class="auth-footer">
             <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+            <p class="mt-2">Ration shop owner? <a href="{{ url_for('auth.ration_login') }}">Login to your ration shop</a></p>
         </div>
     </div>
 </div>
@@ -34,11 +41,11 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: calc(100vh - 6rem);
-    padding: var(--spacing-md);
-    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: calc(100vh - 4rem);
+    padding: 1rem;
+    background: #e8f5e9;
     position: fixed;
-    top: 0;
+    top: 4rem;
     left: 0;
     right: 0;
     bottom: 0;
@@ -46,101 +53,160 @@
 }
 
 .auth-card {
-    background: var(--surface-color);
-    border-radius: 16px;
-    box-shadow: var(--shadow-lg);
-    padding: var(--spacing-xl);
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
     width: 100%;
     max-width: 800px;
-    border: 1px solid var(--border-color);
+    margin: 0 auto;
 }
 
 .auth-header {
     text-align: center;
-    margin-bottom: var(--spacing-lg);
+    margin-bottom: 2rem;
 }
 
 .auth-header i {
-    font-size: 2.5rem;
+    font-size: 3rem;
     color: var(--primary-color);
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 1rem;
 }
 
 .auth-header h2 {
-    color: var(--text-primary);
-    margin-bottom: var(--spacing-xs);
+    font-size: 1.75rem;
+    margin-bottom: 0.5rem;
+    color: #333;
 }
 
 .auth-header p {
-    color: var(--text-secondary);
+    color: #666;
 }
 
 .role-selection {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: var(--spacing-md);
-    margin: var(--spacing-lg) 0;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
 }
 
 .role-card {
+    background: #f9f9f9;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    text-decoration: none;
+    color: #333;
+    transition: all 0.3s ease;
+    border: 1px solid #eee;
+    height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding: var(--spacing-lg);
-    background: var(--surface-color);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    transition: all 0.3s ease;
-    text-decoration: none;
-    color: var(--text-primary);
 }
 
 .role-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
     border-color: var(--primary-color);
-    background: #f8f9fa;
 }
 
 .role-card i {
-    font-size: 3rem;
+    font-size: 2.5rem;
     color: var(--primary-color);
-    margin-bottom: var(--spacing-md);
-    transition: transform 0.3s ease;
-}
-
-.role-card:hover i {
-    transform: scale(1.1);
+    margin-bottom: 1rem;
 }
 
 .role-card h3 {
-    margin-bottom: var(--spacing-sm);
-    color: var(--text-primary);
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
 }
 
 .role-card p {
-    color: var(--text-secondary);
-    font-size: 1rem;
-    line-height: 1.5;
+    color: #666;
+    font-size: 0.9rem;
+    margin: 0;
 }
 
 .auth-footer {
     text-align: center;
-    margin-top: var(--spacing-lg);
+    color: #666;
 }
 
 .auth-footer a {
     color: var(--primary-color);
     text-decoration: none;
     font-weight: 500;
-    transition: color 0.3s ease;
 }
 
 .auth-footer a:hover {
-    color: var(--primary-dark);
     text-decoration: underline;
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+    .auth-container {
+        padding: 1rem;
+    }
+    
+    .auth-card {
+        padding: 1.5rem;
+    }
+    
+    .auth-header i {
+        font-size: 2.5rem;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .role-selection {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .role-card {
+        padding: 1.25rem;
+    }
+    
+    .role-card i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .role-card h3 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 0.75rem;
+    }
+    
+    .auth-card {
+        padding: 1.25rem;
+        border-radius: 8px;
+    }
+    
+    .auth-header {
+        margin-bottom: 1.5rem;
+    }
+    
+    .auth-header i {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .auth-header h2 {
+        font-size: 1.25rem;
+    }
+    
+    .role-card {
+        padding: 1rem;
+    }
 }
 </style>
 {% endblock %}

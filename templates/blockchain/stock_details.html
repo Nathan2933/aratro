@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Stock #{{ stock.id }} Blockchain Details - Aratro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <div class="d-flex justify-content-between">
+                        <h6>Stock #{{ stock.id }} Blockchain Details</h6>
+                        <a href="{{ url_for('blockchain.dashboard') }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">Stock Information</h6>
+                            <div class="form-group">
+                                <label class="form-control-label">Crop Type</label>
+                                <input class="form-control" type="text" value="{{ stock.crop_type }}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-control-label">Quantity</label>
+                                <input class="form-control" type="text" value="{{ stock.quantity }} tons" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-control-label">Requested Quantity</label>
+                                <input class="form-control" type="text" value="{{ stock.requested_quantity }} tons" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-control-label">Status</label>
+                                <input class="form-control" type="text" value="{{ stock.status }}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-control-label">Created At</label>
+                                <input class="form-control" type="text" value="{{ stock.created_at }}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-control-label">Updated At</label>
+                                <input class="form-control" type="text" value="{{ stock.updated_at }}" readonly>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">Blockchain Information</h6>
+                            <div class="form-group">
+                                <label class="form-control-label">Blockchain ID</label>
+                                <input class="form-control" type="text" value="{{ stock.blockchain_id }}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-control-label">Transaction Hash</label>
+                                <div class="input-group">
+                                    <input class="form-control" type="text" value="{{ stock.blockchain_tx_hash }}" readonly>
+                                    <span class="input-group-text">
+                                        {% if stock.blockchain_tx_hash %}
+                                        <a href="{{ url_for('blockchain.view_transaction', tx_hash=stock.blockchain_tx_hash) }}">
+                                            <i class="fas fa-external-link-alt"></i>
+                                        </a>
+                                        {% else %}
+                                        <i class="fas fa-times text-muted"></i>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-control-label">Farmer Address</label>
+                                <input class="form-control" type="text" value="{{ stock.farmer_address }}" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-control-label">Warehouse Address</label>
+                                <input class="form-control" type="text" value="{{ stock.warehouse_address }}" readonly>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <h6>Blockchain Transaction History</h6>
+                </div>
+                <div class="card-body px-0 pt-0 pb-2">
+                    <div class="table-responsive p-0">
+                        <table class="table align-items-center mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Transaction Hash</th>
+                                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 ps-2">Type</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Status</th>
+                                    <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">Timestamp</th>
+                                    <th class="text-secondary opacity-7"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for tx in transactions %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex px-2 py-1">
+                                            <div class="d-flex flex-column justify-content-center">
+                                                <h6 class="mb-0 text-sm">{{ tx.tx_hash[:10] }}...{{ tx.tx_hash[-8:] }}</h6>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <p class="text-xs font-weight-bold mb-0">{{ tx.tx_type }}</p>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="badge badge-sm bg-gradient-{{ tx.status_color }}">{{ tx.status }}</span>
+                                    </td>
+                                    <td class="align-middle text-center">
+                                        <span class="text-secondary text-xs font-weight-bold">{{ tx.created_at|timeago }}</span>
+                                    </td>
+                                    <td class="align-middle">
+                                        {% if tx.tx_hash %}
+                                        <a href="{{ url_for('blockchain.view_transaction', tx_hash=tx.tx_hash) }}" class="text-secondary font-weight-bold text-xs" data-toggle="tooltip" data-original-title="View transaction">
+                                            View
+                                        </a>
+                                        {% else %}
+                                        <span class="text-muted text-xs">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4">
+                <div class="card-header pb-0">
+                    <h6>Blockchain Data Verification</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="alert alert-info" role="alert">
+                                <strong>Verification Status:</strong> 
+                                {% if is_verified %}
+                                <span class="text-success">Verified ✓</span> - The data on the blockchain matches the database record.
+                                {% else %}
+                                <span class="text-danger">Not Verified ✗</span> - The data on the blockchain does not match the database record.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">Database Record</h6>
+                            <pre class="bg-light p-3 rounded">{{ db_data|tojson(indent=2) }}</pre>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-uppercase text-body text-xs font-weight-bolder mb-3">Blockchain Record</h6>
+                            <pre class="bg-light p-3 rounded">{{ blockchain_data|tojson(indent=2) }}</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

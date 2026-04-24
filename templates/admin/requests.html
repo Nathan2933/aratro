@@ -1,0 +1,149 @@
+{% extends "admin/base_admin.html" %}
+
+{% block title %}Admin - Requests{% endblock %}
+
+{% block admin_content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <div>
+        <h1 class="page-title">Stock Requests Management</h1>
+        <p class="page-subtitle">View and manage all stock requests</p>
+    </div>
+    <div>
+        <span class="admin-badge admin-badge-primary">
+            <i class="bi bi-person-badge me-1"></i>
+            Admin
+        </span>
+    </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="admin-card">
+    <div class="admin-card-header">
+        <h5 class="admin-card-title">
+            <i class="bi bi-list-check me-2"></i>
+            All Stock Requests
+        </h5>
+        <div class="search-input">
+            <i class="bi bi-search"></i>
+            <input type="text" id="requestSearch" class="form-control form-control-sm" placeholder="Search requests...">
+        </div>
+    </div>
+    <div class="admin-card-body">
+        <div class="table-responsive">
+            <table class="admin-table" id="requestsTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Farmer</th>
+                        <th>Warehouse</th>
+                        <th>Stock Type</th>
+                        <th>Quantity</th>
+                        <th>Status</th>
+                        <th>Request Date</th>
+                        <th>Last Updated</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if requests %}
+                        {% for request in requests %}
+                            <tr>
+                                <td>{{ request.id }}</td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center me-2" style="width: 36px; height: 36px; border-radius: 50%;">
+                                            <span>{{ request.farmer.name[0] | upper }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="fw-medium">{{ request.farmer.name }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ request.warehouse.name }}</td>
+                                <td>{{ request.stock.type }}</td>
+                                <td>{{ request.stock.quantity }}</td>
+                                <td>
+                                    {% if request.status == 'pending' %}
+                                        <span class="admin-badge admin-badge-warning">
+                                            <i class="bi bi-hourglass-split me-1"></i>
+                                            Pending
+                                        </span>
+                                    {% elif request.status == 'accepted' %}
+                                        <span class="admin-badge admin-badge-success">
+                                            <i class="bi bi-check-circle me-1"></i>
+                                            Accepted
+                                        </span>
+                                    {% elif request.status == 'rejected' %}
+                                        <span class="admin-badge admin-badge-danger">
+                                            <i class="bi bi-x-circle me-1"></i>
+                                            Rejected
+                                        </span>
+                                    {% elif request.status == 'partial' %}
+                                        <span class="admin-badge admin-badge-primary">
+                                            <i class="bi bi-pie-chart me-1"></i>
+                                            Partial
+                                        </span>
+                                    {% else %}
+                                        <span class="admin-badge admin-badge-primary">
+                                            <i class="bi bi-info-circle me-1"></i>
+                                            {{ request.status }}
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ request.request_date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ request.updated_at.strftime('%Y-%m-%d') }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-inbox fs-3 mb-3 d-block"></i>
+                                    <p>No stock requests available.</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('requestSearch');
+    const table = document.getElementById('requestsTable');
+    const rows = table.getElementsByTagName('tr');
+    
+    searchInput.addEventListener('keyup', function() {
+        const query = searchInput.value.toLowerCase();
+        
+        for (let i = 1; i < rows.length; i++) {
+            let found = false;
+            const cells = rows[i].getElementsByTagName('td');
+            
+            for (let j = 0; j < cells.length; j++) {
+                if (cells[j].textContent.toLowerCase().indexOf(query) > -1) {
+                    found = true;
+                    break;
+                }
+            }
+            
+            rows[i].style.display = found ? '' : 'none';
+        }
+    });
+});
+</script>
+{% endblock %}
+{% endblock %} 
